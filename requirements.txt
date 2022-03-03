@@ -2,3 +2,4 @@ mido >= 1.2.10
 pytest-runner >= 6.0.0
 pytest >= 7.0.1
 twine >= 3.8.0
+numpy >= 1.22.2

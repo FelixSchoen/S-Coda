@@ -3,6 +3,8 @@ PPQN = 24
 # Amount of velocity bins to use. Note that any velocity smaller than the bound of the smallest bin will be mapped to
 # the velocity of the smallest bin
 VELOCITY_BINS = 8
+# The maximum velocity value
+MAX_VELOCITY = 128
 
 
 def set_ppqn(ppqn: int) -> None:
