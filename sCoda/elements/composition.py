@@ -44,9 +44,12 @@ class Composition:
                 if msg.time is not None:
                     current_point_in_time += msg.time
 
-                if msg.type == "note_on":
+                if msg.type == "note_on" and msg.velocity > 0:
                     current_sequence.add_message(
-                        Message.gen_time_signature(msg.numerator, msg.denominator, current_point_in_time))
+                        Message.gen_note_on(msg.note, msg.velocity, current_point_in_time))
+                if msg.type == "note_on" and msg.velocity == 0:
+                    current_sequence.add_message(
+                        Message.gen_note_off(msg.note, current_point_in_time))
                 elif msg.type == "time_signature":
                     if i not in meta_track_indices:
                         logging.warning("Encountered time signature change in unexpected track")

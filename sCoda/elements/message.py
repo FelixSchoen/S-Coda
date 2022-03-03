@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import enum
 
+from sCoda.util.util import digitise_velocity
+
 
 class MessageType(enum.Enum):
     note_on = "note_on"
@@ -29,7 +31,26 @@ class Message:
 
     @staticmethod
     def gen_note_on(note: int, velocity_unbinned: int, time: int = None) -> Message:
-        pass
+        msg = Message()
+        msg.message_type = MessageType.note_on
+        msg.note = note
+        msg.velocity = digitise_velocity(velocity_unbinned)
+
+        if time is not None:
+            msg.time = time
+
+        return msg
+
+    @staticmethod
+    def gen_note_off(note: int, time: int = None) -> Message:
+        msg = Message()
+        msg.message_type = MessageType.note_off
+        msg.note = note
+
+        if time is not None:
+            msg.time = time
+
+        return msg
 
     @staticmethod
     def gen_time_signature(numerator: int, denominator: int, time: int = None) -> Message:
@@ -69,4 +90,7 @@ class Message:
 
         return representation
 
-
+    def __lt__(self, other):
+        message_type_order = [MessageType.note_on, MessageType.note_off, MessageType.wait, MessageType.time_signature,
+                              MessageType.control_change]
+        return message_type_order.index(self.message_type) < message_type_order.index(other.message_type)
