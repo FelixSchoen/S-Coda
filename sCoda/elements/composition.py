@@ -6,6 +6,7 @@ from mido import MidiFile
 
 from sCoda.elements.message import Message, MessageType
 from sCoda.sequence.absolute_sequence import AbsoluteSequence
+from sCoda.settings import PPQN
 
 
 class Composition:
@@ -28,6 +29,9 @@ class Composition:
         acmp_sequences = [AbsoluteSequence() for _ in accompanying_track_indices]
         meta_sequence = AbsoluteSequence()
 
+        # PPQN scaling
+        scaling_factor = PPQN / midi_file.ticks_per_beat
+
         # Iterate over all tracks in midi file
         for i, track in enumerate(midi_file.tracks):
             # Skip tracks not specified
@@ -49,7 +53,7 @@ class Composition:
             for j, msg in enumerate(track):
                 # Add time induced by message
                 if msg.time is not None:
-                    current_point_in_time += msg.time
+                    current_point_in_time += (msg.time * scaling_factor)
 
                 if msg.type == "note_on" and msg.velocity > 0:
                     current_sequence.add_message(
