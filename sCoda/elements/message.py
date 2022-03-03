@@ -18,16 +18,16 @@ class Message:
     Class representing a musical message.
     """
 
-    def __init__(self) -> None:
+    def __init__(self, message_type: MessageType = None, note: int = None, velocity: int = None, control: int = None,
+                 numerator: int = None, denominator: int = None, time: int = None) -> None:
         super().__init__()
-        self.time = None
-        self.message_type = None
-        self.note = None
-        self.velocity = None
-        self.control = None
-        self.value = None
-        self.numerator = None
-        self.denominator = None
+        self.time = time
+        self.message_type = message_type
+        self.note = note
+        self.velocity = velocity
+        self.control = control
+        self.numerator = numerator
+        self.denominator = denominator
 
     @staticmethod
     def gen_note_on(note: int, velocity_unbinned: int, time: int = None) -> Message:
@@ -64,14 +64,23 @@ class Message:
 
         return msg
 
+    @staticmethod
+    def gen_control_change(control: int, value: int, time: int = None) -> Message:
+        msg = Message()
+        msg.message_type = MessageType.control_change
+        msg.control = control
+        msg.velocity = value
+
+        if time is not None:
+            msg.time = time
+
+        return msg
+
     def __repr__(self) -> str:
         representation = f"{self.message_type.value}:"
 
         if self.time is not None:
             representation += f" time={self.time}"
-
-        if self.value is not None:
-            representation += f" value={self.value}"
 
         if self.note is not None:
             representation += f" note={self.note}"

@@ -2,7 +2,7 @@ from sCoda.util.util import digitise_velocity, bin_from_velocity
 
 
 def test_velocity_values_digitised_to_correct_bins():
-    values_to_digitise = [(1, 16), (17, 16), (31, 32), (33, 32)]
+    values_to_digitise = [(1, 16), (17, 16), (31, 32), (33, 32), (126, 127)]
 
     for pair in values_to_digitise:
         assert digitise_velocity(pair[0]) == pair[1]

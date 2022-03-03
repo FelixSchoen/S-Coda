@@ -4,7 +4,7 @@ PPQN = 24
 # the velocity of the smallest bin
 VELOCITY_BINS = 8
 # The maximum velocity value
-MAX_VELOCITY = 128
+MAX_VELOCITY = 127
 
 
 def set_ppqn(ppqn: int) -> None:

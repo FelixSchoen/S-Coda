@@ -4,7 +4,7 @@ import logging
 
 from mido import MidiFile
 
-from sCoda.elements.message import Message
+from sCoda.elements.message import Message, MessageType
 from sCoda.sequence.absolute_sequence import AbsoluteSequence
 
 
@@ -26,9 +26,14 @@ class Composition:
         # Create absolute sequences
         lead_sequence = AbsoluteSequence()
         acmp_sequences = [AbsoluteSequence() for _ in accompanying_track_indices]
+        meta_sequence = AbsoluteSequence()
 
         # Iterate over all tracks in midi file
         for i, track in enumerate(midi_file.tracks):
+            # Skip tracks not specified
+            if i != lead_track_index and i not in accompanying_track_indices and i not in meta_track_indices:
+                continue
+
             # Keep track of current point in time
             current_point_in_time = 0
 
@@ -38,6 +43,8 @@ class Composition:
                 current_sequence = lead_sequence
             elif i in accompanying_track_indices:
                 current_sequence = acmp_sequences[accompanying_track_indices.index(i)]
+            elif i in meta_track_indices:
+                current_sequence = meta_sequence
 
             for j, msg in enumerate(track):
                 # Add time induced by message
@@ -46,19 +53,21 @@ class Composition:
 
                 if msg.type == "note_on" and msg.velocity > 0:
                     current_sequence.add_message(
-                        Message.gen_note_on(msg.note, msg.velocity, current_point_in_time))
-                if msg.type == "note_on" and msg.velocity == 0:
+                        Message(message_type=MessageType.note_on, note=msg.note, velocity=msg.velocity,
+                                time=current_point_in_time))
+                elif msg.type == "note_on" and msg.velocity == 0:
                     current_sequence.add_message(
-                        Message.gen_note_off(msg.note, current_point_in_time))
+                        Message(message_type=MessageType.note_off, note=msg.note, time=current_point_in_time))
                 elif msg.type == "time_signature":
                     if i not in meta_track_indices:
                         logging.warning("Encountered time signature change in unexpected track")
 
                     lead_sequence.add_message(
-                        Message.gen_time_signature(msg.numerator, msg.denominator, current_point_in_time))
-
-        print()
-        for msg in lead_sequence._messages:
-            print(msg[1])
+                        Message(message_type=MessageType.time_signature, numerator=msg.numerator,
+                                denominator=msg.denominator, time=current_point_in_time))
+                elif msg.type == "control_change":
+                    meta_sequence.add_message(
+                        Message(message_type=MessageType.control_change, control=msg.control, velocity=msg.value,
+                                time=current_point_in_time))
 
         return composition

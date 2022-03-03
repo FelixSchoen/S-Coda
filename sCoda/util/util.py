@@ -25,15 +25,15 @@ def velocity_from_bin(bin_index: int) -> int:
     :param bin_index: Index of the bin to get the velocity for
     :return: The corresponding velocity
     """
-    bin_size = MAX_VELOCITY / VELOCITY_BINS
-    return int((bin_index + 1) * bin_size)
+    bin_size = round(MAX_VELOCITY / VELOCITY_BINS)
+    return int(min(MAX_VELOCITY, (bin_index + 1) * bin_size))
 
 
 def bin_from_velocity(velocity: int) -> int:
     if velocity <= 0 or velocity > MAX_VELOCITY:
         raise ValueError("Velocity not contained in any bag")
 
-    bin_size = MAX_VELOCITY / VELOCITY_BINS
+    bin_size = round(MAX_VELOCITY / VELOCITY_BINS)
     bins = [min(MAX_VELOCITY, ((i + 1) * bin_size) + bin_size / 2) for i in range(0, VELOCITY_BINS)]
 
     return np.digitize(velocity, bins, right=True).item(-1)

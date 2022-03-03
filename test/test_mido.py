@@ -7,6 +7,7 @@ def test_import_midi_file():
     for i, track in enumerate(midi.tracks):
         print('Track {}: {}'.format(i, track.name))
         for msg in track:
-            print(msg)
+            if msg.type != "note_on" and msg.type != "set_tempo":
+                print(msg)
 
     assert True
