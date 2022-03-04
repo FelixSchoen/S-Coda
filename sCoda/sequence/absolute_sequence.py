@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import copy
 from bisect import insort
 
@@ -21,12 +23,12 @@ class AbsoluteSequence(Sequence):
     def quantise(self, fractions: [int]) -> None:
         """ Quantises the sequence to a given grid.
 
-        Quantises the sequence stored in this object according to the given fractions. These fractions determine the step size
-        of the grid, e.g., an entry of 8 would correspond in a grid size of PPQN / 8. If PPQN were 24, the grid would
-        support the length 3, in this example thirty-secondth notes. If there exists a tie between two grid boundaries,
-        these are first resolved by whether the quantisation would prevent a note-length of 0, then by the order of the
-        fractions array. The result of this operation is that all messages of this sequence have a time divisible by
-        PPQN / fraction, for all entries in fractions.
+        Quantises the sequence stored in this object according to the given fractions. These fractions determine the
+        step size of the grid, e.g., an entry of 8 would correspond in a grid size of PPQN / 8. If PPQN were 24,
+        the grid would support the length 3, in this example thirty-secondth notes. If there exists a tie between two
+        grid boundaries, these are first resolved by whether the quantisation would prevent a note-length of 0,
+        then by the order of the fractions array. The result of this operation is that all messages of this sequence
+        have a time divisible by PPQN / fraction, for all entries in fractions.
 
         Args:
             fractions: Array of number by which the PPQN will be divided to determine possible step-size for the grid
@@ -82,3 +84,8 @@ class AbsoluteSequence(Sequence):
             quantified_messages.append(message_to_append)
 
         self._messages = quantified_messages
+
+    def merge(self, sequences: [AbsoluteSequence]) -> None:
+        for sequence in sequences:
+            for msg in copy.deepcopy(sequence._messages):
+                insort(self._messages, msg)

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import copy
 import logging
 
 from mido import MidiFile
@@ -19,14 +20,13 @@ class Composition:
         self._tracks = []
 
     @staticmethod
-    def from_file(file_path: str, lead_track_index: int, accompanying_track_indices: [int],
-                  meta_track_indices: [int]) -> Composition:
+    def from_file(file_path: str, track_indices: [[int]],
+                  meta_track_indices: [int], meta_track_index: int = 0) -> Composition:
         composition = Composition()
         midi_file = MidiFile(file_path)
 
         # Create absolute sequences
-        lead_sequence = AbsoluteSequence()
-        acmp_sequences = [AbsoluteSequence() for _ in accompanying_track_indices]
+        sequences = [[AbsoluteSequence() for _ in indices] for indices in track_indices]
         meta_sequence = AbsoluteSequence()
 
         # PPQN scaling
@@ -35,7 +35,7 @@ class Composition:
         # Iterate over all tracks in midi file
         for i, track in enumerate(midi_file.tracks):
             # Skip tracks not specified
-            if i != lead_track_index and i not in accompanying_track_indices and i not in meta_track_indices:
+            if not any(i in indices for indices in track_indices) and i not in meta_track_indices:
                 continue
 
             # Keep track of current point in time
@@ -43,10 +43,9 @@ class Composition:
 
             # Get current sequence
             current_sequence = None
-            if i == lead_track_index:
-                current_sequence = lead_sequence
-            elif i in accompanying_track_indices:
-                current_sequence = acmp_sequences[accompanying_track_indices.index(i)]
+            if any(i in indices for indices in track_indices):
+                array = next(array for array in track_indices if i in array)
+                current_sequence = sequences[track_indices.index(array)][array.index(i)]
             elif i in meta_track_indices:
                 current_sequence = meta_sequence
 
@@ -66,7 +65,7 @@ class Composition:
                     if i not in meta_track_indices:
                         logging.warning("Encountered time signature change in unexpected track")
 
-                    lead_sequence.add_message(
+                    meta_sequence.add_message(
                         Message(message_type=MessageType.time_signature, numerator=msg.numerator,
                                 denominator=msg.denominator, time=current_point_in_time))
                 elif msg.type == "control_change":
@@ -74,7 +73,22 @@ class Composition:
                         Message(message_type=MessageType.control_change, control=msg.control, velocity=msg.value,
                                 time=current_point_in_time))
 
-        lead_sequence.quantise([8, 12])
+        final_sequences = []
+
+        for sequences_to_merge in sequences:
+            sequence = copy.deepcopy(sequences_to_merge[0])
+            sequence.merge(sequences_to_merge[1:])
+            final_sequences.append(sequence)
+
+        if 0 > meta_track_index or meta_track_index >= len(final_sequences):
+            raise ValueError("Invalid meta track index")
+
+        final_sequences[meta_track_index].merge([meta_sequence])
+
+        # TODO Testing purposes
+        final_sequences[0].quantise([8, 12])
+        final_sequences[0].merge([final_sequences[0]])
+
         # TODO Add to composition
 
         return composition
