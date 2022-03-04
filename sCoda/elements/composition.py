@@ -74,4 +74,7 @@ class Composition:
                         Message(message_type=MessageType.control_change, control=msg.control, velocity=msg.value,
                                 time=current_point_in_time))
 
+        lead_sequence.quantise([8, 12])
+        # TODO Add to composition
+
         return composition

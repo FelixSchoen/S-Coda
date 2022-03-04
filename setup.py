@@ -17,7 +17,7 @@ setup(
     author="Felix Schoen",
     license="MIT",
     install_requires=["mido >= 1.2.10", "numpy >= 1.22.2"],
-    setup_requires=["pytest-runner >= 6.0.0", "twine >= 3.8.0"],
+    setup_requires=["pytest-runner >= 6.0.0", "twine >= 3.8.0", "pdoc3 >= 0.10.0"],
     tests_require=["pytest >= 7.0.1"],
     test_suite="test",
 )
