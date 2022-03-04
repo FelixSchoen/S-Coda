@@ -51,3 +51,17 @@ def bin_from_velocity(velocity: int) -> int:
     bins = [min(MAX_VELOCITY, ((i + 1) * bin_size) + bin_size / 2) for i in range(0, VELOCITY_BINS)]
 
     return np.digitize(velocity, bins, right=True).item(-1)
+
+
+def b_insort(collection: list, x) -> None:
+    lo = 0
+    hi = len(collection)
+
+    while lo < hi:
+        mid = (lo + hi) // 2
+        if x.time < collection[mid].time:
+            hi = mid
+        else:
+            lo = mid + 1
+
+    collection.insert(lo, x)

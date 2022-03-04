@@ -76,7 +76,7 @@ class Composition:
         final_sequences = []
 
         for sequences_to_merge in sequences:
-            sequence = copy.deepcopy(sequences_to_merge[0])
+            sequence = copy.copy(sequences_to_merge[0])
             sequence.merge(sequences_to_merge[1:])
             final_sequences.append(sequence)
 
@@ -88,6 +88,7 @@ class Composition:
         # TODO Testing purposes
         final_sequences[0].quantise([8, 12])
         final_sequences[0].merge([final_sequences[0]])
+        final_sequences[0].to_relative_sequence()
 
         # TODO Add to composition
 

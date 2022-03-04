@@ -1,11 +1,14 @@
 from __future__ import annotations
 
 import copy
-from bisect import insort
+from _bisect import bisect_right
+from bisect import insort, bisect
 
 from sCoda.elements.message import Message, MessageType
+from sCoda.sequence.relative_sequence import RelativeSequence
 from sCoda.sequence.sequence import Sequence
 from sCoda.settings import PPQN
+from sCoda.util.util import b_insort
 
 
 class AbsoluteSequence(Sequence):
@@ -15,10 +18,9 @@ class AbsoluteSequence(Sequence):
 
     def __init__(self) -> None:
         super().__init__()
-        self._messages = []
 
     def add_message(self, msg: Message) -> None:
-        insort(self._messages, (msg.time, msg))
+        b_insort(self.messages, msg)
 
     def quantise(self, fractions: [int]) -> None:
         """ Quantises the sequence to a given grid.
@@ -38,25 +40,26 @@ class AbsoluteSequence(Sequence):
         # Keep track of open messages, in order to guarantee quantisation does not smother them
         open_messages = dict()
 
-        for timing, msg in self._messages:
-            message_to_append = copy.deepcopy(msg)
+        for msg in self.messages:
+            time = msg.time
+            message_to_append = copy.copy(msg)
 
             # Size of the steps for each of the quantisation parameters
             step_sizes = [PPQN / i for i in fractions]
 
             # Positions the note would land at according to each of the quantisation parameters
-            positions_left = [(timing // step_size) * step_size for step_size in step_sizes]
+            positions_left = [(time // step_size) * step_size for step_size in step_sizes]
             positions_right = [positions_left[i] + step_sizes[i] for i in range(0, len(fractions))]
             positions = [positions_left, positions_right]
 
             # Check if exact hit exists
-            if timing in positions_left:
+            if time in positions_left:
                 pass
             else:
                 # Entries consist of distance, index of quantisation parameter, index of position array
                 distances = []
-                distances_left = [(timing - positions_left[i], i, 0) for i in range(0, len(fractions))]
-                distances_right = [(positions_right[i] - timing, i, 1) for i in range(0, len(fractions))]
+                distances_left = [(time - positions_left[i], i, 0) for i in range(0, len(fractions))]
+                distances_right = [(positions_right[i] - time, i, 1) for i in range(0, len(fractions))]
 
                 # Sort by smallest distance
                 distances.extend(distances_left)
@@ -68,7 +71,7 @@ class AbsoluteSequence(Sequence):
                     note_open_timing = open_messages[msg.note]
 
                     # Rank those entries back, that would induce a play time of smaller equal 0
-                    for i, entry in enumerate(copy.deepcopy(distances)):
+                    for i, entry in enumerate(copy.copy(distances)):
                         if positions[entry[2]][entry[1]] - note_open_timing <= 0:
                             distances.append(distances.pop(i))
 
@@ -83,9 +86,40 @@ class AbsoluteSequence(Sequence):
 
             quantified_messages.append(message_to_append)
 
-        self._messages = quantified_messages
+        self.messages = quantified_messages
 
     def merge(self, sequences: [AbsoluteSequence]) -> None:
+        """ Merges this sequence with all the given ones.
+
+        Args:
+            sequences: The sequences to merge with this one
+
+        Returns: The sequence that contains all messages of this and the given sequences, conserving the timings
+
+        """
         for sequence in sequences:
-            for msg in copy.deepcopy(sequence._messages):
-                insort(self._messages, msg)
+            for msg in copy.copy(sequence.messages):
+                b_insort(self.messages, msg)
+
+    def to_relative_sequence(self) -> RelativeSequence:
+        """ Converts this AbsoluteSequence to a RelativeSequence
+
+        Returns: The relative representation of this sequence
+
+        """
+        relative_sequence = RelativeSequence()
+        current_point_in_time = 0
+
+        for msg in self.messages:
+            time = msg.time
+            # Check if we have to add wait messages
+            if time > current_point_in_time:
+                relative_sequence.add_message(
+                    Message(message_type=MessageType.wait, time=time - current_point_in_time))
+                current_point_in_time = time
+
+            message_to_add = copy.copy(msg)
+            message_to_add.time = None
+            relative_sequence.add_message(message_to_add)
+
+        return relative_sequence
