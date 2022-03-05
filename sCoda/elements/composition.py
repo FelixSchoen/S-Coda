@@ -86,17 +86,13 @@ class Composition:
 
         # TODO Testing purposes
         final_sequences[0].quantise([8, 12])
-        split_sequences = final_sequences[0].to_relative_sequence().split([24*4])
+        split_sequences = final_sequences[0].to_relative_sequence().split([24*2, 24*2])
 
-        first_sequence = split_sequences[0]
-
-        for msg in first_sequence.messages:
-            print(msg)
-
-        track = first_sequence.to_midi_track()
-        midi_file = MidiFile()
-        midi_file.tracks.append(track)
-        midi_file.save("../output/test.mid")
+        for i, sequence in enumerate(split_sequences):
+            track = sequence.to_midi_track()
+            midi_file = MidiFile()
+            midi_file.tracks.append(track)
+            midi_file.save(f"../output/test{i}.mid")
 
         # TODO Add to composition
 

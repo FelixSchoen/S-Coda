@@ -13,3 +13,8 @@ def test_velocity_digitised_to_correct_bin_indices():
 
     for pair in values_to_digitise:
         assert bin_from_velocity(pair[0]) == pair[1]
+
+
+def test_remove_me():
+    array = [1, 2, 3, 4, 5, 6, 7, 8, 9]
+    print(array[2:])

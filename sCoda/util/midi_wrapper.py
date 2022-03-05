@@ -3,6 +3,7 @@ from __future__ import annotations
 import mido
 
 from sCoda.elements.message import MessageType
+from sCoda.settings import PPQN
 
 
 class MidiFile:
@@ -27,6 +28,7 @@ class MidiFile:
 
     def save(self, path):
         mido_midi_file = mido.MidiFile()
+        mido_midi_file.ticks_per_beat = PPQN
 
         for track in self.tracks:
             mido_midi_file.tracks.append(track.to_mido_track())
