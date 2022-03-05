@@ -1,8 +1,6 @@
 from __future__ import annotations
 
 import copy
-from _bisect import bisect_right
-from bisect import insort, bisect
 
 from sCoda.elements.message import Message, MessageType
 from sCoda.sequence.relative_sequence import RelativeSequence

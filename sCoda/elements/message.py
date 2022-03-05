@@ -27,6 +27,13 @@ class Message:
         self.numerator = numerator
         self.denominator = denominator
 
+    def __copy__(self) -> Message:
+        return Message(message_type=self.message_type, note=self.note, velocity=self.velocity, control=self.control,
+                       numerator=self.numerator, denominator=self.denominator, time=self.time)
+
+    def __deepcopy__(self, memodict=None) -> Message:
+        return self.__copy__()
+
     def __repr__(self) -> str:
         representation = f"{self.message_type.value}:"
 

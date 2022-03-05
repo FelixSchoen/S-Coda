@@ -87,8 +87,11 @@ class Composition:
 
         # TODO Testing purposes
         final_sequences[0].quantise([8, 12])
-        final_sequences[0].merge([final_sequences[0]])
-        final_sequences[0].to_relative_sequence()
+        split_sequences = final_sequences[0].to_relative_sequence().split([24*4])
+        print(f"Length of sequences: {len(split_sequences)}, starting to print now:")
+
+        for msg in split_sequences[0].messages:
+            print(msg)
 
         # TODO Add to composition
 
