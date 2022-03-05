@@ -3,6 +3,7 @@ from __future__ import annotations
 from sCoda.elements.message import Message, MessageType
 from sCoda.sequence.sequence import Sequence
 from sCoda.util.hn_iterator import HNIterator
+from sCoda.util.midi_wrapper import MidiTrack, MidiMessage
 
 
 class RelativeSequence(Sequence):
@@ -12,6 +13,16 @@ class RelativeSequence(Sequence):
 
     def __init__(self) -> None:
         super().__init__()
+
+    def to_midi_track(self) -> MidiTrack:
+        track = MidiTrack()
+
+        for msg in self.messages:
+            track.messages.append(
+                MidiMessage(message_type=msg.message_type, time=msg.time, note=msg.note, velocity=msg.velocity,
+                            control=msg.control, numerator=msg.numerator, denominator=msg.denominator))
+
+        return track
 
     def add_message(self, msg: Message) -> None:
         self.messages.append(msg)

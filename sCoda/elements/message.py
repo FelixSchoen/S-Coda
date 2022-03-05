@@ -19,8 +19,8 @@ class Message:
     def __init__(self, message_type: MessageType = None, note: int = None, velocity: int = None, control: int = None,
                  numerator: int = None, denominator: int = None, time: int = None) -> None:
         super().__init__()
-        self.time = time
         self.message_type = message_type
+        self.time = time
         self.note = note
         self.velocity = velocity
         self.control = control
