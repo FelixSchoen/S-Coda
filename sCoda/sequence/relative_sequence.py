@@ -197,6 +197,7 @@ class RelativeSequence(AbstractSequence):
         Returns: The absolute representation of this sequence
 
         """
+        from sCoda.sequence.absolute_sequence import AbsoluteSequence
         absolute_sequence = AbsoluteSequence()
         current_point_in_time = 0
 

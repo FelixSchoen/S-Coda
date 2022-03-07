@@ -5,6 +5,7 @@ import logging
 
 from sCoda.elements.message import Message, MessageType
 from sCoda.sequence.absolute_sequence import AbsoluteSequence
+from sCoda.sequence.sequence import Sequence
 from sCoda.settings import PPQN
 from sCoda.util.midi_wrapper import MidiFile
 
@@ -25,8 +26,8 @@ class Composition:
         midi_file = MidiFile.open_midi_file(file_path)
 
         # Create absolute sequences
-        sequences = [[AbsoluteSequence() for _ in indices] for indices in track_indices]
-        meta_sequence = AbsoluteSequence()
+        sequences = [[Sequence() for _ in indices] for indices in track_indices]
+        meta_sequence = Sequence()
 
         # PPQN scaling
         scaling_factor = PPQN / midi_file.PPQN
@@ -54,21 +55,21 @@ class Composition:
                     current_point_in_time += (msg.time * scaling_factor)
 
                 if msg.message_type == MessageType.note_on and any(i in indices for indices in track_indices):
-                    current_sequence.add_message(
+                    current_sequence.add_absolute_message(
                         Message(message_type=MessageType.note_on, note=msg.note, velocity=msg.velocity,
                                 time=current_point_in_time))
                 elif msg.message_type == MessageType.note_off and any(i in indices for indices in track_indices):
-                    current_sequence.add_message(
+                    current_sequence.add_absolute_message(
                         Message(message_type=MessageType.note_off, note=msg.note, time=current_point_in_time))
                 elif msg.message_type == MessageType.time_signature:
                     if i not in meta_track_indices:
                         logging.warning("Encountered time signature change in unexpected track")
 
-                    meta_sequence.add_message(
+                    meta_sequence.add_absolute_message(
                         Message(message_type=MessageType.time_signature, numerator=msg.numerator,
                                 denominator=msg.denominator, time=current_point_in_time))
                 elif msg.message_type == MessageType.control_change:
-                    meta_sequence.add_message(
+                    meta_sequence.add_absolute_message(
                         Message(message_type=MessageType.control_change, control=msg.control, velocity=msg.velocity,
                                 time=current_point_in_time))
 
@@ -88,7 +89,7 @@ class Composition:
         final_sequences[0].quantise([2, 3, 4, 6, 8, 12])
         final_sequences[0].quantise_note_lengths(1, 2)
 
-        split_sequences = final_sequences[0].to_relative_sequence().split([24 * 2, 24 * 2])
+        split_sequences = final_sequences[0].split([24 * 2, 24 * 2])
 
         for i, sequence in enumerate(split_sequences):
             sequence.transpose(5)
