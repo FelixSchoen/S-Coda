@@ -53,11 +53,11 @@ class Composition:
                 if msg.time is not None:
                     current_point_in_time += (msg.time * scaling_factor)
 
-                if msg.message_type == MessageType.note_on:
+                if msg.message_type == MessageType.note_on and any(i in indices for indices in track_indices):
                     current_sequence.add_message(
                         Message(message_type=MessageType.note_on, note=msg.note, velocity=msg.velocity,
                                 time=current_point_in_time))
-                elif msg.message_type == MessageType.note_off:
+                elif msg.message_type == MessageType.note_off and any(i in indices for indices in track_indices):
                     current_sequence.add_message(
                         Message(message_type=MessageType.note_off, note=msg.note, time=current_point_in_time))
                 elif msg.message_type == MessageType.time_signature:
@@ -85,8 +85,16 @@ class Composition:
         final_sequences[meta_track_index].merge([meta_sequence])
 
         # TODO Testing purposes
-        final_sequences[0].quantise([8, 12])
-        split_sequences = final_sequences[0].to_relative_sequence().split([24*2, 24*2])
+        final_sequences[0].quantise([2, 3, 4, 6, 8, 12])
+        final_sequences[0].quantise_note_lengths(1, 2)
+
+        for msg in final_sequences[0].messages:
+            print(msg)
+
+        split_sequences = final_sequences[0].to_relative_sequence().split([24 * 2, 24 * 2])
+
+        for msg in split_sequences[0].messages:
+            print(msg)
 
         for i, sequence in enumerate(split_sequences):
             track = sequence.to_midi_track()

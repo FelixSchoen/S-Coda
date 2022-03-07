@@ -33,7 +33,7 @@ class RelativeSequence(Sequence):
         working_memory = copy.copy(self.messages)
 
         current_sequence = RelativeSequence()
-        open_notes = dict()
+        open_messages = dict()
 
         # Try to split current sequence at given point
         for capacity in capacities:
@@ -55,13 +55,13 @@ class RelativeSequence(Sequence):
                 if msg.message_type == MessageType.note_on:
                     if remaining_capacity > 0:
                         current_sequence.add_message(msg)
-                        open_notes[msg.note] = copy.copy(msg)
+                        open_messages[msg.note] = copy.copy(msg)
                     else:
                         next_sequence_queue.append(msg)
                 # For stop messages, add them to the current sequence
                 elif msg.message_type == MessageType.note_off:
                     current_sequence.add_message(msg)
-                    open_notes.pop(msg.note, None)
+                    open_messages.pop(msg.note, None)
                 elif msg.message_type == MessageType.time_signature or msg.message_type == MessageType.control_change:
                     if remaining_capacity > 0:
                         current_sequence.add_message(msg)
@@ -80,7 +80,7 @@ class RelativeSequence(Sequence):
                             current_sequence.add_message(
                                 Message(message_type=MessageType.wait, time=remaining_capacity))
 
-                        for key, value in open_notes.items():
+                        for key, value in open_messages.items():
                             current_sequence.add_message(Message(message_type=MessageType.note_off, note=value.note))
                             next_sequence_queue.append(
                                 Message(message_type=MessageType.note_on, note=value.note, velocity=value.velocity))
@@ -101,3 +101,23 @@ class RelativeSequence(Sequence):
             split_sequences.append(current_sequence)
 
         return split_sequences
+
+    def to_absolute_sequence(self) -> Sequence:
+        """ Converts this RelativeSequence to an AbsoluteSequence
+
+        Returns: The absolute representation of this sequence
+
+        """
+        from sCoda.sequence.absolute_sequence import AbsoluteSequence
+        absolute_sequence = AbsoluteSequence()
+        current_point_in_time = 0
+
+        for msg in self.messages:
+            if msg.message_type == MessageType.wait:
+                current_point_in_time += msg.time
+            else:
+                message_to_add = copy.copy(msg)
+                message_to_add.time = current_point_in_time
+                absolute_sequence.add_message(message_to_add)
+
+        return absolute_sequence

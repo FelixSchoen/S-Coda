@@ -1,3 +1,5 @@
+import math
+
 import numpy as np
 
 from sCoda.settings import MAX_VELOCITY, VELOCITY_BINS
@@ -65,3 +67,29 @@ def b_insort(collection: list, x) -> None:
             lo = mid + 1
 
     collection.insert(lo, x)
+
+
+def find_minimal_distance(element, collection) -> int:
+    """ Finds the element in the collection with the minimal distance to the given element.
+
+    Ties are broken using the indices of the collection, earlier elements will be preferred.
+
+    Args:
+        element: The element to compare against
+        collection: The collection with candidate values
+
+    Returns: The index of the found element
+
+    """
+    distance = math.inf
+    index = 0
+
+    for i, candidate in enumerate(collection):
+        candidate_distance = abs(candidate - element)
+        if candidate_distance < distance:
+            distance = candidate_distance
+            index = i
+            if distance == 0:
+                return index
+
+    return index
