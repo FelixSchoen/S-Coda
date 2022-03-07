@@ -3,7 +3,7 @@ from abc import ABC, abstractmethod
 from sCoda.elements.message import Message
 
 
-class Sequence(ABC):
+class AbstractSequence(ABC):
     """
     Class representing an abstract musical sequence.
     """
@@ -17,7 +17,7 @@ class Sequence(ABC):
         """Adds a message to the sequence.
 
         For an `AbsoluteSequence` the message has to contain an entry for `time`, according to which it will
-        be sorted into the sequence.
+        be sorted into the sequence. This is not needed for a `RelativeSequence`.
 
         Args:
             msg: The message to append

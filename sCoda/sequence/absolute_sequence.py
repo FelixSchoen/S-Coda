@@ -5,7 +5,7 @@ import logging
 from typing import TYPE_CHECKING
 
 from sCoda.elements.message import Message, MessageType
-from sCoda.sequence.sequence import Sequence
+from sCoda.sequence.abstract_sequence import AbstractSequence
 from sCoda.settings import PPQN
 from sCoda.util.util import b_insort, find_minimal_distance
 
@@ -13,7 +13,7 @@ if TYPE_CHECKING:
     from sCoda.sequence.relative_sequence import RelativeSequence
 
 
-class AbsoluteSequence(Sequence):
+class AbsoluteSequence(AbstractSequence):
     """
     Class representing a sequence with absolute message timings.
     """
@@ -34,14 +34,14 @@ class AbsoluteSequence(Sequence):
         """ Quantises the sequence to a given grid.
 
         Quantises the sequence stored in this object according to the given divisors. These divisors determine the
-        step size of the grid, e.g., an entry of 8 would correspond in a grid size of PPQN / 8. If PPQN were 24,
+        step size of the grid, e.g., an entry of 8 would correspond in a grid size of `PPQN / 8`. If `PPQN` were 24,
         the grid would support the length 3, in this example thirty-secondth notes. If there exists a tie between two
         grid boundaries, these are first resolved by whether the quantisation would prevent a note-length of 0,
         then by the order of the divisors array. The result of this operation is that all messages of this sequence
-        have a time divisible by PPQN / divisor, for all entries in divisors.
+        have a time divisible by `PPQN / divisor`, for all entries in divisors.
 
         Args:
-            divisors: Array of number by which the PPQN will be divided to determine possible step-size for the grid
+            divisors: Array of number by which the `PPQN` will be divided to determine possible step-size for the grid
 
         """
         quantified_messages = []
@@ -102,16 +102,16 @@ class AbsoluteSequence(Sequence):
         """ Quantises the note lengths of this sequence, only affecting the ending of the notes.
 
         Quantises notes to the given values, ensuring that all notes are of one of the sizes defined by the
-        parameters. The upper bound multiplier determines the longest possible note value, in terms of the PPQN. An
-        upper bound of 2, e.g., would result in a maximum note length of 2 * PPQN, meaning half-notes. The same holds
-        for the lower bound, where the PPQN is divided by it. Furthermore, the option of having dotted notes is
+        parameters. The upper bound multiplier determines the longest possible note value, in terms of the `PPQN`. An
+        upper bound of 2, e.g., would result in a maximum note length of `2 * PPQN`, meaning half-notes. The same holds
+        for the lower bound, where the `PPQN` is divided by it. Furthermore, the option of having dotted notes is
         given, where each iteration adds all (possible) notes dotted up to the iteration amount, e.g., an iteration
         value of 2 would result in two-dotted notes being accepted. Note that only integer results are accepted,
-        which in conjunction with the value for the PPQN can result in some values being rejected.
+        which in conjunction with the value for the `PPQN` can result in some values being rejected.
 
         Args:
-            upper_bound_multiplier: Value by which the PPQN is multiplied to determine the largest note value
-            lower_bound_divisor: Value by which the PPQN is divided to determine the smallest note value
+            upper_bound_multiplier: Value by which the `PPQN` is multiplied to determine the largest note value
+            lower_bound_divisor: Value by which the `PPQN` is divided to determine the smallest note value
             dotted_note_iterations: Amount of dots to allow for dotted notes
             standard_length: Note length for notes which are not closed
 

@@ -5,7 +5,7 @@ import logging
 from typing import TYPE_CHECKING
 
 from sCoda.elements.message import Message, MessageType
-from sCoda.sequence.sequence import Sequence
+from sCoda.sequence.abstract_sequence import AbstractSequence
 from sCoda.settings import NOTE_LOWER_BOUND, NOTE_UPPER_BOUND, PPQN
 from sCoda.util.midi_wrapper import MidiTrack, MidiMessage
 
@@ -13,7 +13,7 @@ if TYPE_CHECKING:
     from sCoda.sequence.absolute_sequence import AbsoluteSequence
 
 
-class RelativeSequence(Sequence):
+class RelativeSequence(AbstractSequence):
     """
     Class representing a sequence with relative message timings.
     """
@@ -22,9 +22,9 @@ class RelativeSequence(Sequence):
         super().__init__()
 
     def to_midi_track(self) -> MidiTrack:
-        """ Converts the sequence to a MidiTrack
+        """ Converts the sequence to a `MidiTrack`
 
-        Returns: The corresponding MidiTrack
+        Returns: The corresponding `MidiTrack`
 
         """
         track = MidiTrack()
@@ -42,14 +42,14 @@ class RelativeSequence(Sequence):
     def split(self, capacities: [int]) -> [RelativeSequence]:
         """ Splits the sequence into parts of the given capacity.
 
-        Creates up to len(capacities) + 1 new RelativeSequences, where the first len(capacities) entries contain
+        Creates up to `len(capacities) + 1` new `RelativeSequence`s, where the first `len(capacities)` entries contain
         sequences of the given capacities, while the last one contains any remaining notes. Messages at the boundaries
         of a capacity are split up and possible reinserted at the beginning of the next sequence.
 
         Args:
             capacities: An array of capacities to split the sequence into
 
-        Returns: An array of RelativeSequences of the desired size
+        Returns: An array of `RelativeSequence`s of the desired size
 
         """
         split_sequences = []
@@ -125,6 +125,16 @@ class RelativeSequence(Sequence):
 
         return split_sequences
 
+    def consolidate(self, sequence: RelativeSequence) -> None:
+        """ Consolidates the two sequences, resulting in the current sequence containing messages from both of the
+        previous sequences.
+
+        Args:
+            sequence: A sequence which should be appended to this sequence
+
+        """
+        self.messages.extend(sequence.messages)
+
     def transpose(self, transpose_by: int) -> None:
         """ Transposes the sequence by the given amount.
 
@@ -143,7 +153,7 @@ class RelativeSequence(Sequence):
                     msg.note -= 12
 
     def adjust_wait_messages(self) -> None:
-        """ Consolidates and then splits up wait messages to a maximum size of PPQN.
+        """ Consolidates and then splits up wait messages to a maximum size of `PPQN`.
 
         """
         open_messages = dict()
@@ -182,7 +192,7 @@ class RelativeSequence(Sequence):
         self.messages = messages_normalized
 
     def to_absolute_sequence(self) -> AbsoluteSequence:
-        """ Converts this RelativeSequence to an AbsoluteSequence
+        """ Converts this `RelativeSequence` to an `AbsoluteSequence`
 
         Returns: The absolute representation of this sequence
 
