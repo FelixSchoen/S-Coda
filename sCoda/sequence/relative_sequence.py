@@ -21,6 +21,11 @@ class RelativeSequence(Sequence):
         super().__init__()
 
     def to_midi_track(self) -> MidiTrack:
+        """ Converts the sequence to a MidiTrack
+
+        Returns: The corresponding MidiTrack
+
+        """
         track = MidiTrack()
 
         for msg in self.messages:
@@ -34,6 +39,18 @@ class RelativeSequence(Sequence):
         self.messages.append(msg)
 
     def split(self, capacities: [int]) -> [RelativeSequence]:
+        """ Splits the sequence into parts of the given capacity.
+
+        Creates up to len(capacities) + 1 new RelativeSequences, where the first len(capacities) entries contain
+        sequences of the given capacities, while the last one contains any remaining notes. Messages at the boundaries
+        of a capacity are split up and possible reinserted at the beginning of the next sequence.
+
+        Args:
+            capacities: An array of capacities to split the sequence into
+
+        Returns: An array of RelativeSequences of the desired size
+
+        """
         split_sequences = []
         working_memory = copy.copy(self.messages)
 
@@ -108,6 +125,14 @@ class RelativeSequence(Sequence):
         return split_sequences
 
     def transpose(self, transpose_by: int) -> None:
+        """ Transposes the sequence by the given amount.
+
+        If the lower or upper bound is undercut over exceeded, these notes are transposed by an octave each.
+
+        Args:
+            transpose_by: Half-tone steps to transpose by
+
+        """
         for msg in self.messages:
             if msg.message_type == MessageType.note_on or msg.message_type == MessageType.note_off:
                 msg.note += transpose_by
