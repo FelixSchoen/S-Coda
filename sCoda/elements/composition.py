@@ -97,6 +97,7 @@ class Composition:
             print(msg)
 
         for i, sequence in enumerate(split_sequences):
+            sequence.transpose(5)
             track = sequence.to_midi_track()
             midi_file = MidiFile()
             midi_file.tracks.append(track)

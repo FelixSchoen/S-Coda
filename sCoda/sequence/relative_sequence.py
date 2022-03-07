@@ -5,6 +5,7 @@ from typing import TYPE_CHECKING
 
 from sCoda.elements.message import Message, MessageType
 from sCoda.sequence.sequence import Sequence
+from sCoda.settings import NOTE_LOWER_BOUND, NOTE_UPPER_BOUND
 from sCoda.util.midi_wrapper import MidiTrack, MidiMessage
 
 if TYPE_CHECKING:
@@ -105,6 +106,15 @@ class RelativeSequence(Sequence):
             split_sequences.append(current_sequence)
 
         return split_sequences
+
+    def transpose(self, transpose_by: int) -> None:
+        for msg in self.messages:
+            if msg.message_type == MessageType.note_on or msg.message_type == MessageType.note_off:
+                msg.note += transpose_by
+                while msg.note < NOTE_LOWER_BOUND:
+                    msg.note += 12
+                while msg.note > NOTE_UPPER_BOUND:
+                    msg.note -= 12
 
     def to_absolute_sequence(self) -> AbsoluteSequence:
         """ Converts this RelativeSequence to an AbsoluteSequence

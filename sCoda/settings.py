@@ -6,6 +6,8 @@ VELOCITY_BINS = 8
 # The maximum velocity value
 MAX_VELOCITY = 127
 POSSIBLE_NOTE_LENGTHS = [8 * PPQN, 4 * PPQN, 2 * PPQN, PPQN]
+NOTE_LOWER_BOUND = 21
+NOTE_UPPER_BOUND = 108
 
 
 def set_ppqn(ppqn: int) -> None:
