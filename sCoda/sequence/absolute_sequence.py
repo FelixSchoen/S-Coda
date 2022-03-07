@@ -2,11 +2,15 @@ from __future__ import annotations
 
 import copy
 import logging
+from typing import TYPE_CHECKING
 
 from sCoda.elements.message import Message, MessageType
 from sCoda.sequence.sequence import Sequence
 from sCoda.settings import PPQN
 from sCoda.util.util import b_insort, find_minimal_distance
+
+if TYPE_CHECKING:
+    from sCoda.sequence.relative_sequence import RelativeSequence
 
 
 class AbsoluteSequence(Sequence):
@@ -171,7 +175,7 @@ class AbsoluteSequence(Sequence):
             for msg in copy.copy(sequence.messages):
                 b_insort(self.messages, msg)
 
-    def to_relative_sequence(self) -> Sequence:
+    def to_relative_sequence(self) -> RelativeSequence:
         """ Converts this AbsoluteSequence to a RelativeSequence
 
         Returns: The relative representation of this sequence

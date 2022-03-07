@@ -1,10 +1,14 @@
 from __future__ import annotations
 
 import copy
+from typing import TYPE_CHECKING
 
 from sCoda.elements.message import Message, MessageType
 from sCoda.sequence.sequence import Sequence
 from sCoda.util.midi_wrapper import MidiTrack, MidiMessage
+
+if TYPE_CHECKING:
+    from sCoda.sequence.absolute_sequence import AbsoluteSequence
 
 
 class RelativeSequence(Sequence):
@@ -102,13 +106,12 @@ class RelativeSequence(Sequence):
 
         return split_sequences
 
-    def to_absolute_sequence(self) -> Sequence:
+    def to_absolute_sequence(self) -> AbsoluteSequence:
         """ Converts this RelativeSequence to an AbsoluteSequence
 
         Returns: The absolute representation of this sequence
 
         """
-        from sCoda.sequence.absolute_sequence import AbsoluteSequence
         absolute_sequence = AbsoluteSequence()
         current_point_in_time = 0
 
