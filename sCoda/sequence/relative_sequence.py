@@ -1,11 +1,12 @@
 from __future__ import annotations
 
 import copy
+import logging
 from typing import TYPE_CHECKING
 
 from sCoda.elements.message import Message, MessageType
 from sCoda.sequence.sequence import Sequence
-from sCoda.settings import NOTE_LOWER_BOUND, NOTE_UPPER_BOUND
+from sCoda.settings import NOTE_LOWER_BOUND, NOTE_UPPER_BOUND, PPQN
 from sCoda.util.midi_wrapper import MidiTrack, MidiMessage
 
 if TYPE_CHECKING:
@@ -140,6 +141,45 @@ class RelativeSequence(Sequence):
                     msg.note += 12
                 while msg.note > NOTE_UPPER_BOUND:
                     msg.note -= 12
+
+    def adjust_wait_messages(self) -> None:
+        """ Consolidates and then splits up wait messages to a maximum size of PPQN.
+
+        """
+        open_messages = dict()
+        messages_normalized = []
+        messages_buffer = []
+        wait_buffer = 0
+
+        for msg in self.messages:
+            if msg.message_type == MessageType.wait:
+                if len(messages_buffer) > 0:
+                    messages_normalized.extend(messages_buffer)
+                    messages_buffer = []
+                wait_buffer += msg.time
+            else:
+                # Split up wait messages to maximum length of PPQN
+                while wait_buffer > PPQN:
+                    messages_normalized.append(Message(message_type=MessageType.wait, time=PPQN))
+                    wait_buffer -= PPQN
+                if wait_buffer > 0:
+                    messages_normalized.append(Message(message_type=MessageType.wait, time=wait_buffer))
+
+                # Keep track of open notes
+                if msg.message_type == MessageType.note_on:
+                    open_messages[msg.note] = True
+                elif msg.message_type == MessageType.note_off:
+                    open_messages.pop(msg.note, None)
+
+                messages_buffer.append(msg)
+                wait_buffer = 0
+
+        if len(messages_buffer) > 0:
+            messages_normalized.extend(messages_buffer)
+
+        if len(open_messages) > 0:
+            logging.warning("The sequence contains messages that have not been closed")
+        self.messages = messages_normalized
 
     def to_absolute_sequence(self) -> AbsoluteSequence:
         """ Converts this RelativeSequence to an AbsoluteSequence

@@ -57,7 +57,7 @@ class Message:
 
         return representation
 
-    def __lt__(self, other):
-        message_type_order = [MessageType.time_signature, MessageType.control_change, MessageType.note_off,
-                              MessageType.note_on, MessageType.wait]
-        return message_type_order.index(self.message_type) < message_type_order.index(other.message_type)
+    # def __lt__(self, other):
+    #     message_type_order = [MessageType.time_signature, MessageType.control_change, MessageType.note_off,
+    #                           MessageType.note_on, MessageType.wait]
+    #     return message_type_order.index(self.message_type) < message_type_order.index(other.message_type)

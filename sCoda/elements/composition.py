@@ -88,16 +88,11 @@ class Composition:
         final_sequences[0].quantise([2, 3, 4, 6, 8, 12])
         final_sequences[0].quantise_note_lengths(1, 2)
 
-        for msg in final_sequences[0].messages:
-            print(msg)
-
         split_sequences = final_sequences[0].to_relative_sequence().split([24 * 2, 24 * 2])
-
-        for msg in split_sequences[0].messages:
-            print(msg)
 
         for i, sequence in enumerate(split_sequences):
             sequence.transpose(5)
+            sequence.adjust_wait_messages()
             track = sequence.to_midi_track()
             midi_file = MidiFile()
             midi_file.tracks.append(track)
