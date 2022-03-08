@@ -88,8 +88,10 @@ class Composition:
         # TODO Testing purposes
         # final_sequences[0]._get_abs()._get_absolute_note_array()
 
-        final_sequences[0].quantise([2**1, 2**1+2**0, 2**2, 2**2+2**1, 2**3])
-        # final_sequences[0].quantise_note_lengths(8, 8)
+        quantise_parameters = [2 ** 3, 2 ** 3 + 2 ** 2]
+        quantise_parameters = [2 ** 2, 2 ** 2 + 2 ** 1]
+        final_sequences[0].quantise(quantise_parameters)
+        final_sequences[0].quantise_note_lengths(8, 8)
 
         # for msg in final_sequences[0]._get_abs().messages:
         #     print(msg)

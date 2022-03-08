@@ -21,17 +21,24 @@ class AbsoluteSequence(AbstractSequence):
     def __init__(self) -> None:
         super().__init__()
 
-    def sort(self) -> None:
-        """ Sorts the sequence according to the timings of the messages.
-
-        This sorting procedure is stable, if two messages occurred in a specific order at the same time before the sort,
-        they will occur in this order after the sort.
-
-        """
-        self.messages.sort(key=lambda x: x.time)
-
     def add_message(self, msg: Message) -> None:
         b_insort(self.messages, msg)
+
+    def diff_message_values(self) -> float:
+        notes = self._get_absolute_note_array()
+
+    def merge(self, sequences: [AbsoluteSequence]) -> None:
+        """ Merges this sequence with all the given ones.
+
+        Args:
+            sequences: The sequences to merge with this one
+
+        Returns: The sequence that contains all messages of this and the given sequences, conserving the timings
+
+        """
+        for sequence in sequences:
+            for msg in copy.copy(sequence.messages):
+                b_insort(self.messages, msg)
 
     def quantise(self, divisors: [int]) -> None:
         """ Quantises the sequence to a given grid.
@@ -79,7 +86,7 @@ class AbsoluteSequence(AbstractSequence):
 
                 # Can open new note
                 if msg.note not in message_timings \
-                        or not message_timings[msg.note][0] <= message_to_append.time <= message_timings[msg.note][1]:
+                        or not message_to_append.time < message_timings[msg.note][1]:
                     open_messages[msg.note] = message_to_append.time
                     message_timings[msg.note] = [message_to_append.time]
                 # Note would overlap with other, existing note
@@ -163,18 +170,14 @@ class AbsoluteSequence(AbstractSequence):
 
         self.sort()
 
-    def merge(self, sequences: [AbsoluteSequence]) -> None:
-        """ Merges this sequence with all the given ones.
+    def sort(self) -> None:
+        """ Sorts the sequence according to the timings of the messages.
 
-        Args:
-            sequences: The sequences to merge with this one
-
-        Returns: The sequence that contains all messages of this and the given sequences, conserving the timings
+        This sorting procedure is stable, if two messages occurred in a specific order at the same time before the sort,
+        they will occur in this order after the sort.
 
         """
-        for sequence in sequences:
-            for msg in copy.copy(sequence.messages):
-                b_insort(self.messages, msg)
+        self.messages.sort(key=lambda x: x.time)
 
     def to_relative_sequence(self) -> RelativeSequence:
         """ Converts this AbsoluteSequence to a RelativeSequence
@@ -199,9 +202,6 @@ class AbsoluteSequence(AbstractSequence):
             relative_sequence.add_message(message_to_add)
 
         return relative_sequence
-
-    def diff_message_values(self) -> float:
-        notes = self._get_absolute_note_array()
 
     def _get_absolute_note_array(self, standard_length=PPQN) -> []:
         open_messages = dict()
