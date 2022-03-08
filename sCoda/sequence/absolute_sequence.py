@@ -41,7 +41,8 @@ class AbsoluteSequence(AbstractSequence):
         the grid would support the length 3, in this example thirty-secondth notes. If there exists a tie between two
         grid boundaries, these are first resolved by whether the quantisation would prevent a note-length of 0,
         then by the order of the divisors array. The result of this operation is that all messages of this sequence
-        have a time divisible by `PPQN / divisor`, for all entries in divisors.
+        have a time divisible by `PPQN / divisor`, for all entries in divisors. If the quantisation resulted in
+        two notes overlapping, the second note will be removed.
 
         Args:
             divisors: Array of number by which the `PPQN` will be divided to determine possible step-size for the grid
@@ -50,46 +51,62 @@ class AbsoluteSequence(AbstractSequence):
         quantified_messages = []
         # Keep track of open messages, in order to guarantee quantisation does not smother them
         open_messages = dict()
+        # Keep track of from when to when notes are played, in order to eliminate double notes
+        message_timings = dict()
 
         for msg in self.messages:
-            time = msg.time
+            original_time = msg.time
             message_to_append = copy.copy(msg)
 
             # Size of the steps for each of the quantisation parameters
             step_sizes = [PPQN / i for i in divisors]
 
             # Positions the note would land at according to each of the quantisation parameters
-            positions_left = [(time // step_size) * step_size for step_size in step_sizes]
+            positions_left = [(original_time // step_size) * step_size for step_size in step_sizes]
             positions_right = [positions_left[i] + step_sizes[i] for i in range(0, len(divisors))]
 
-            positions = positions_left + positions_right
+            possible_positions = positions_left + positions_right
+            valid_positions = []
 
-            # Check if exact hit exists
-            if time in positions_left:
-                pass
-            else:
-                valid_positions = []
+            # Consider quantisations that could smother notes
+            if msg.message_type == MessageType.note_on:
+                # Sanity check
+                if msg.note in open_messages:
+                    logging.warning(f"Note {msg.note} not previously closed")
 
-                # Consider quantisations that could smother notes
-                if msg.message_type == MessageType.note_off and msg.note in open_messages:
-                    note_open_timing = open_messages[msg.note]
+                valid_positions += possible_positions
+                message_to_append.time = valid_positions[find_minimal_distance(original_time, valid_positions)]
 
-                    # Rank those entries back, that would induce a play time of smaller equal 0
-                    for position in positions:
+                # Can open new note
+                if msg.note not in message_timings \
+                        or not message_timings[msg.note][0] <= message_to_append.time <= message_timings[msg.note][1]:
+                    open_messages[msg.note] = message_to_append.time
+                    message_timings[msg.note] = [message_to_append.time]
+                # Note would overlap with other, existing note
+                else:
+                    message_to_append = None
+            elif msg.message_type == MessageType.note_off:
+                # Message is currently open, have to quantize
+                if msg.note in open_messages:
+                    note_open_timing = open_messages.pop(msg.note, None)
+
+                    # Add possible positions for stop messages, making sure the belonging note is not smothered
+                    for position in possible_positions:
                         if not position - note_open_timing <= 0:
                             valid_positions.append(position)
 
-                index = find_minimal_distance(time, valid_positions)
-                # Change timing of message to append
-                message_to_append.time = positions[index]
+                    # Valid positions will always exist, since if order held before quantisation, same will hold after
+                    message_to_append.time = valid_positions[find_minimal_distance(original_time, valid_positions)]
+                    message_timings[msg.note].append(message_to_append.time)
+                # Message is not currently open (e.g., if start message was removed due to an overlap)
+                else:
+                    message_to_append = None
+            else:
+                valid_positions += possible_positions
+                message_to_append.time = valid_positions[find_minimal_distance(original_time, valid_positions)]
 
-            # Keep track of open notes
-            if msg.message_type == MessageType.note_on:
-                open_messages[msg.note] = msg.time
-            elif msg.message_type == MessageType.note_off:
-                open_messages.pop(msg.note, None)
-
-            quantified_messages.append(message_to_append)
+            if message_to_append is not None:
+                quantified_messages.append(message_to_append)
 
         self.messages = quantified_messages
         self.sort()

@@ -51,27 +51,27 @@ class Composition:
 
             for j, msg in enumerate(track.messages):
                 # Add time induced by message
-                if msg.time is not None:
-                    current_point_in_time += (msg.time * scaling_factor)
+                current_point_in_time += (msg.time * scaling_factor)
+                rounded_point_in_time = round(current_point_in_time)
 
                 if msg.message_type == MessageType.note_on and any(i in indices for indices in track_indices):
                     current_sequence.add_absolute_message(
                         Message(message_type=MessageType.note_on, note=msg.note, velocity=msg.velocity,
-                                time=current_point_in_time))
+                                time=rounded_point_in_time))
                 elif msg.message_type == MessageType.note_off and any(i in indices for indices in track_indices):
                     current_sequence.add_absolute_message(
-                        Message(message_type=MessageType.note_off, note=msg.note, time=current_point_in_time))
+                        Message(message_type=MessageType.note_off, note=msg.note, time=rounded_point_in_time))
                 elif msg.message_type == MessageType.time_signature:
                     if i not in meta_track_indices:
                         logging.warning("Encountered time signature change in unexpected track")
 
                     meta_sequence.add_absolute_message(
                         Message(message_type=MessageType.time_signature, numerator=msg.numerator,
-                                denominator=msg.denominator, time=current_point_in_time))
+                                denominator=msg.denominator, time=rounded_point_in_time))
                 elif msg.message_type == MessageType.control_change:
                     meta_sequence.add_absolute_message(
                         Message(message_type=MessageType.control_change, control=msg.control, velocity=msg.velocity,
-                                time=current_point_in_time))
+                                time=rounded_point_in_time))
 
         final_sequences = []
 
@@ -85,11 +85,14 @@ class Composition:
 
         final_sequences[meta_track_index].merge([meta_sequence])
 
+        # TODO Testing purposes
         # final_sequences[0]._get_abs()._get_absolute_note_array()
 
-        # TODO Testing purposes
-        # final_sequences[0].quantise([12, 8, 6, 4, 3, 2])
+        final_sequences[0].quantise([2**1, 2**1+2**0, 2**2, 2**2+2**1, 2**3])
         # final_sequences[0].quantise_note_lengths(8, 8)
+
+        # for msg in final_sequences[0]._get_abs().messages:
+        #     print(msg)
 
         split_sequences = final_sequences[0].split([math.inf])
 
