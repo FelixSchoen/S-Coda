@@ -14,8 +14,8 @@ if TYPE_CHECKING:
 
 
 class AbsoluteSequence(AbstractSequence):
-    """
-    Class representing a sequence with absolute message timings.
+    """ Class representing a sequence with absolute message timings.
+
     """
 
     def __init__(self) -> None:
@@ -116,8 +116,6 @@ class AbsoluteSequence(AbstractSequence):
             standard_length: Note length for notes which are not closed
 
         """
-        open_messages = dict()
-
         # Construct possible durations
         possible_durations = []
         j = upper_bound_multiplier
@@ -141,42 +139,11 @@ class AbsoluteSequence(AbstractSequence):
                         dotted_durations.append(resulting_value)
         possible_durations.extend(dotted_durations)
 
-        # Keep track of notes, insert start and corresponding stop message
-        notes = []
-        i = 0
-
-        for msg in self.messages:
-            # Add notes to open messages
-            if msg.message_type == MessageType.note_on:
-                if msg.note in open_messages:
-                    logging.warning("Note not previously closed")
-                    index = open_messages[msg.note]
-                    notes[index].append(Message(message_type=MessageType.note_off, note=msg.note, time=msg.time))
-
-                open_messages[msg.note] = i
-                notes.insert(i, [msg])
-                i += 1
-
-            # Add closing message to fitting open message
-            elif msg.message_type == MessageType.note_off:
-                if msg.note not in open_messages:
-                    logging.warning("Note not previously opened")
-                index = open_messages[msg.note]
-                notes[index].append(msg)
-
-        # Close still open messages with standard length
-        for key, value in open_messages.items():
-            logging.warning(f"Did not close message {key}")
-            msg = notes[value][0]
-            notes[value].append(
-                Message(message_type=MessageType.note_off, note=msg.note, time=msg.time + standard_length))
+        notes = self._get_absolute_note_array(standard_length=standard_length)
 
         for note in notes:
             duration = note[1].time - note[0].time
             best_fit = possible_durations[find_minimal_distance(duration, possible_durations)]
-
-            # print(f"Note {note[0].note} duration {duration} best fit {best_fit}")
-
             correction = best_fit - duration
             note[1].time += correction
 
@@ -218,3 +185,39 @@ class AbsoluteSequence(AbstractSequence):
             relative_sequence.add_message(message_to_add)
 
         return relative_sequence
+
+    def diff_message_values(self) -> float:
+        notes = self._get_absolute_note_array()
+
+    def _get_absolute_note_array(self, standard_length=PPQN) -> []:
+        open_messages = dict()
+        notes = []
+        i = 0
+
+        # Collect notes
+        for msg in self.messages:
+            # Add notes to open messages
+            if msg.message_type == MessageType.note_on:
+                if msg.note in open_messages:
+                    logging.warning("Note not previously closed")
+                    index = open_messages[msg.note]
+                    notes[index].append(Message(message_type=MessageType.note_off, note=msg.note, time=msg.time))
+
+                open_messages[msg.note] = i
+                notes.insert(i, [msg])
+                i += 1
+
+            # Add closing message to fitting open message
+            elif msg.message_type == MessageType.note_off:
+                if msg.note not in open_messages:
+                    logging.warning("Note not previously opened")
+                else:
+                    index = open_messages[msg.note]
+                    notes[index].append(msg)
+
+        # Check unclosed notes
+        for pairing in notes:
+            if len(pairing) == 1:
+                pairing.append(Message(message_type=MessageType.wait, time=pairing[0].time + standard_length))
+
+        return notes

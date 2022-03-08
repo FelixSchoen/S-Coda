@@ -93,3 +93,19 @@ def find_minimal_distance(element, collection) -> int:
                 return index
 
     return index
+
+
+# From http://arachnoid.com
+def regress(x, terms):
+    t = 1
+    r = 0
+    for c in terms:
+        r += c * t
+        t *= x
+    return r
+
+
+# From https://stackoverflow.com/questions/43099542/python-easy-way-to-do-geometric-mean-in-python
+def geo_mean(iterable):
+    a = np.array(iterable)
+    return a.prod() ** (1.0 / len(a))

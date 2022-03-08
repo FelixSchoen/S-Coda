@@ -4,8 +4,8 @@ from sCoda.elements.message import Message
 
 
 class AbstractSequence(ABC):
-    """
-    Class representing an abstract musical sequence.
+    """ Class representing an abstract musical sequence.
+
     """
 
     def __init__(self) -> None:

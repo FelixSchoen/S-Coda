@@ -46,30 +46,35 @@ class Sequence:
 
         """
         self._get_abs().add_message(msg)
+        self._rel_stale = True
 
     def add_relative_message(self, msg) -> None:
         """ See `sCoda.sequence.relative_sequence.RelativeSequence.add_message`
 
         """
         self._get_rel().add_message(msg)
+        self._abs_stale = True
 
     def adjust_wait_messages(self) -> None:
         """ See `sCoda.sequence.relative_sequence.RelativeSequence.adjust_wait_messages`
 
         """
         self._get_rel().adjust_wait_messages()
+        self._abs_stale = True
 
     def consolidate(self, sequence: Sequence) -> None:
         """ See `sCoda.sequence.relative_sequence.RelativeSequence.consolidate`
 
         """
         self._get_rel().consolidate(sequence._get_rel())
+        self._abs_stale = True
 
     def merge(self, sequences: [Sequence]) -> None:
         """ See `sCoda.sequence.absolute_sequence.AbsoluteSequence.merge`
 
         """
         self._get_abs().merge([seq._get_abs() for seq in sequences])
+        self._rel_stale = True
 
     def split(self, capacities: [int]) -> [Sequence]:
         """ See `sCoda.sequence.relative_sequence.RelativeSequence.split`
@@ -90,12 +95,14 @@ class Sequence:
 
         """
         self._get_rel().transpose(transpose_by)
+        self._abs_stale = True
 
     def quantise(self, divisors: [int]) -> None:
         """ See `sCoda.sequence.absolute_sequence.AbsoluteSequence.quantise`
 
         """
         self._get_abs().quantise(divisors)
+        self._rel_stale = True
 
     def quantise_note_lengths(self, upper_bound_multiplier, lower_bound_divisor, dotted_note_iterations=1,
                               standard_length=PPQN) -> None:
@@ -105,3 +112,4 @@ class Sequence:
         self._get_abs().quantise_note_lengths(upper_bound_multiplier, lower_bound_divisor,
                                               dotted_note_iterations=dotted_note_iterations,
                                               standard_length=standard_length)
+        self._rel_stale = True

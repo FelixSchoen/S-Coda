@@ -14,8 +14,8 @@ if TYPE_CHECKING:
 
 
 class RelativeSequence(AbstractSequence):
-    """
-    Class representing a sequence with relative message timings.
+    """ Class representing a sequence with relative message timings.
+
     """
 
     def __init__(self) -> None:

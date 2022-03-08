@@ -11,8 +11,8 @@ from sCoda.util.midi_wrapper import MidiFile
 
 
 class Composition:
-    """
-    Class representing a composition that contains (multiple) tracks.
+    """ Class representing a composition that contains (multiple) tracks.
+
     """
 
     def __init__(self) -> None:
