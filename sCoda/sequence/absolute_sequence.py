@@ -24,6 +24,9 @@ class AbsoluteSequence(AbstractSequence):
     def sort(self) -> None:
         """ Sorts the sequence according to the timings of the messages.
 
+        This sorting procedure is stable, if two messages occurred in a specific order at the same time before the sort,
+        they will occur in this order after the sort.
+
         """
         self.messages.sort(key=lambda x: x.time)
 
@@ -185,7 +188,7 @@ class AbsoluteSequence(AbstractSequence):
 
     def _get_absolute_note_array(self, standard_length=PPQN) -> []:
         open_messages = dict()
-        notes = []
+        notes: [[]] = []
         i = 0
 
         # Collect notes
@@ -193,8 +196,8 @@ class AbsoluteSequence(AbstractSequence):
             # Add notes to open messages
             if msg.message_type == MessageType.note_on:
                 if msg.note in open_messages:
-                    logging.warning("Note not previously closed")
-                    index = open_messages[msg.note]
+                    logging.warning(f"Note {msg.note} at time {msg.time} not previously closed")
+                    index = open_messages.pop(msg.note)
                     notes[index].append(Message(message_type=MessageType.note_off, note=msg.note, time=msg.time))
 
                 open_messages[msg.note] = i
@@ -204,9 +207,9 @@ class AbsoluteSequence(AbstractSequence):
             # Add closing message to fitting open message
             elif msg.message_type == MessageType.note_off:
                 if msg.note not in open_messages:
-                    logging.warning("Note not previously opened")
+                    logging.warning(f"Note {msg.note} at time {msg.time} not previously opened")
                 else:
-                    index = open_messages[msg.note]
+                    index = open_messages.pop(msg.note)
                     notes[index].append(msg)
 
         # Check unclosed notes
@@ -215,3 +218,7 @@ class AbsoluteSequence(AbstractSequence):
                 pairing.append(Message(message_type=MessageType.wait, time=pairing[0].time + standard_length))
 
         return notes
+
+    @staticmethod
+    def _get_tracks_from_notes(notes):
+        tracks = []

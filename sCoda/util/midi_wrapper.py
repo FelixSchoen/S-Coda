@@ -100,7 +100,7 @@ class MidiMessage:
             msg.message_type = MessageType.note_on
             msg.note = mido_message.note
             msg.velocity = mido_message.velocity
-        elif mido_message.type == "note_on":
+        elif mido_message.type == "note_on" or mido_message.type == "note_off":
             msg.message_type = MessageType.note_off
             msg.note = mido_message.note
             msg.velocity = mido_message.velocity

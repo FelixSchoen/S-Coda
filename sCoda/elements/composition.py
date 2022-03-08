@@ -2,9 +2,9 @@ from __future__ import annotations
 
 import copy
 import logging
+import math
 
 from sCoda.elements.message import Message, MessageType
-from sCoda.sequence.absolute_sequence import AbsoluteSequence
 from sCoda.sequence.sequence import Sequence
 from sCoda.settings import PPQN
 from sCoda.util.midi_wrapper import MidiFile
@@ -85,14 +85,15 @@ class Composition:
 
         final_sequences[meta_track_index].merge([meta_sequence])
 
-        # TODO Testing purposes
-        final_sequences[0].quantise([2, 3, 4, 6, 8, 12])
-        final_sequences[0].quantise_note_lengths(1, 2)
+        # final_sequences[0]._get_abs()._get_absolute_note_array()
 
-        split_sequences = final_sequences[0].split([24 * 2, 24 * 2])
+        # TODO Testing purposes
+        # final_sequences[0].quantise([12, 8, 6, 4, 3, 2])
+        # final_sequences[0].quantise_note_lengths(8, 8)
+
+        split_sequences = final_sequences[0].split([math.inf])
 
         for i, sequence in enumerate(split_sequences):
-            sequence.transpose(5)
             sequence.adjust_wait_messages()
             track = sequence.to_midi_track()
             midi_file = MidiFile()

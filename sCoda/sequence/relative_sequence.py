@@ -69,6 +69,7 @@ class RelativeSequence(AbstractSequence):
                 if len(working_memory) == 0:
                     if len(current_sequence.messages) > 0:
                         split_sequences.append(current_sequence)
+                        current_sequence = next_sequence
                     break
 
                 # Retrieve next message
