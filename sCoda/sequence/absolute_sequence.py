@@ -58,33 +58,27 @@ class AbsoluteSequence(AbstractSequence):
             # Positions the note would land at according to each of the quantisation parameters
             positions_left = [(time // step_size) * step_size for step_size in step_sizes]
             positions_right = [positions_left[i] + step_sizes[i] for i in range(0, len(divisors))]
-            positions = [positions_left, positions_right]
+
+            positions = positions_left + positions_right
 
             # Check if exact hit exists
             if time in positions_left:
                 pass
             else:
-                # Entries consist of distance, index of quantisation parameter, index of position array
-                distances = []
-                distances_left = [(time - positions_left[i], i, 0) for i in range(0, len(divisors))]
-                distances_right = [(positions_right[i] - time, i, 1) for i in range(0, len(divisors))]
-
-                # Sort by smallest distance
-                distances.extend(distances_left)
-                distances.extend(distances_right)
-                distances.sort()
+                valid_positions = []
 
                 # Consider quantisations that could smother notes
                 if msg.message_type == MessageType.note_off and msg.note in open_messages:
                     note_open_timing = open_messages[msg.note]
 
                     # Rank those entries back, that would induce a play time of smaller equal 0
-                    for i, entry in enumerate(copy.copy(distances)):
-                        if positions[entry[2]][entry[1]] - note_open_timing <= 0:
-                            distances.append(distances.pop(i))
+                    for position in positions:
+                        if not position - note_open_timing <= 0:
+                            valid_positions.append(position)
 
+                index = find_minimal_distance(time, valid_positions)
                 # Change timing of message to append
-                message_to_append.time = positions[distances[0][2]][distances[0][1]]
+                message_to_append.time = positions[index]
 
             # Keep track of open notes
             if msg.message_type == MessageType.note_on:
