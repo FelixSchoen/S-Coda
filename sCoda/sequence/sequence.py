@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from sCoda.elements.message import MessageType
 from sCoda.sequence.absolute_sequence import AbsoluteSequence
 from sCoda.sequence.relative_sequence import RelativeSequence
 from sCoda.settings import PPQN
@@ -68,6 +69,12 @@ class Sequence:
         """
         self._get_rel().consolidate(sequence._get_rel())
         self._abs_stale = True
+
+    def get_timing_of_message_type(self, message_type: MessageType) -> [int]:
+        """ See `sCoda.sequence.absolute_sequence.AbsoluteSequence.get_timing_of_message_type`
+
+        """
+        return self._get_abs().get_timing_of_message_type(message_type)
 
     def merge(self, sequences: [Sequence]) -> None:
         """ See `sCoda.sequence.absolute_sequence.AbsoluteSequence.merge`

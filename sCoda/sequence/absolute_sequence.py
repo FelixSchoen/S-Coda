@@ -27,6 +27,23 @@ class AbsoluteSequence(AbstractSequence):
     def diff_message_values(self) -> float:
         notes = self._get_absolute_note_array()
 
+    def get_timing_of_message_type(self, message_type: MessageType) -> [int]:
+        """ Searches for the given message type and stores the time of all matching messages in the output array.
+
+        Args:
+            message_type: Which message type to search for
+
+        Returns: An array containing the absolute points in time of occurrence of the found messages
+
+        """
+        timings = []
+
+        for msg in self.messages:
+            if msg.message_type == message_type:
+                timings.append(msg.time)
+
+        return timings
+
     def merge(self, sequences: [AbsoluteSequence]) -> None:
         """ Merges this sequence with all the given ones.
 
@@ -180,6 +197,10 @@ class AbsoluteSequence(AbstractSequence):
         for pairing in notes:
             quantised_messages.extend(pairing)
 
+        for msg in self.messages:
+            if msg.message_type is not MessageType.note_on and msg.message_type is not MessageType.note_off:
+                quantised_messages.append(msg)
+
         self.messages = quantised_messages
         self.sort()
 
@@ -252,4 +273,5 @@ class AbsoluteSequence(AbstractSequence):
 
     @staticmethod
     def _get_tracks_from_notes(notes):
+        # TODO Obtain tracks from sequence containing only consecutively played notes, or notes that have the same start and end time
         tracks = []

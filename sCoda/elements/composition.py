@@ -87,7 +87,6 @@ class Composition:
         final_sequences[meta_track_index].merge([meta_sequence])
 
         # TODO Testing purposes
-        # final_sequences[0]._get_abs()._get_absolute_note_array()
 
         quantise_parameters = get_note_durations(1, 8)
         quantise_parameters += get_tuplet_durations(quantise_parameters, 3, 2)
@@ -101,14 +100,16 @@ class Composition:
 
         final_sequences[0].quantise_note_lengths(possible_durations)
 
-        split_sequences = final_sequences[0].split([math.inf])
+        timings = final_sequences[0].get_timing_of_message_type(MessageType.time_signature)
+        capacities = [timings[i] - timings[i - 1] for i in range(1, len(timings))]
+        split_sequences = final_sequences[0].split(capacities)
 
         for i, sequence in enumerate(split_sequences):
             sequence.adjust_wait_messages()
             track = sequence.to_midi_track()
             midi_file = MidiFile()
             midi_file.tracks.append(track)
-            midi_file.save(f"../output/test{i}.mid")
+            midi_file.save(f"../output/output{i}.mid")
 
         # TODO Add to composition
 
