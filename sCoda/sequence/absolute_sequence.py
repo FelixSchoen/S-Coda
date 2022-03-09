@@ -173,7 +173,7 @@ class AbsoluteSequence(AbstractSequence):
                 notes[i] = []
             else:
                 current_duration = pairing[1].time - pairing[0].time
-                best_fit = possible_durations[find_minimal_distance(current_duration, valid_durations)]
+                best_fit = valid_durations[find_minimal_distance(current_duration, valid_durations)]
                 correction = best_fit - current_duration
                 pairing[1].time += correction
 

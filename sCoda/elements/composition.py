@@ -91,7 +91,6 @@ class Composition:
 
         quantise_parameters = get_note_durations(1, 8)
         quantise_parameters += get_tuplet_durations(quantise_parameters, 3, 2)
-        print(quantise_parameters)
         final_sequences[0].quantise(quantise_parameters)
 
         note_durations = get_note_durations(8, 8)
