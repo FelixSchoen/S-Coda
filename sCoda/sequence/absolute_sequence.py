@@ -118,10 +118,10 @@ class AbsoluteSequence(AbstractSequence):
         self.messages = quantified_messages
         self.sort()
 
-    def quantise_note_lengths(self, upper_bound_multiplier, lower_bound_divisor, dotted_note_iterations=1,
-                              standard_length=PPQN) -> None:
+    def quantise_note_lengths(self, valid_durations, standard_length=PPQN) -> None:
         """ Quantises the note lengths of this sequence, only affecting the ending of the notes.
 
+        # TODO
         Quantises notes to the given values, ensuring that all notes are of one of the sizes defined by the
         parameters. The upper bound multiplier determines the longest possible note value, in terms of the `PPQN`. An
         upper bound of 2, e.g., would result in a maximum note length of `2 * PPQN`, meaning half-notes. The same holds
@@ -131,36 +131,17 @@ class AbsoluteSequence(AbstractSequence):
         which in conjunction with the value for the `PPQN` can result in some values being rejected.
 
         Args:
-            upper_bound_multiplier: Value by which the `PPQN` is multiplied to determine the largest note value
-            lower_bound_divisor: Value by which the `PPQN` is divided to determine the smallest note value
-            dotted_note_iterations: Amount of dots to allow for dotted notes
+            valid_durations: An array containing exactly the valid note durations in ticks
             standard_length: Note length for notes which are not closed
 
         """
         # Construct possible durations
-        possible_durations = []
-        j = upper_bound_multiplier
-        while j >= 1:
-            possible_durations.append(j * PPQN)
-            j /= 2
-        j = 2
-        while j <= lower_bound_divisor:
-            possible_durations.append(PPQN / j)
-            j *= 2
-
-        # Add dotted durations to array of possible durations
-        dotted_durations = []
-        for dotted_note_iteration in range(1, dotted_note_iterations + 1):
-            for i, entry in enumerate(possible_durations):
-                if i + dotted_note_iteration < len(possible_durations):
-                    resulting_value = possible_durations[i]
-                    for iteration in range(1, dotted_note_iteration + 1):
-                        resulting_value += possible_durations[i + iteration] / 2
-                    if resulting_value.is_integer():
-                        dotted_durations.append(resulting_value)
-        possible_durations.extend(dotted_durations)
-
         notes = self._get_absolute_note_array(standard_length=standard_length)
+        note_occurrences = dict()
+
+        for i, pairing in enumerate(notes):
+            note_occurrences.setdefault(i, [])
+            note_occurrences[i].extend(pairing)
 
         for note in notes:
             duration = note[1].time - note[0].time

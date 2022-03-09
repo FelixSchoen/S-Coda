@@ -2,39 +2,7 @@ import math
 
 import numpy as np
 
-from sCoda.settings import MAX_VELOCITY, VELOCITY_BINS
-
-
-def digitise_velocity(velocity_unquantised: int) -> int:
-    """ Digitises velocity to bins.
-
-    Digitises the given velocity based on the settings of sCoda. Returns a value that corresponds to one of the bins,
-    but not the index of the bin itself. E.g., the value of 33 could be quantised to 32 with bins of size 16.
-    In this case, the value of 32 would be returned, rather than the index 2 (of the second bin).
-
-    Args:
-        velocity_unquantised: The initial velocity
-
-    Returns: The quantised value
-
-    """
-    if velocity_unquantised == 0:
-        return velocity_unquantised
-
-    return velocity_from_bin(bin_from_velocity(velocity_unquantised))
-
-
-def velocity_from_bin(bin_index: int) -> int:
-    """ Returns the velocity defined by the bin.
-
-    Args:
-        bin_index: Index of the bin to get the velocity for
-
-    Returns: The corresponding velocity
-
-    """
-    bin_size = round(MAX_VELOCITY / VELOCITY_BINS)
-    return int(min(MAX_VELOCITY, (bin_index + 1) * bin_size))
+from sCoda.settings import MAX_VELOCITY, VELOCITY_BINS, PPQN
 
 
 def bin_from_velocity(velocity: int) -> int:
@@ -69,6 +37,25 @@ def b_insort(collection: list, x) -> None:
     collection.insert(lo, x)
 
 
+def digitise_velocity(velocity_unquantised: int) -> int:
+    """ Digitises velocity to bins.
+
+    Digitises the given velocity based on the settings of sCoda. Returns a value that corresponds to one of the bins,
+    but not the index of the bin itself. E.g., the value of 33 could be quantised to 32 with bins of size 16.
+    In this case, the value of 32 would be returned, rather than the index 2 (of the second bin).
+
+    Args:
+        velocity_unquantised: The initial velocity
+
+    Returns: The quantised value
+
+    """
+    if velocity_unquantised == 0:
+        return velocity_unquantised
+
+    return velocity_from_bin(bin_from_velocity(velocity_unquantised))
+
+
 def find_minimal_distance(element, collection) -> int:
     """ Finds the element in the collection with the minimal distance to the given element.
 
@@ -95,6 +82,94 @@ def find_minimal_distance(element, collection) -> int:
     return index
 
 
+# From https://stackoverflow.com/questions/43099542/python-easy-way-to-do-geometric-mean-in-python
+def geo_mean(iterable):
+    a = np.array(iterable)
+    return a.prod() ** (1.0 / len(a))
+
+
+def get_note_durations(upper_bound_multiplier: int, lower_bound_divisor: int, base_value: int = PPQN) -> [int]:
+    """ Generates an array of valid note durations in ticks with regard to the PPQN.
+
+    Automatically generates the duration of notes in ticks using the given parameters, by multiplying or dividing the
+    given base value with the upper and lower bounds. In order to generate note values up to half notes with the
+    standard base value of the PPQN, an upper bound of 2 has to be selected, with which the base value will be
+    multiplied. In order to generate note values down to sixteenth notes with the standard base value of the PPQN,
+    a lower bound of 4 as to be selected, with which the base value will be divided by.
+
+    Args:
+        upper_bound_multiplier: Maximum multiplier of the given base value
+        lower_bound_divisor: Maximum divisor of the given base value
+        base_value: Amount of ticks for the base value, upon which calculation is based
+
+    Returns: An array of note values in ticks
+
+    """
+    durations = []
+
+    i = upper_bound_multiplier
+    while i >= 1:
+        durations.append(i * base_value)
+        i /= 2
+
+    j = 2
+    while j <= lower_bound_divisor:
+        durations.append(base_value / j)
+        j *= 2
+
+    return durations
+
+
+def get_tuplet_durations(note_durations, ratio_numerator, ratio_denominator) -> [int]:
+    """ Generates tuplet durations from a ratio and given note durations.
+
+    Generates tuplet values for each duration in the given array, by dividing by the denominator and multiplying with
+    the numerator.
+
+    Args:
+        note_durations: A base array of valid note durations
+        ratio_numerator: The numerator of the tuplet
+        ratio_denominator: The denominator of the tuplet
+
+    Returns: The generated tuplet lengths in ticks
+
+    """
+    tuplet_durations = []
+
+    for note_duration in note_durations:
+        tuplet_durations.append(int((note_duration * ratio_denominator) / ratio_numerator))
+
+    return tuplet_durations
+
+
+def get_dotted_note_durations(note_durations, dotted_iterations) -> [int]:
+    """ Generates dotted note durations from an initial array of note durations.
+
+    For each duration in the given array, creates up to the specified amount of iterations dotted values. E.g.,
+    if `dotted_iterations` were set to 2, durations for single and twice dotted notes would be generated from the
+    given array.
+
+    Args:
+        note_durations: A base array of valid note durations
+        dotted_iterations: The largest amount of dots to allow for notes
+
+    Returns: The generated note lengths in ticks
+
+    """
+    dotted_durations = []
+
+    for dotted_note_iteration in range(1, dotted_iterations + 1):
+        for i, entry in enumerate(note_durations):
+            if i + dotted_note_iteration < len(note_durations):
+                resulting_value = note_durations[i]
+                for iteration in range(1, dotted_note_iteration + 1):
+                    resulting_value += note_durations[i + iteration] / 2
+                if resulting_value.is_integer():
+                    dotted_durations.append(resulting_value)
+
+    return dotted_durations
+
+
 # From http://arachnoid.com
 def regress(x, terms):
     t = 1
@@ -105,7 +180,14 @@ def regress(x, terms):
     return r
 
 
-# From https://stackoverflow.com/questions/43099542/python-easy-way-to-do-geometric-mean-in-python
-def geo_mean(iterable):
-    a = np.array(iterable)
-    return a.prod() ** (1.0 / len(a))
+def velocity_from_bin(bin_index: int) -> int:
+    """ Returns the velocity defined by the bin.
+
+    Args:
+        bin_index: Index of the bin to get the velocity for
+
+    Returns: The corresponding velocity
+
+    """
+    bin_size = round(MAX_VELOCITY / VELOCITY_BINS)
+    return int(min(MAX_VELOCITY, (bin_index + 1) * bin_size))
