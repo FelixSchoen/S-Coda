@@ -124,14 +124,13 @@ class AbsoluteSequence(AbstractSequence):
     def quantise_note_lengths(self, possible_durations, standard_length=PPQN) -> None:
         """ Quantises the note lengths of this sequence, only affecting the ending of the notes.
 
-        # TODO
         Quantises notes to the given values, ensuring that all notes are of one of the sizes defined by the
-        parameters. The upper bound multiplier determines the longest possible note value, in terms of the `PPQN`. An
-        upper bound of 2, e.g., would result in a maximum note length of `2 * PPQN`, meaning half-notes. The same holds
-        for the lower bound, where the `PPQN` is divided by it. Furthermore, the option of having dotted notes is
-        given, where each iteration adds all (possible) notes dotted up to the iteration amount, e.g., an iteration
-        value of 2 would result in two-dotted notes being accepted. Note that only integer results are accepted,
-        which in conjunction with the value for the `PPQN` can result in some values being rejected.
+        parameters. See `sCoda.util.util.get_note_durations`, `sCoda.util.util.get_tuplet_durations` and
+        `sCoda.util.util.get_dotted_note_durations` for generating the `possible_durations` array. Tries to shorten
+        or extend the end of each note in such a way that the note duration is exactly one of the values given in
+        `possible_durations`. If this is not possible (e.g., due to an overlap with another note that would occur),
+        the note that can neither be shortened nor lengthened will be removed from the sequence. Note that this is
+        only the case if the note was shorter than the smallest legal duration specified, and thus cannot be shortened.
 
         Args:
             possible_durations: An array containing exactly the valid note durations in ticks
@@ -140,14 +139,17 @@ class AbsoluteSequence(AbstractSequence):
         """
         # Construct possible durations
         notes = self._get_absolute_note_array(standard_length=standard_length)
+        # Track when each type of note occurs, in order to check for possible overlaps
         note_occurrences = dict()
         quantised_messages = []
 
+        # Construct array keeping track of when each note occurs
         for pairing in notes:
             note = pairing[0].note
             note_occurrences.setdefault(note, [])
             note_occurrences[note].append(pairing)
 
+        # Handle each note, pairing consists of start and stop message
         for i, pairing in enumerate(notes):
             note = pairing[0].note
             valid_durations = copy.copy(possible_durations)
@@ -155,14 +157,13 @@ class AbsoluteSequence(AbstractSequence):
             # Check if there exists a clash with the following note
             index = note_occurrences[note].index(pairing)
             if index != len(note_occurrences[note]) - 1:
-                print(f"{pairing[0].note}")
                 possible_next_pairing = note_occurrences[note][index + 1]
-
                 current_duration = pairing[1].time - pairing[0].time
 
                 # Possible durations contains the same as valid durations at the beginning
                 for possible_duration in possible_durations:
                     possible_correction = possible_duration - current_duration
+
                     # If we cannot extend the note, remove the time from possible times
                     if pairing[1].time + possible_correction > possible_next_pairing[0].time:
                         valid_durations.remove(possible_duration)
@@ -175,7 +176,6 @@ class AbsoluteSequence(AbstractSequence):
                 best_fit = possible_durations[find_minimal_distance(current_duration, valid_durations)]
                 correction = best_fit - current_duration
                 pairing[1].time += correction
-                print(f"Note: {pairing[0].note} Duration: {current_duration}, Valid: {valid_durations}, chosen: {best_fit}, correction: {correction}, previous: {pairing[1].time - correction} result: {pairing[1].time}")
 
         for pairing in notes:
             quantised_messages.extend(pairing)
