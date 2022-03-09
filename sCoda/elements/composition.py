@@ -89,7 +89,8 @@ class Composition:
         # TODO Testing purposes
         # final_sequences[0]._get_abs()._get_absolute_note_array()
 
-        quantise_parameters = [2 ** 0, 2 ** 1, 2 ** 1 + 2 ** 0, 2 ** 2, 2 ** 2 + 2 ** 1, 2 ** 3, 2 ** 3 + 2 ** 2]
+        quantise_parameters = get_note_durations(1, 8)
+        quantise_parameters += get_tuplet_durations(quantise_parameters, 3, 2)
         print(quantise_parameters)
         final_sequences[0].quantise(quantise_parameters)
 
@@ -99,12 +100,7 @@ class Composition:
 
         possible_durations = note_durations + triplet_durations + dotted_durations
 
-        print(possible_durations)
-
         final_sequences[0].quantise_note_lengths(possible_durations)
-
-        # for msg in final_sequences[0]._get_abs().messages:
-        #     print(msg)
 
         split_sequences = final_sequences[0].split([math.inf])
 

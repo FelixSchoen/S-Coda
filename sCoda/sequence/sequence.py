@@ -97,11 +97,11 @@ class Sequence:
         self._get_rel().transpose(transpose_by)
         self._abs_stale = True
 
-    def quantise(self, divisors: [int]) -> None:
+    def quantise(self, step_sizes: [int]) -> None:
         """ See `sCoda.sequence.absolute_sequence.AbsoluteSequence.quantise`
 
         """
-        self._get_abs().quantise(divisors)
+        self._get_abs().quantise(step_sizes)
         self._rel_stale = True
 
     def quantise_note_lengths(self, possible_durations, standard_length=PPQN) -> None:

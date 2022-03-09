@@ -40,19 +40,22 @@ class AbsoluteSequence(AbstractSequence):
             for msg in copy.copy(sequence.messages):
                 b_insort(self.messages, msg)
 
-    def quantise(self, divisors: [int]) -> None:
+    def quantise(self, step_sizes: [int]) -> None:
         """ Quantises the sequence to a given grid.
 
-        Quantises the sequence stored in this object according to the given divisors. These divisors determine the
-        step size of the grid, e.g., an entry of 8 would correspond in a grid size of `PPQN / 8`. If `PPQN` were 24,
-        the grid would support the length 3, in this example thirty-secondth notes. If there exists a tie between two
-        grid boundaries, these are first resolved by whether the quantisation would prevent a note-length of 0,
-        then by the order of the divisors array. The result of this operation is that all messages of this sequence
-        have a time divisible by `PPQN / divisor`, for all entries in divisors. If the quantisation resulted in
-        two notes overlapping, the second note will be removed.
+        Quantises the sequence stored in this object according to the given step sizes. These step sizes determine the
+        size of the underlying grid, e.g. a step size of 3 would allow for messages to be placed at multiples of 3
+        ticks. Note that the induced length of the notes is dependent on the `PPQN`, e.g., with a `PPQN` of 24,
+        a step size of 3 would be equivalent to a grid conforming to thirty-second notes. If there exists a tie between
+        two grid boundaries, these are first resolved by whether the quantisation would prevent a note-length of 0,
+        then by the order of the `step_sizes` array. The result of this operation is that all messages of this
+        sequence have a time divisible by one of the values in `step_sizes`. If the quantisation resulted in two
+        notes overlapping, the second note will be removed. See `sCoda.util.util.get_note_durations`,
+        `sCoda.util.util.get_tuplet_durations` and `sCoda.util.util.get_dotted_note_durations` for generating the
+        `step_sizes` array.
 
         Args:
-            divisors: Array of number by which the `PPQN` will be divided to determine possible step-size for the grid
+            step_sizes: Array of numbers corresponding to divisors of the grid length
 
         """
         quantised_messages = []
@@ -65,12 +68,9 @@ class AbsoluteSequence(AbstractSequence):
             original_time = msg.time
             message_to_append = copy.copy(msg)
 
-            # Size of the steps for each of the quantisation parameters
-            step_sizes = [PPQN / i for i in divisors]
-
             # Positions the note would land at according to each of the quantisation parameters
             positions_left = [(original_time // step_size) * step_size for step_size in step_sizes]
-            positions_right = [positions_left[i] + step_sizes[i] for i in range(0, len(divisors))]
+            positions_right = [positions_left[i] + step_sizes[i] for i in range(0, len(step_sizes))]
 
             possible_positions = positions_left + positions_right
             valid_positions = []
