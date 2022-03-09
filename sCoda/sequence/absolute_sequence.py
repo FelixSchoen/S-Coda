@@ -55,7 +55,7 @@ class AbsoluteSequence(AbstractSequence):
             divisors: Array of number by which the `PPQN` will be divided to determine possible step-size for the grid
 
         """
-        quantified_messages = []
+        quantised_messages = []
         # Keep track of open messages, in order to guarantee quantisation does not smother them
         open_messages = dict()
         # Keep track of from when to when notes are played, in order to eliminate double notes
@@ -79,7 +79,10 @@ class AbsoluteSequence(AbstractSequence):
             if msg.message_type == MessageType.note_on:
                 # Sanity check
                 if msg.note in open_messages:
-                    logging.warning(f"Note {msg.note} not previously closed")
+                    logging.warning(f"Note {msg.note} not previously stopped, inserting stop message")
+                    quantised_messages.append(Message(message_type=MessageType.note_off, note=msg.note, time=msg.time))
+                    open_messages.pop(msg.note, None)
+                    message_timings[msg.note].append(message_to_append.time)
 
                 valid_positions += possible_positions
                 message_to_append.time = valid_positions[find_minimal_distance(original_time, valid_positions)]
@@ -113,9 +116,9 @@ class AbsoluteSequence(AbstractSequence):
                 message_to_append.time = valid_positions[find_minimal_distance(original_time, valid_positions)]
 
             if message_to_append is not None:
-                quantified_messages.append(message_to_append)
+                quantised_messages.append(message_to_append)
 
-        self.messages = quantified_messages
+        self.messages = quantised_messages
         self.sort()
 
     def quantise_note_lengths(self, valid_durations, standard_length=PPQN) -> None:
@@ -194,7 +197,7 @@ class AbsoluteSequence(AbstractSequence):
             # Add notes to open messages
             if msg.message_type == MessageType.note_on:
                 if msg.note in open_messages:
-                    logging.warning(f"Note {msg.note} at time {msg.time} not previously closed")
+                    logging.warning(f"Note {msg.note} at time {msg.time} not previously stopped, inserting stop message")
                     index = open_messages.pop(msg.note)
                     notes[index].append(Message(message_type=MessageType.note_off, note=msg.note, time=msg.time))
 
@@ -205,7 +208,7 @@ class AbsoluteSequence(AbstractSequence):
             # Add closing message to fitting open message
             elif msg.message_type == MessageType.note_off:
                 if msg.note not in open_messages:
-                    logging.warning(f"Note {msg.note} at time {msg.time} not previously opened")
+                    logging.warning(f"Note {msg.note} at time {msg.time} not previously started, skipping")
                 else:
                     index = open_messages.pop(msg.note)
                     notes[index].append(msg)

@@ -91,7 +91,7 @@ class Composition:
         quantise_parameters = [2 ** 3, 2 ** 3 + 2 ** 2]
         quantise_parameters = [2 ** 2, 2 ** 2 + 2 ** 1]
         final_sequences[0].quantise(quantise_parameters)
-        final_sequences[0].quantise_note_lengths(8, 8)
+        # final_sequences[0].quantise_note_lengths(8, 8)
 
         # for msg in final_sequences[0]._get_abs().messages:
         #     print(msg)

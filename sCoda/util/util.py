@@ -23,18 +23,25 @@ def bin_from_velocity(velocity: int) -> int:
     return np.digitize(velocity, bins, right=True).item(-1)
 
 
-def b_insort(collection: list, x) -> None:
+def b_insort(collection: list, message) -> None:
+    """ Sorts the given message into the correct position in the already sorted list.
+
+    Args:
+        collection: A sorted list of messages
+        message: The message to insert
+
+    """
     lo = 0
     hi = len(collection)
 
     while lo < hi:
         mid = (lo + hi) // 2
-        if x.time < collection[mid].time:
+        if message.time < collection[mid].time:
             hi = mid
         else:
             lo = mid + 1
 
-    collection.insert(lo, x)
+    collection.insert(lo, message)
 
 
 def digitise_velocity(velocity_unquantised: int) -> int:
@@ -84,6 +91,14 @@ def find_minimal_distance(element, collection) -> int:
 
 # From https://stackoverflow.com/questions/43099542/python-easy-way-to-do-geometric-mean-in-python
 def geo_mean(iterable):
+    """ Calculates the geometric mean of the given values.
+
+    Args:
+        iterable: Numeric values
+
+    Returns: The geometric mean
+
+    """
     a = np.array(iterable)
     return a.prod() ** (1.0 / len(a))
 
@@ -172,6 +187,15 @@ def get_dotted_note_durations(note_durations, dotted_iterations) -> [int]:
 
 # From http://arachnoid.com
 def regress(x, terms):
+    """ Calculates f(x) based on x and the coefficients given by `terms`.
+
+    Args:
+        x: Input value
+        terms: Coefficients, starting with x^0
+
+    Returns:
+
+    """
     t = 1
     r = 0
     for c in terms:
