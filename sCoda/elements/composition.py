@@ -8,6 +8,7 @@ from sCoda.elements.message import Message, MessageType
 from sCoda.sequence.sequence import Sequence
 from sCoda.settings import PPQN
 from sCoda.util.midi_wrapper import MidiFile
+from sCoda.util.util import get_note_durations, get_tuplet_durations, get_dotted_note_durations
 
 
 class Composition:
@@ -88,10 +89,19 @@ class Composition:
         # TODO Testing purposes
         # final_sequences[0]._get_abs()._get_absolute_note_array()
 
-        quantise_parameters = [2 ** 3, 2 ** 3 + 2 ** 2]
-        quantise_parameters = [2 ** 2, 2 ** 2 + 2 ** 1]
+        quantise_parameters = [2 ** 0, 2 ** 1, 2 ** 1 + 2 ** 0, 2 ** 2, 2 ** 2 + 2 ** 1, 2 ** 3, 2 ** 3 + 2 ** 2]
+        print(quantise_parameters)
         final_sequences[0].quantise(quantise_parameters)
-        # final_sequences[0].quantise_note_lengths(8, 8)
+
+        note_durations = get_note_durations(8, 8)
+        triplet_durations = get_tuplet_durations(note_durations, 3, 2)
+        dotted_durations = get_dotted_note_durations(note_durations, 1)
+
+        possible_durations = note_durations + triplet_durations + dotted_durations
+
+        print(possible_durations)
+
+        final_sequences[0].quantise_note_lengths(possible_durations)
 
         # for msg in final_sequences[0]._get_abs().messages:
         #     print(msg)

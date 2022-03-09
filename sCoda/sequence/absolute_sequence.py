@@ -121,7 +121,7 @@ class AbsoluteSequence(AbstractSequence):
         self.messages = quantised_messages
         self.sort()
 
-    def quantise_note_lengths(self, valid_durations, standard_length=PPQN) -> None:
+    def quantise_note_lengths(self, possible_durations, standard_length=PPQN) -> None:
         """ Quantises the note lengths of this sequence, only affecting the ending of the notes.
 
         # TODO
@@ -134,24 +134,53 @@ class AbsoluteSequence(AbstractSequence):
         which in conjunction with the value for the `PPQN` can result in some values being rejected.
 
         Args:
-            valid_durations: An array containing exactly the valid note durations in ticks
+            possible_durations: An array containing exactly the valid note durations in ticks
             standard_length: Note length for notes which are not closed
 
         """
         # Construct possible durations
         notes = self._get_absolute_note_array(standard_length=standard_length)
         note_occurrences = dict()
+        quantised_messages = []
+
+        for pairing in notes:
+            note = pairing[0].note
+            note_occurrences.setdefault(note, [])
+            note_occurrences[note].append(pairing)
 
         for i, pairing in enumerate(notes):
-            note_occurrences.setdefault(i, [])
-            note_occurrences[i].extend(pairing)
+            note = pairing[0].note
+            valid_durations = copy.copy(possible_durations)
 
-        for note in notes:
-            duration = note[1].time - note[0].time
-            best_fit = possible_durations[find_minimal_distance(duration, possible_durations)]
-            correction = best_fit - duration
-            note[1].time += correction
+            # Check if there exists a clash with the following note
+            index = note_occurrences[note].index(pairing)
+            if index != len(note_occurrences[note]) - 1:
+                print(f"{pairing[0].note}")
+                possible_next_pairing = note_occurrences[note][index + 1]
 
+                current_duration = pairing[1].time - pairing[0].time
+
+                # Possible durations contains the same as valid durations at the beginning
+                for possible_duration in possible_durations:
+                    possible_correction = possible_duration - current_duration
+                    # If we cannot extend the note, remove the time from possible times
+                    if pairing[1].time + possible_correction > possible_next_pairing[0].time:
+                        valid_durations.remove(possible_duration)
+
+            # Check if we have to remove the note
+            if len(valid_durations) == 0:
+                notes[i] = []
+            else:
+                current_duration = pairing[1].time - pairing[0].time
+                best_fit = possible_durations[find_minimal_distance(current_duration, valid_durations)]
+                correction = best_fit - current_duration
+                pairing[1].time += correction
+                print(f"Note: {pairing[0].note} Duration: {current_duration}, Valid: {valid_durations}, chosen: {best_fit}, correction: {correction}, previous: {pairing[1].time - correction} result: {pairing[1].time}")
+
+        for pairing in notes:
+            quantised_messages.extend(pairing)
+
+        self.messages = quantised_messages
         self.sort()
 
     def sort(self) -> None:
@@ -197,7 +226,8 @@ class AbsoluteSequence(AbstractSequence):
             # Add notes to open messages
             if msg.message_type == MessageType.note_on:
                 if msg.note in open_messages:
-                    logging.warning(f"Note {msg.note} at time {msg.time} not previously stopped, inserting stop message")
+                    logging.warning(
+                        f"Note {msg.note} at time {msg.time} not previously stopped, inserting stop message")
                     index = open_messages.pop(msg.note)
                     notes[index].append(Message(message_type=MessageType.note_off, note=msg.note, time=msg.time))
 

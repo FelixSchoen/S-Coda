@@ -104,12 +104,9 @@ class Sequence:
         self._get_abs().quantise(divisors)
         self._rel_stale = True
 
-    def quantise_note_lengths(self, upper_bound_multiplier, lower_bound_divisor, dotted_note_iterations=1,
-                              standard_length=PPQN) -> None:
+    def quantise_note_lengths(self, possible_durations, standard_length=PPQN) -> None:
         """ See `sCoda.sequence.absolute_sequence.AbsoluteSequence.quantise_note_lengths`
 
         """
-        self._get_abs().quantise_note_lengths(upper_bound_multiplier, lower_bound_divisor,
-                                              dotted_note_iterations=dotted_note_iterations,
-                                              standard_length=standard_length)
+        self._get_abs().quantise_note_lengths(possible_durations, standard_length=standard_length)
         self._rel_stale = True

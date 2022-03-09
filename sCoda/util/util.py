@@ -124,12 +124,12 @@ def get_note_durations(upper_bound_multiplier: int, lower_bound_divisor: int, ba
 
     i = upper_bound_multiplier
     while i >= 1:
-        durations.append(i * base_value)
+        durations.append(int(i * base_value))
         i /= 2
 
     j = 2
     while j <= lower_bound_divisor:
-        durations.append(base_value / j)
+        durations.append(int(base_value / j))
         j *= 2
 
     return durations
@@ -180,7 +180,7 @@ def get_dotted_note_durations(note_durations, dotted_iterations) -> [int]:
                 for iteration in range(1, dotted_note_iteration + 1):
                     resulting_value += note_durations[i + iteration] / 2
                 if resulting_value.is_integer():
-                    dotted_durations.append(resulting_value)
+                    dotted_durations.append(int(resulting_value))
 
     return dotted_durations
 
