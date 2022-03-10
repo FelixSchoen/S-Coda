@@ -89,20 +89,6 @@ def find_minimal_distance(element, collection) -> int:
     return index
 
 
-# From https://stackoverflow.com/questions/43099542/python-easy-way-to-do-geometric-mean-in-python
-def geo_mean(iterable):
-    """ Calculates the geometric mean of the given values.
-
-    Args:
-        iterable: Numeric values
-
-    Returns: The geometric mean
-
-    """
-    a = np.array(iterable)
-    return a.prod() ** (1.0 / len(a))
-
-
 def get_note_durations(upper_bound_multiplier: int, lower_bound_divisor: int, base_value: int = PPQN) -> [int]:
     """ Generates an array of valid note durations in ticks with regard to the PPQN.
 
@@ -185,6 +171,14 @@ def get_dotted_note_durations(note_durations, dotted_iterations) -> [int]:
     return dotted_durations
 
 
+def minmax(minimum, maximum, value):
+    if value < minimum:
+        return minimum
+    if value > maximum:
+        return maximum
+    return value
+
+
 # From http://arachnoid.com
 def regress(x, terms):
     """ Calculates f(x) based on x and the coefficients given by `terms`.
@@ -202,6 +196,12 @@ def regress(x, terms):
         r += c * t
         t *= x
     return r
+
+
+def simple_regression(x1, y1, x2, y2, value):
+    c_1 = (y2 - y1) / (x2 - x1)
+    c_0 = y1 - x1 * c_1
+    return c_1 * value + c_0
 
 
 def velocity_from_bin(bin_index: int) -> int:

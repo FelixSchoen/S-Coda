@@ -83,9 +83,9 @@ class Composition:
         final_sequences = []
 
         for sequences_to_merge in sequences:
-            sequence = copy.copy(sequences_to_merge[0])
-            sequence.merge(sequences_to_merge[1:])
-            final_sequences.append(sequence)
+            bar = copy.copy(sequences_to_merge[0])
+            bar.merge(sequences_to_merge[1:])
+            final_sequences.append(bar)
 
         if 0 > meta_track_index or meta_track_index >= len(final_sequences):
             raise ValueError("Invalid meta track index")
@@ -106,13 +106,13 @@ class Composition:
 
         final_sequences[0].quantise_note_lengths(possible_durations)
 
-        timings = final_sequences[0].get_timing_of_message_type(MessageType.key_signature)
-        capacities = [timings[i] - timings[i - 1] for i in range(1, len(timings))]
-        split_sequences = final_sequences[0].split(capacities)
+        bars = final_sequences[0].split(
+            [PPQN * 4, PPQN * 4, PPQN * 4, PPQN * 4, PPQN * 4, PPQN * 4, PPQN * 4, PPQN * 4, PPQN * 4, PPQN * 4])
 
-        for i, sequence in enumerate(split_sequences):
-            sequence.adjust_wait_messages()
-            track = sequence.to_midi_track()
+        for i, bar in enumerate(bars):
+            bar.adjust_wait_messages()
+            bar.difficulty()
+            track = bar.to_midi_track()
             midi_file = MidiFile()
             midi_file.tracks.append(track)
             if not os.path.exists("../output"):

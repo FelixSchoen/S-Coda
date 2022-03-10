@@ -5,17 +5,24 @@ PPQN = 24
 VELOCITY_BINS = 8
 # The maximum velocity value
 MAX_VELOCITY = 127
-POSSIBLE_NOTE_LENGTHS = [8 * PPQN, 4 * PPQN, 2 * PPQN, PPQN]
 NOTE_LOWER_BOUND = 21
 NOTE_UPPER_BOUND = 108
 
 # Polynomials, generated using http://arachnoid.com
-SCALE_X3 = [
-    -5.7835680689066749e-015,
-    2.6806722689079381e+000,
-    -5.0420168067236864e+000,
-    3.3613445378157629e+000
+SCALE_DIFF_NOTE_VALUES = [
+    1.3333333333333333e+000,
+    -5.5555555555555552e-002
 ]
+SCALE_X3 = [
+    -7.7160500211448380e-015,
+    2.6000000000002825e+000,
+    -4.8000000000008844e+000,
+    3.2000000000006108e+000
+]
+
+# Difficulty settings
+DIFF_NOTE_VALUES_UPPER_BOUND = PPQN / 2 ** 2 - PPQN / 2 ** 3 / 2
+DIFF_NOTE_VALUES_LOWER_BOUND = PPQN
 
 
 def set_ppqn(ppqn: int) -> None:
@@ -30,6 +37,8 @@ def set_ppqn(ppqn: int) -> None:
     global PPQN
     PPQN = ppqn
 
+    initialize_values()
+
 
 def set_velocity_bins(velocity_bins: int) -> None:
     """
@@ -42,3 +51,11 @@ def set_velocity_bins(velocity_bins: int) -> None:
 
     global VELOCITY_BINS
     VELOCITY_BINS = velocity_bins
+
+
+def initialize_values() -> None:
+    global DIFF_NOTE_VALUES_LOWER_BOUND
+    global DIFF_NOTE_VALUES_UPPER_BOUND
+
+    DIFF_NOTE_VALUES_UPPER_BOUND = PPQN / 2 ** 2 - PPQN / 2 ** 3 / 2
+    DIFF_NOTE_VALUES_LOWER_BOUND = PPQN
