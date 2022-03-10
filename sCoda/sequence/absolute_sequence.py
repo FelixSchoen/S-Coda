@@ -33,6 +33,9 @@ class AbsoluteSequence(AbstractSequence):
         for pairing in notes:
             durations.append(pairing[1].time - pairing[0].time)
 
+        if len(durations) == 0:
+            durations.append(DIFF_NOTE_VALUES_LOWER_BOUND)
+
         mean = geometric_mean(durations)
         bound_mean = minmax(0, 1, simple_regression(DIFF_NOTE_VALUES_UPPER_BOUND, 1, DIFF_NOTE_VALUES_LOWER_BOUND, 0, mean))
         scaled_mean = regress(bound_mean, SCALE_X3)

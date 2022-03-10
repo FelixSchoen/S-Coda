@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import copy
 import logging
+import math
 import os
 
 from sCoda.elements.message import Message, MessageType
@@ -83,9 +84,9 @@ class Composition:
         final_sequences = []
 
         for sequences_to_merge in sequences:
-            bar = copy.copy(sequences_to_merge[0])
-            bar.merge(sequences_to_merge[1:])
-            final_sequences.append(bar)
+            track = copy.copy(sequences_to_merge[0])
+            track.merge(sequences_to_merge[1:])
+            final_sequences.append(track)
 
         if 0 > meta_track_index or meta_track_index >= len(final_sequences):
             raise ValueError("Invalid meta track index")
@@ -108,11 +109,13 @@ class Composition:
 
         bars = final_sequences[0].split(
             [PPQN * 4, PPQN * 4, PPQN * 4, PPQN * 4, PPQN * 4, PPQN * 4, PPQN * 4, PPQN * 4, PPQN * 4, PPQN * 4])
+        bars = final_sequences[0].split(
+            [math.inf])
 
-        for i, bar in enumerate(bars):
-            bar.adjust_wait_messages()
-            bar.difficulty()
-            track = bar.to_midi_track()
+        for i, track in enumerate(bars):
+            track.adjust_wait_messages()
+            track.difficulty()
+            track = track.to_midi_track()
             midi_file = MidiFile()
             midi_file.tracks.append(track)
             if not os.path.exists("../output"):
