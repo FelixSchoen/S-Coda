@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import mido
 
-from sCoda.elements.message import MessageType
+from sCoda.elements.message import MessageType, Key
 from sCoda.settings import PPQN
 
 
@@ -68,6 +68,9 @@ class MidiTrack:
                 track.append(mido.MetaMessage("time_signature", numerator=msg.numerator, denominator=msg.denominator,
                                               time=int(time_buffer)))
                 time_buffer = 0
+            elif msg.message_type == MessageType.key_signature:
+                track.append(mido.MetaMessage("key_signature", key=msg.key.value, time=int(time_buffer)))
+                time_buffer = 0
             elif msg.message_type == MessageType.control_change:
                 track.append(
                     mido.Message("control_change", channel=0, control=msg.control, value=msg.velocity,
@@ -79,13 +82,15 @@ class MidiTrack:
 
 class MidiMessage:
 
-    def __init__(self, message_type=None, control=None, denominator=None, numerator=None, note=None, time=None,
+    def __init__(self, message_type=None, control=None, denominator=None, numerator=None, key=None, note=None,
+                 time=None,
                  velocity=None) -> None:
         super().__init__()
         self.message_type = message_type
         self.control = control
         self.denominator = denominator
         self.numerator = numerator
+        self.key = key
         self.note = note
         self.time = time
         self.velocity = velocity
@@ -108,9 +113,18 @@ class MidiMessage:
             msg.message_type = MessageType.time_signature
             msg.denominator = mido_message.denominator
             msg.numerator = mido_message.numerator
+        elif mido_message.type == "key_signature":
+            msg.message_type = MessageType.key_signature
+            msg.key = Key(mido_message.key)
         elif mido_message.type == "control_change":
             msg.message_type = MessageType.control_change
             msg.control = mido_message.control
             msg.velocity = mido_message.value
 
         return msg
+
+    @staticmethod
+    def parse_internal_message(message) -> MidiMessage:
+        return MidiMessage(message_type=message.message_type, time=message.time, note=message.note,
+                           velocity=message.velocity, control=message.control, numerator=message.numerator,
+                           denominator=message.denominator, key=message.key)

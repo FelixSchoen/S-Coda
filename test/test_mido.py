@@ -2,7 +2,7 @@ from mido import MidiFile
 
 
 def test_import_midi_file():
-    midi = MidiFile("resources/problem.mid")
+    midi = MidiFile("resources/beethoven_o22_m4.mid")
 
     print(midi.ticks_per_beat)
 

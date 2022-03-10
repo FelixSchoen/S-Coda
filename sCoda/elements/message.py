@@ -9,6 +9,25 @@ class MessageType(enum.Enum):
     wait = "wait"
     time_signature = "time_signature"
     control_change = "control_change"
+    key_signature = "key_signature"
+
+
+class Key(enum.Enum):
+    c = "C"
+    g = "G"
+    d = "D"
+    a = "A"
+    e = "E"
+    b = "B"
+    f_s = "F#"
+    c_s = "C#"
+    f = "F"
+    b_b = "Bb"
+    e_b = "Eb"
+    a_b = "Ab"
+    d_b = "Db"
+    g_b = "Gb"
+    c_b = "Cb"
 
 
 class Message:
@@ -17,7 +36,7 @@ class Message:
     """
 
     def __init__(self, message_type: MessageType = None, note: int = None, velocity: int = None, control: int = None,
-                 numerator: int = None, denominator: int = None, time: int = None) -> None:
+                 numerator: int = None, denominator: int = None, key: Key = None, time: int = None) -> None:
         super().__init__()
         self.message_type = message_type
         self.time = time
@@ -26,10 +45,11 @@ class Message:
         self.control = control
         self.numerator = numerator
         self.denominator = denominator
+        self.key = key
 
     def __copy__(self) -> Message:
         return Message(message_type=self.message_type, note=self.note, velocity=self.velocity, control=self.control,
-                       numerator=self.numerator, denominator=self.denominator, time=self.time)
+                       numerator=self.numerator, denominator=self.denominator, key=self.key, time=self.time)
 
     def __deepcopy__(self, memodict=None) -> Message:
         return self.__copy__()
@@ -55,9 +75,7 @@ class Message:
         if self.denominator is not None:
             representation += f" denominator={self.denominator}"
 
-        return representation
+        if self.key is not None:
+            representation += f" key={self.key.value}"
 
-    # def __lt__(self, other):
-    #     message_type_order = [MessageType.time_signature, MessageType.control_change, MessageType.note_off,
-    #                           MessageType.note_on, MessageType.wait]
-    #     return message_type_order.index(self.message_type) < message_type_order.index(other.message_type)
+        return representation

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import copy
 import logging
-import math
+import os
 
 from sCoda.elements.message import Message, MessageType
 from sCoda.sequence.sequence import Sequence
@@ -69,6 +69,12 @@ class Composition:
                     meta_sequence.add_absolute_message(
                         Message(message_type=MessageType.time_signature, numerator=msg.numerator,
                                 denominator=msg.denominator, time=rounded_point_in_time))
+                elif msg.message_type == MessageType.key_signature:
+                    if i not in meta_track_indices:
+                        logging.warning("Encountered key signature change in unexpected track")
+
+                    meta_sequence.add_absolute_message(
+                        Message(message_type=MessageType.key_signature, key=msg.key, time=rounded_point_in_time))
                 elif msg.message_type == MessageType.control_change:
                     meta_sequence.add_absolute_message(
                         Message(message_type=MessageType.control_change, control=msg.control, velocity=msg.velocity,
@@ -100,7 +106,7 @@ class Composition:
 
         final_sequences[0].quantise_note_lengths(possible_durations)
 
-        timings = final_sequences[0].get_timing_of_message_type(MessageType.time_signature)
+        timings = final_sequences[0].get_timing_of_message_type(MessageType.key_signature)
         capacities = [timings[i] - timings[i - 1] for i in range(1, len(timings))]
         split_sequences = final_sequences[0].split(capacities)
 
@@ -109,6 +115,8 @@ class Composition:
             track = sequence.to_midi_track()
             midi_file = MidiFile()
             midi_file.tracks.append(track)
+            if not os.path.exists("../output"):
+                os.makedirs("../output")
             midi_file.save(f"../output/output{i}.mid")
 
         # TODO Add to composition

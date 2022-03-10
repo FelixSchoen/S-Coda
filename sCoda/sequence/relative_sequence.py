@@ -120,11 +120,6 @@ class RelativeSequence(AbstractSequence):
                 elif msg.message_type == MessageType.note_off:
                     current_sequence.add_message(msg)
                     open_messages.pop(msg.note, None)
-                elif msg.message_type == MessageType.time_signature or msg.message_type == MessageType.control_change:
-                    if remaining_capacity > 0:
-                        current_sequence.add_message(msg)
-                    else:
-                        next_sequence_queue.append(msg)
                 elif msg.message_type == MessageType.wait:
                     # Can add message in entirety
                     if msg.time <= remaining_capacity:
@@ -149,6 +144,11 @@ class RelativeSequence(AbstractSequence):
                         working_memory[0:0] = next_sequence_queue
                         current_sequence = next_sequence
                         break
+                else:
+                    if remaining_capacity > 0:
+                        current_sequence.add_message(msg)
+                    else:
+                        next_sequence_queue.append(msg)
 
         # Check if still capacity left
         if len(working_memory) > 0:
@@ -189,9 +189,7 @@ class RelativeSequence(AbstractSequence):
         track = MidiTrack()
 
         for msg in self.messages:
-            track.messages.append(
-                MidiMessage(message_type=msg.message_type, time=msg.time, note=msg.note, velocity=msg.velocity,
-                            control=msg.control, numerator=msg.numerator, denominator=msg.denominator))
+            track.messages.append(MidiMessage.parse_internal_message(msg))
 
         return track
 
