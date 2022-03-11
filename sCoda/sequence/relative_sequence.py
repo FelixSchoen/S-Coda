@@ -73,6 +73,31 @@ class RelativeSequence(AbstractSequence):
         """
         self.messages.extend(sequence.messages)
 
+    def diff_key(self) -> float:
+        """ Calculates the difficulty of the sequence based on the key it is in.
+
+        Here, a key that is further from C is considered more difficult to play, since the performer has to consider
+        more accidentals. Furthermore, if no key is specified, a key is guessed based on the amount of the induced
+        accidentals that would have to be played.
+
+        Returns: A value from 0 (low difficulty) to 1 (high difficulty)
+
+        """
+        key_signature = None
+
+        for msg in self.messages:
+            if msg.message_type == MessageType.key_signature:
+                if key_signature is not None:
+                    logging.warning("More than one key specified, returning standard difficulty")
+                    return 0.5
+                key_signature = msg.key
+            if msg.message_type == MessageType.wait:
+                break
+
+        # Have to guess key signature based on induced accidentals
+        if key_signature == None:
+            pass
+
     def split(self, capacities: [int]) -> [RelativeSequence]:
         """ Splits the sequence into parts of the given capacity.
 

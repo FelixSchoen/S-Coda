@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import enum
 
+from sCoda.util.music_theory import Key
+
 
 class MessageType(enum.Enum):
     note_on = "note_on"
@@ -10,24 +12,6 @@ class MessageType(enum.Enum):
     time_signature = "time_signature"
     control_change = "control_change"
     key_signature = "key_signature"
-
-
-class Key(enum.Enum):
-    c = "C"
-    g = "G"
-    d = "D"
-    a = "A"
-    e = "E"
-    b = "B"
-    f_s = "F#"
-    c_s = "C#"
-    f = "F"
-    b_b = "Bb"
-    e_b = "Eb"
-    a_b = "Ab"
-    d_b = "Db"
-    g_b = "Gb"
-    c_b = "Cb"
 
 
 class Message:

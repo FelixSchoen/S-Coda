@@ -2,7 +2,8 @@ from __future__ import annotations
 
 import mido
 
-from sCoda.elements.message import MessageType, Key
+from sCoda.elements.message import MessageType
+from sCoda.util.music_theory import Key
 from sCoda.settings import PPQN
 
 
