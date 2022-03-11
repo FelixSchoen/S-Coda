@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import copy
 import logging
+import math
 from statistics import geometric_mean
 from typing import TYPE_CHECKING
 
@@ -27,6 +28,15 @@ class AbsoluteSequence(AbstractSequence):
         b_insort(self.messages, msg)
 
     def diff_note_values(self) -> float:
+        """ Calculates complexity of the piece regarding to the geometric mean of the note values.
+
+        Calculates the geometric mean based on all occurring notes in this sequence and then applies linear scaling
+        to it. Returns a value from 0 to 1, where 0 indicates low difficulty. If no notes exist in this sequence,
+        the lowest complexity rating is returned.
+
+        Returns: A value from 0 (low difficulty) to 1 (high difficulty)
+
+        """
         notes = self._get_absolute_note_array()
         durations = []
 
@@ -37,10 +47,30 @@ class AbsoluteSequence(AbstractSequence):
             durations.append(DIFF_NOTE_VALUES_LOWER_BOUND)
 
         mean = geometric_mean(durations)
-        bound_mean = minmax(0, 1, simple_regression(DIFF_NOTE_VALUES_UPPER_BOUND, 1, DIFF_NOTE_VALUES_LOWER_BOUND, 0, mean))
+        bound_mean = minmax(0, 1,
+                            simple_regression(DIFF_NOTE_VALUES_UPPER_BOUND, 1, DIFF_NOTE_VALUES_LOWER_BOUND, 0, mean))
         scaled_mean = regress(bound_mean, SCALE_X3)
 
         return minmax(0, 1, scaled_mean)
+
+    def diff_note_classes(self) -> float:
+        """ Calculates difficulty of the sequence based on the amount of note classes (different notes played) in
+        relation to the overall amount of messages.
+
+        Returns: A value from 0 (low difficulty) to 1 (high difficulty)
+
+        """
+        notes = self._get_absolute_note_array()
+        note_classes = []
+
+        for pairing in notes:
+            if pairing[0].note not in note_classes:
+                note_classes.append(pairing[0].note)
+
+        relation = len(note_classes) / len(notes)
+        scaled_relation = regress(relation, SCALE_X3)
+
+        return minmax(0, 1, scaled_relation)
 
     def get_timing_of_message_type(self, message_type: MessageType) -> [int]:
         """ Searches for the given message type and stores the time of all matching messages in the output array.

@@ -109,18 +109,16 @@ class Composition:
 
         bars = final_sequences[0].split(
             [PPQN * 4, PPQN * 4, PPQN * 4, PPQN * 4, PPQN * 4, PPQN * 4, PPQN * 4, PPQN * 4, PPQN * 4, PPQN * 4])
-        bars = final_sequences[0].split(
-            [math.inf])
 
         for i, track in enumerate(bars):
             track.adjust_wait_messages()
             track.difficulty()
-            track = track.to_midi_track()
-            midi_file = MidiFile()
-            midi_file.tracks.append(track)
-            if not os.path.exists("../output"):
-                os.makedirs("../output")
-            midi_file.save(f"../output/output{i}.mid")
+            # track = track.to_midi_track()
+            # midi_file = MidiFile()
+            # midi_file.tracks.append(track)
+            # if not os.path.exists("../output"):
+            #     os.makedirs("../output")
+            # midi_file.save(f"../output/output{i}.mid")
 
         # TODO Add to composition
 
