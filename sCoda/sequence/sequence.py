@@ -73,8 +73,9 @@ class Sequence:
     def difficulty(self) -> float:
         diff_note_values = self._get_abs().diff_note_values()
         diff_note_classes = self._get_abs().diff_note_classes()
+        diff_key = self._get_rel().diff_key()
 
-        print(f"Note Values: {diff_note_values} Note Classes: {diff_note_classes}")
+        print(f"Note Values: {diff_note_values} Note Classes: {diff_note_classes} Key: {diff_key}")
 
     def get_timing_of_message_type(self, message_type: MessageType) -> [int]:
         """ See `sCoda.sequence.absolute_sequence.AbsoluteSequence.get_timing_of_message_type`

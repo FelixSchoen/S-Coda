@@ -9,7 +9,8 @@ from sCoda.elements.message import Message, MessageType
 from sCoda.sequence.abstract_sequence import AbstractSequence
 from sCoda.settings import NOTE_LOWER_BOUND, NOTE_UPPER_BOUND, PPQN
 from sCoda.util.midi_wrapper import MidiTrack, MidiMessage
-from sCoda.util.music_theory import KeyNoteMapping
+from sCoda.util.music_theory import KeyNoteMapping, Note
+from sCoda.util.util import minmax, simple_regression
 
 if TYPE_CHECKING:
     from sCoda.sequence.absolute_sequence import AbsoluteSequence
@@ -94,8 +95,6 @@ class RelativeSequence(AbstractSequence):
                     key_signature = None
                     break
                 key_signature = msg.key
-            if msg.message_type == MessageType.wait:
-                break
 
         # Have to guess key signature based on induced accidentals
         if key_signature is None:
@@ -105,24 +104,30 @@ class RelativeSequence(AbstractSequence):
 
             for msg in self.messages:
                 if msg.message_type == MessageType.note_on:
-                    for i, key in enumerate(KeyNoteMapping):
-                        if msg.note % 12 not in key:
+                    for i, (_, key_notes) in enumerate(KeyNoteMapping.items()):
+                        if Note(msg.note % 12) not in key_notes[0]:
                             key_candidates[i] += 1
 
             best_index = 0
             best_solution = math.inf
-            for i in range(0, len(key_candidates)):
-                if key_candidates[i] < best_solution:
-                    best_index = i
-                    best_solution = key_candidates[i]
+            best_solution_accidentals = math.inf
+            key_note_mapping = list(KeyNoteMapping.items())
 
-                    if best_solution == 0:
-                        break
+            for i in range(0, len(key_candidates)):
+                if key_candidates[i] <= best_solution:
+                    if key_candidates[i] < best_solution or key_note_mapping[i][1][1] < best_solution_accidentals:
+                        best_index = i
+                        best_solution = key_candidates[i]
+                        best_solution_accidentals = key_note_mapping[i][1][1]
 
             guessed_key = [key for key in KeyNoteMapping][best_index]
-            # TODO Fetch key, not net no work
+            key_signature = guessed_key
 
+        # Check how many accidentals this key uses
+        _, accidentals = KeyNoteMapping[key_signature]
 
+        bound_difficulty = minmax(0, 1, simple_regression(7, 1, 0, 0, accidentals))
+        return bound_difficulty
 
     def split(self, capacities: [int]) -> [RelativeSequence]:
         """ Splits the sequence into parts of the given capacity.
