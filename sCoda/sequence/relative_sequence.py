@@ -3,14 +3,16 @@ from __future__ import annotations
 import copy
 import logging
 import math
+from statistics import mean
 from typing import TYPE_CHECKING
 
 from sCoda.elements.message import Message, MessageType
 from sCoda.sequence.abstract_sequence import AbstractSequence
-from sCoda.settings import NOTE_LOWER_BOUND, NOTE_UPPER_BOUND, PPQN
+from sCoda.settings import NOTE_LOWER_BOUND, NOTE_UPPER_BOUND, PPQN, DIFF_DISTANCES_UPPER_BOUND, \
+    DIFF_DISTANCES_LOWER_BOUND, SCALE_X3
 from sCoda.util.midi_wrapper import MidiTrack, MidiMessage
 from sCoda.util.music_theory import KeyNoteMapping, Note
-from sCoda.util.util import minmax, simple_regression
+from sCoda.util.util import minmax, simple_regression, regress
 
 if TYPE_CHECKING:
     from sCoda.sequence.absolute_sequence import AbsoluteSequence
@@ -128,6 +130,33 @@ class RelativeSequence(AbstractSequence):
 
         bound_difficulty = minmax(0, 1, simple_regression(7, 1, 0, 0, accidentals))
         return bound_difficulty
+
+    def diff_distances(self) -> float:
+        notes_played = []
+        current_notes = []
+        distances = []
+
+        for msg in self.messages:
+            if msg.message_type == MessageType.wait and len(current_notes) > 0:
+                notes_played.append(sorted(current_notes))
+                current_notes = []
+            elif msg.message_type == MessageType.note_on:
+                current_notes.append(msg.note)
+
+        for i in range(1, len(notes_played)):
+            distance_lower = abs(notes_played[i][0] - notes_played[i - 1][0])
+            distance_higher = abs(notes_played[i][-1] - notes_played[i - 1][-1])
+            distance = max(distance_lower, distance_higher)
+            distances.append(distance)
+
+        high_distances_mean = mean(sorted(distances, reverse=True)[0: max(1, math.ceil((len(distances) * 0.15)))])
+
+        unscaled_difficulty = minmax(0, 1,
+                                     simple_regression(DIFF_DISTANCES_UPPER_BOUND, 1, DIFF_DISTANCES_LOWER_BOUND, 0,
+                                                       high_distances_mean))
+        scaled_mean = regress(unscaled_difficulty, SCALE_X3)
+
+        return minmax(0, 1, scaled_mean)
 
     def split(self, capacities: [int]) -> [RelativeSequence]:
         """ Splits the sequence into parts of the given capacity.

@@ -23,6 +23,8 @@ SCALE_X3 = [
 # Difficulty settings
 DIFF_NOTE_VALUES_UPPER_BOUND = PPQN / 2 ** 2 - PPQN / 2 ** 3 / 2
 DIFF_NOTE_VALUES_LOWER_BOUND = PPQN
+DIFF_DISTANCES_UPPER_BOUND = 30
+DIFF_DISTANCES_LOWER_BOUND = 12
 
 
 def set_ppqn(ppqn: int) -> None:
@@ -56,6 +58,10 @@ def set_velocity_bins(velocity_bins: int) -> None:
 def initialize_values() -> None:
     global DIFF_NOTE_VALUES_LOWER_BOUND
     global DIFF_NOTE_VALUES_UPPER_BOUND
+    global DIFF_DISTANCES_UPPER_BOUND
+    global DIFF_DISTANCES_LOWER_BOUND
 
     DIFF_NOTE_VALUES_UPPER_BOUND = PPQN / 2 ** 2 - PPQN / 2 ** 3 / 2
     DIFF_NOTE_VALUES_LOWER_BOUND = PPQN
+    DIFF_DISTANCES_UPPER_BOUND = 30
+    DIFF_DISTANCES_LOWER_BOUND = 12
