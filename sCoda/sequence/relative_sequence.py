@@ -2,12 +2,14 @@ from __future__ import annotations
 
 import copy
 import logging
+import math
 from typing import TYPE_CHECKING
 
 from sCoda.elements.message import Message, MessageType
 from sCoda.sequence.abstract_sequence import AbstractSequence
 from sCoda.settings import NOTE_LOWER_BOUND, NOTE_UPPER_BOUND, PPQN
 from sCoda.util.midi_wrapper import MidiTrack, MidiMessage
+from sCoda.util.music_theory import KeyNoteMapping
 
 if TYPE_CHECKING:
     from sCoda.sequence.absolute_sequence import AbsoluteSequence
@@ -88,15 +90,39 @@ class RelativeSequence(AbstractSequence):
         for msg in self.messages:
             if msg.message_type == MessageType.key_signature:
                 if key_signature is not None:
-                    logging.warning("More than one key specified, returning standard difficulty")
-                    return 0.5
+                    logging.warning("More than one key specified, disregarding information")
+                    key_signature = None
+                    break
                 key_signature = msg.key
             if msg.message_type == MessageType.wait:
                 break
 
         # Have to guess key signature based on induced accidentals
-        if key_signature == None:
-            pass
+        if key_signature is None:
+            key_candidates = []
+            for _ in KeyNoteMapping:
+                key_candidates.append(0)
+
+            for msg in self.messages:
+                if msg.message_type == MessageType.note_on:
+                    for i, key in enumerate(KeyNoteMapping):
+                        if msg.note % 12 not in key:
+                            key_candidates[i] += 1
+
+            best_index = 0
+            best_solution = math.inf
+            for i in range(0, len(key_candidates)):
+                if key_candidates[i] < best_solution:
+                    best_index = i
+                    best_solution = key_candidates[i]
+
+                    if best_solution == 0:
+                        break
+
+            guessed_key = [key for key in KeyNoteMapping][best_index]
+            # TODO Fetch key, not net no work
+
+
 
     def split(self, capacities: [int]) -> [RelativeSequence]:
         """ Splits the sequence into parts of the given capacity.
