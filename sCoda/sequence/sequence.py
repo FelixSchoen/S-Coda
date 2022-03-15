@@ -5,6 +5,7 @@ from sCoda.sequence.absolute_sequence import AbsoluteSequence
 from sCoda.sequence.relative_sequence import RelativeSequence
 from sCoda.settings import PPQN
 from sCoda.util.midi_wrapper import MidiTrack
+from sCoda.util.util import minmax, simple_regression
 
 
 class Sequence:
@@ -77,7 +78,32 @@ class Sequence:
         diff_distances = self._get_rel().diff_distances()
         diff_rhythm = self._get_abs().diff_rhythm()
 
-        print(f"Note Values: {diff_note_values} Note Classes: {diff_note_classes} Key: {diff_key} Distances: {diff_distances}")
+        print(
+            f"Note Values: {diff_note_values} Note Classes: {diff_note_classes} Key: {diff_key} "
+            f"Distances: {diff_distances} Rhythm: {diff_rhythm}")
+
+        difficulties_standard = [(diff_note_values, 10), (diff_note_classes, 6), (diff_key, 5)]
+        difficulties_increase = [(diff_distances, 10), (diff_rhythm, 15)]
+
+        difficulty = 0
+
+        standard_weight_sum = sum(weight for _, weight in difficulties_standard)
+
+        for difficulty_standard, weight in difficulties_standard:
+            difficulty += difficulty_standard * weight / standard_weight_sum
+
+        print(difficulty)
+
+        increase_percent_points = 0
+        for difficulty_increase, percentage_point_bound in difficulties_increase:
+            increase_percent_points += minmax(0, percentage_point_bound,
+                                              simple_regression(1, percentage_point_bound, 0, 0, difficulty_increase))
+
+        print(increase_percent_points)
+
+        change_percent_points = increase_percent_points
+
+        return difficulty + difficulty * change_percent_points / 100
 
     def get_timing_of_message_type(self, message_type: MessageType) -> [int]:
         """ See `sCoda.sequence.absolute_sequence.AbsoluteSequence.get_timing_of_message_type`
