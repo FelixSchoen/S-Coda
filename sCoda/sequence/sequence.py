@@ -75,6 +75,7 @@ class Sequence:
         diff_note_classes = self._get_abs().diff_note_classes()
         diff_key = self._get_rel().diff_key()
         diff_distances = self._get_rel().diff_distances()
+        diff_rhythm = self._get_abs().diff_rhythm()
 
         print(f"Note Values: {diff_note_values} Note Classes: {diff_note_classes} Key: {diff_key} Distances: {diff_distances}")
 

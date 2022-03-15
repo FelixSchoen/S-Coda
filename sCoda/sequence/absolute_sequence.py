@@ -2,15 +2,16 @@ from __future__ import annotations
 
 import copy
 import logging
-import math
 from statistics import geometric_mean
 from typing import TYPE_CHECKING
 
 from sCoda.elements.message import Message, MessageType
 from sCoda.sequence.abstract_sequence import AbstractSequence
-from sCoda.settings import PPQN, SCALE_DIFF_NOTE_VALUES, SCALE_X3, DIFF_NOTE_VALUES_UPPER_BOUND, \
-    DIFF_NOTE_VALUES_LOWER_BOUND
-from sCoda.util.util import b_insort, find_minimal_distance, regress, minmax, simple_regression
+from sCoda.settings import PPQN, SCALE_X3, DIFF_NOTE_VALUES_UPPER_BOUND, \
+    DIFF_NOTE_VALUES_LOWER_BOUND, NOTE_VALUE_UPPER_BOUND, NOTE_VALUE_LOWER_BOUND, VALID_TUPLETS, DOTTED_ITERATIONS, \
+    SCALE_LOGLIKE
+from sCoda.util.util import b_insort, find_minimal_distance, regress, minmax, simple_regression, get_note_durations, \
+    get_tuplet_durations, get_dotted_note_durations
 
 if TYPE_CHECKING:
     from sCoda.sequence.relative_sequence import RelativeSequence
@@ -71,6 +72,50 @@ class AbsoluteSequence(AbstractSequence):
         scaled_relation = regress(relation, SCALE_X3)
 
         return minmax(0, 1, scaled_relation)
+
+    def diff_rhythm(self) -> float:
+        """ Calculates difficulty based on the rhythm of the sequence.
+
+        For this calculation, note values are weighted by checking if they are normal values, dotted, or tuplet ones.
+
+        Returns: A value from 0 (low difficulty) to 1 (high difficulty)
+
+        """
+        notes = self._get_absolute_note_array()
+
+        note_durations = get_note_durations(NOTE_VALUE_UPPER_BOUND, NOTE_VALUE_LOWER_BOUND)
+
+        tuplets = []
+        for tuplet_duration in VALID_TUPLETS:
+            tuplets.append(get_tuplet_durations(note_durations, tuplet_duration[0], tuplet_duration[1]))
+
+        dotted_durations = get_dotted_note_durations(note_durations, DOTTED_ITERATIONS)
+
+        notes_regular = []
+        notes_dotted = []
+        notes_tuplets = []
+
+        for note in notes:
+            duration = note[1].time - note[0].time
+
+            if duration in note_durations:
+                notes_regular.append(note)
+            elif any(duration in x for x in tuplets):
+                notes_tuplets.append(note)
+            elif duration in dotted_durations:
+                notes_dotted.append(note)
+            else:
+                logging.warning("Note value not covered")
+
+        rhythm_occurrences = 0
+
+        rhythm_occurrences += len(notes_dotted) * 0.5
+        rhythm_occurrences += len(notes_tuplets) * 1
+
+        difficulty_unscaled = minmax(0, 1, rhythm_occurrences / len(notes))
+        difficulty_scaled = minmax(0, 1, regress(difficulty_unscaled, SCALE_LOGLIKE))
+
+        return difficulty_scaled
 
     def get_timing_of_message_type(self, message_type: MessageType) -> [int]:
         """ Searches for the given message type and stores the time of all matching messages in the output array.

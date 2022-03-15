@@ -8,16 +8,27 @@ MAX_VELOCITY = 127
 NOTE_LOWER_BOUND = 21
 NOTE_UPPER_BOUND = 108
 
+# Maximum power of 2 defining upper length of notes, e.g., 8 corresponds to PPQN * 2^3, or double whole notes
+NOTE_VALUE_UPPER_BOUND = 8
+# Maximum power of 2 defining lower length of notes, e.g., 8 corresponds to PPQN / 2^3, or thirty-second notes
+NOTE_VALUE_LOWER_BOUND = 8
+# Amount of dots to allow for notes
+DOTTED_ITERATIONS = 1
+# All allowed tuplets, e.g. a value of (3, 2) allows (normal) triplets
+VALID_TUPLETS = [(3, 2)]
+
 # Polynomials, generated using http://arachnoid.com
-SCALE_DIFF_NOTE_VALUES = [
-    1.3333333333333333e+000,
-    -5.5555555555555552e-002
-]
 SCALE_X3 = [
     -7.7160500211448380e-015,
     2.6000000000002825e+000,
     -4.8000000000008844e+000,
     3.2000000000006108e+000
+]
+SCALE_LOGLIKE = [
+    1.1211198309988962e-001,
+    2.8168998527053071e+000,
+    -3.0339213824085780e+000,
+    1.1087028091894717e+000
 ]
 
 # Difficulty settings
@@ -60,6 +71,15 @@ def initialize_values() -> None:
     global DIFF_NOTE_VALUES_UPPER_BOUND
     global DIFF_DISTANCES_UPPER_BOUND
     global DIFF_DISTANCES_LOWER_BOUND
+    global NOTE_VALUE_UPPER_BOUND
+    global NOTE_VALUE_LOWER_BOUND
+    global DOTTED_ITERATIONS
+    global VALID_TUPLETS
+
+    NOTE_VALUE_UPPER_BOUND = 8
+    NOTE_VALUE_LOWER_BOUND = 8
+    DOTTED_ITERATIONS = 1
+    VALID_TUPLETS = [(3, 2)]
 
     DIFF_NOTE_VALUES_UPPER_BOUND = PPQN / 2 ** 2 - PPQN / 2 ** 3 / 2
     DIFF_NOTE_VALUES_LOWER_BOUND = PPQN

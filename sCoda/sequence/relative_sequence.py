@@ -132,6 +132,13 @@ class RelativeSequence(AbstractSequence):
         return bound_difficulty
 
     def diff_distances(self) -> float:
+        """ Calculates the difficulty of the sequence based on the distances between notes.
+
+        Here, only the top 15% of distances are considered, in order not to disregard notes due to dilution.
+
+        Returns: A value from 0 (low difficulty) to 1 (high difficulty)
+
+        """
         notes_played = []
         current_notes = []
         distances = []
