@@ -77,10 +77,11 @@ class Sequence:
         diff_key = self._get_rel().diff_key()
         diff_distances = self._get_rel().diff_distances()
         diff_rhythm = self._get_abs().diff_rhythm()
+        diff_pattern = self._get_rel().diff_pattern()
 
-        print(
-            f"Note Values: {diff_note_values} Note Classes: {diff_note_classes} Key: {diff_key} "
-            f"Distances: {diff_distances} Rhythm: {diff_rhythm}")
+        # print(
+        #     f"Note Values: {diff_note_values} Note Classes: {diff_note_classes} Key: {diff_key} "
+        #     f"Distances: {diff_distances} Rhythm: {diff_rhythm}")
 
         difficulties_standard = [(diff_note_values, 10), (diff_note_classes, 6), (diff_key, 5)]
         difficulties_increase = [(diff_distances, 10), (diff_rhythm, 15)]
@@ -92,14 +93,10 @@ class Sequence:
         for difficulty_standard, weight in difficulties_standard:
             difficulty += difficulty_standard * weight / standard_weight_sum
 
-        print(difficulty)
-
         increase_percent_points = 0
         for difficulty_increase, percentage_point_bound in difficulties_increase:
             increase_percent_points += minmax(0, percentage_point_bound,
                                               simple_regression(1, percentage_point_bound, 0, 0, difficulty_increase))
-
-        print(increase_percent_points)
 
         change_percent_points = increase_percent_points
 

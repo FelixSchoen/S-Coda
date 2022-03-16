@@ -165,6 +165,51 @@ class RelativeSequence(AbstractSequence):
 
         return minmax(0, 1, scaled_mean)
 
+    def diff_pattern(self) -> float:
+        """ Calculates the difficulty of the sequence based on the patterns of the start messages.
+
+        If a sequence contains patterns, i.e., if a building block is reused several times, the sequence is easier to
+        play, since the player has to read less notes.
+
+        Returns: A value from 0 (low difficulty) to 1 (high difficulty)
+
+        """
+        notes_played = []
+        current_bin = []
+
+        for msg in self.messages:
+            if msg.message_type == MessageType.wait and len(current_bin) > 0:
+                notes_played.extend(sorted(current_bin, key=lambda message: message.note))
+            elif msg.message_type == MessageType.note_on:
+                notes_played.append(msg)
+
+        string_representation = ""
+
+        # Create string representation
+        for i in range(1, len(notes_played)):
+            value = notes_played[i].note - notes_played[i - 1].note
+            if value >= 0:
+                string_representation += "+"
+            else:
+                string_representation += "-"
+
+            string_representation += str(abs(value))
+
+        # Iterate over length of pattern
+        pattern_length = 2
+        found_pattern = True
+
+        regex_pattern = r"(?P<pattern>(?:[+-]\d+)"
+        regex_buffer = r"(?:[+-]\d+)*?"
+        regex = regex_pattern + r"{{{p_len}}})" + regex_buffer + r"(?:(?P=pattern)" + regex_buffer + r"){{{p_occ}}}"
+        regex_subpattern = r"^(?P<pattern>(?:[+-]\d+)+)(?P=pattern)+$"
+
+        current_pattern = copy.copy(string_representation)
+
+        # Find sub-patterns
+        while True:
+            pass
+
     def split(self, capacities: [int]) -> [RelativeSequence]:
         """ Splits the sequence into parts of the given capacity.
 

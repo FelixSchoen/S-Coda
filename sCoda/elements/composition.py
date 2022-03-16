@@ -112,7 +112,7 @@ class Composition:
 
         for i, track in enumerate(bars):
             track.adjust_wait_messages()
-            print(f"Overall Difficulty: {track.difficulty()}")
+            track.difficulty()
             # track = track.to_midi_track()
             # midi_file = MidiFile()
             # midi_file.tracks.append(track)
