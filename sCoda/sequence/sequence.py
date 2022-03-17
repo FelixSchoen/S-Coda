@@ -79,28 +79,39 @@ class Sequence:
         diff_rhythm = self._get_abs().diff_rhythm()
         diff_pattern = self._get_rel().diff_pattern()
 
-        # print(
-        #     f"Note Values: {diff_note_values} Note Classes: {diff_note_classes} Key: {diff_key} "
-        #     f"Distances: {diff_distances} Rhythm: {diff_rhythm}")
-
         difficulties_standard = [(diff_note_values, 10), (diff_note_classes, 6), (diff_key, 5)]
         difficulties_increase = [(diff_distances, 10), (diff_rhythm, 15)]
+        difficulties_decrease = [(diff_pattern, 50)]
 
         difficulty = 0
 
         standard_weight_sum = sum(weight for _, weight in difficulties_standard)
 
+        # Calculate base difficulty
         for difficulty_standard, weight in difficulties_standard:
             difficulty += difficulty_standard * weight / standard_weight_sum
 
+        # Calculate increase of difficulty
         increase_percent_points = 0
         for difficulty_increase, percentage_point_bound in difficulties_increase:
             increase_percent_points += minmax(0, percentage_point_bound,
                                               simple_regression(1, percentage_point_bound, 0, 0, difficulty_increase))
-
         change_percent_points = increase_percent_points
 
-        return difficulty + difficulty * change_percent_points / 100
+        # Calculate decrease of difficulty
+        decrease_percent_points = 0
+        for difficulty_decrease, percentage_point_bound in difficulties_decrease:
+            decrease_percent_points += minmax(0, percentage_point_bound,
+                                              simple_regression(0, percentage_point_bound, 1, 0, difficulty_decrease))
+        change_percent_points -= decrease_percent_points
+
+        overall_difficulty = difficulty + difficulty * change_percent_points / 100
+
+        print(
+            f"Overall: {overall_difficulty} Note Values: {diff_note_values} Note Classes: {diff_note_classes} Key: {diff_key} "
+            f"Distances: {diff_distances} Rhythm: {diff_rhythm} Pattern: {diff_pattern}")
+
+        return overall_difficulty
 
     def get_timing_of_message_type(self, message_type: MessageType) -> [int]:
         """ See `sCoda.sequence.absolute_sequence.AbsoluteSequence.get_timing_of_message_type`

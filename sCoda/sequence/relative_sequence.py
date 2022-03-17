@@ -10,7 +10,8 @@ from typing import TYPE_CHECKING
 from sCoda.elements.message import Message, MessageType
 from sCoda.sequence.abstract_sequence import AbstractSequence
 from sCoda.settings import NOTE_LOWER_BOUND, NOTE_UPPER_BOUND, PPQN, DIFF_DISTANCES_UPPER_BOUND, \
-    DIFF_DISTANCES_LOWER_BOUND, SCALE_X3, REGEX_PATTERN, REGEX_SUBPATTERN, PATTERN_LENGTH
+    DIFF_DISTANCES_LOWER_BOUND, SCALE_X3, REGEX_PATTERN, REGEX_SUBPATTERN, PATTERN_LENGTH, \
+    DIFF_PATTERN_COVERAGE_UPPER_BOUND, DIFF_PATTERN_COVERAGE_LOWER_BOUND
 from sCoda.util.midi_wrapper import MidiTrack, MidiMessage
 from sCoda.util.music_theory import KeyNoteMapping, Note
 from sCoda.util.util import minmax, simple_regression, regress
@@ -196,19 +197,33 @@ class RelativeSequence(AbstractSequence):
 
             string_representation += str(abs(value))
 
-        regex_pattern = r"(?P<pattern>(?:[+-]\d+)"
-        regex_buffer = r"(?:[+-]\d+)*"
-        # Regex to match patterns
-        regex = regex_pattern + r"{{{p_len}}})" + regex_buffer + r"(?:(?P=pattern)" + regex_buffer + r"){{{p_occ}}}"
-        # Check if pattern can be subdivided into smaller pattern
-        regex_subpattern = r"^" + regex_pattern + r"+)(?P=pattern)+$"
+        # Obtain all possible patterns
+        results = RelativeSequence._match_pattern(string_representation)
 
-        current_representation = copy.copy(string_representation)
+        results_with_coverage = []
 
-        result_matches = []
+        # Determine coverage and length of found pattern
+        for result in results:
+            uncovered = string_representation
+            length = 0
+            for match in result:
+                uncovered = uncovered.replace(match, "")
+                length += match.count("+") + match.count("-")
+            coverage = (len(string_representation) - len(uncovered)) / len(string_representation)
+            results_with_coverage.append((coverage, length, result))
 
-        all_results = RelativeSequence._match_pattern(current_representation)
-        print(all_results)
+        # Determine best fitting result
+        if len(results_with_coverage) > 0:
+            best_fit = max(results_with_coverage, key=lambda x: x[0] / x[1])
+
+            bound_difficulty = minmax(0, 1,
+                                      simple_regression(DIFF_PATTERN_COVERAGE_UPPER_BOUND, 1,
+                                                        DIFF_PATTERN_COVERAGE_LOWER_BOUND, 0,
+                                                        best_fit[0] / best_fit[1]))
+
+            return bound_difficulty
+        else:
+            return 1
 
     @staticmethod
     def _match_pattern(current_representation) -> [str]:
@@ -230,7 +245,7 @@ class RelativeSequence(AbstractSequence):
 
             current_pattern_length += 1
 
-        print(f"Iteration with string {current_representation}, Local: {local_matches}")
+        # print(f"Iteration with string {current_representation}, Local: {local_matches}")
 
         results = []
 
@@ -248,8 +263,6 @@ class RelativeSequence(AbstractSequence):
                     results.append(result)
 
         return results
-
-
 
     def split(self, capacities: [int]) -> [RelativeSequence]:
         """ Splits the sequence into parts of the given capacity.

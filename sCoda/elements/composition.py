@@ -114,7 +114,7 @@ class Composition:
 
         for i, track in enumerate(bars):
             track.adjust_wait_messages()
-            if i == 0:
+            if i <= 5:
                 track.difficulty()
             # track = track.to_midi_track()
             # midi_file = MidiFile()
