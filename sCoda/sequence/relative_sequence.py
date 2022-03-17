@@ -10,8 +10,8 @@ from typing import TYPE_CHECKING
 from sCoda.elements.message import Message, MessageType
 from sCoda.sequence.abstract_sequence import AbstractSequence
 from sCoda.settings import NOTE_LOWER_BOUND, NOTE_UPPER_BOUND, PPQN, DIFF_DISTANCES_UPPER_BOUND, \
-    DIFF_DISTANCES_LOWER_BOUND, SCALE_X3, REGEX_PATTERN, REGEX_SUBPATTERN, PATTERN_LENGTH, \
-    DIFF_PATTERN_COVERAGE_UPPER_BOUND, DIFF_PATTERN_COVERAGE_LOWER_BOUND
+    DIFF_DISTANCES_LOWER_BOUND, SCALE_X3, DIFF_PATTERN_COVERAGE_UPPER_BOUND, DIFF_PATTERN_COVERAGE_LOWER_BOUND, \
+    PATTERN_LENGTH, REGEX_PATTERN, REGEX_SUBPATTERN
 from sCoda.util.midi_wrapper import MidiTrack, MidiMessage
 from sCoda.util.music_theory import KeyNoteMapping, Note
 from sCoda.util.util import minmax, simple_regression, regress
@@ -171,7 +171,7 @@ class RelativeSequence(AbstractSequence):
         """ Calculates the difficulty of the sequence based on the patterns of the start messages.
 
         If a sequence contains patterns, i.e., if a building block is reused several times, the sequence is easier to
-        play, since the player has to read less notes.
+        play, since the player has to read fewer notes.
 
         Returns: A value from 0 (low difficulty) to 1 (high difficulty)
 
@@ -224,45 +224,6 @@ class RelativeSequence(AbstractSequence):
             return bound_difficulty
         else:
             return 1
-
-    @staticmethod
-    def _match_pattern(current_representation) -> [str]:
-        local_matches = []
-        current_pattern_length = PATTERN_LENGTH
-
-        while True:
-            matches = re.findall(REGEX_PATTERN.format(p_len=current_pattern_length), current_representation)
-
-            # If no more matches, end calculation
-            if len(matches) == 0:
-                break
-
-            for match in matches:
-                matched_string = match[0]
-
-                if matched_string not in local_matches and re.match(REGEX_SUBPATTERN, matched_string) is None:
-                    local_matches.append(matched_string)
-
-            current_pattern_length += 1
-
-        # print(f"Iteration with string {current_representation}, Local: {local_matches}")
-
-        results = []
-
-        for i, local_match in enumerate(local_matches):
-            modified_string = current_representation.replace(local_match, "")
-
-            recursive_results = RelativeSequence._match_pattern(modified_string)
-
-            if len(recursive_results) == 0:
-                results.append([local_match])
-            else:
-                for recursive_result in recursive_results:
-                    result = [local_match]
-                    result.extend(recursive_result)
-                    results.append(result)
-
-        return results
 
     def split(self, capacities: [int]) -> [RelativeSequence]:
         """ Splits the sequence into parts of the given capacity.
@@ -400,3 +361,57 @@ class RelativeSequence(AbstractSequence):
                     msg.note += 12
                 while msg.note > NOTE_UPPER_BOUND:
                     msg.note -= 12
+
+    @staticmethod
+    def _match_pattern(current_representation) -> [str]:
+        """ Finds all possible combinations of patterns for input string.
+
+        Recursively finds patterns that fit the input ```current_representation```, removes these patterns from the
+        input and tries to match the resulting string. Returns all possible combinations of such matches.
+
+        Args:
+            current_representation: The current string to pattern-match
+
+        Returns: A list of lists, containing the valid patterns that can be matched, in this order, to the input string
+
+        """
+        # Store matches found in this iteration
+        local_matches = []
+        current_pattern_length = PATTERN_LENGTH
+
+        # Increase length of pattern each step
+        while True:
+            matches = re.findall(REGEX_PATTERN.format(p_len=current_pattern_length), current_representation)
+
+            # If no more matches, end calculation
+            if len(matches) == 0:
+                break
+
+            for match in matches:
+                matched_string = match[0]
+
+                # Check if match either already handled, or not a valid pattern (since it contains pattern itself)
+                if matched_string not in local_matches and re.match(REGEX_SUBPATTERN, matched_string) is None:
+                    local_matches.append(matched_string)
+
+            current_pattern_length += 1
+
+        results = []
+
+        # Handle found matches: Remove pattern from input and try to find patterns in the resulting string
+        for local_match in local_matches:
+            modified_string = current_representation.replace(local_match, "")
+
+            recursive_results = RelativeSequence._match_pattern(modified_string)
+
+            # No more patterns exist
+            if len(recursive_results) == 0:
+                results.append([local_match])
+            # Add current results to recursive results
+            else:
+                for recursive_result in recursive_results:
+                    result = [local_match]
+                    result.extend(recursive_result)
+                    results.append(result)
+
+        return results
