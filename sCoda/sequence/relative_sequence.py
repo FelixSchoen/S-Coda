@@ -3,13 +3,14 @@ from __future__ import annotations
 import copy
 import logging
 import math
+import re
 from statistics import mean
 from typing import TYPE_CHECKING
 
 from sCoda.elements.message import Message, MessageType
 from sCoda.sequence.abstract_sequence import AbstractSequence
 from sCoda.settings import NOTE_LOWER_BOUND, NOTE_UPPER_BOUND, PPQN, DIFF_DISTANCES_UPPER_BOUND, \
-    DIFF_DISTANCES_LOWER_BOUND, SCALE_X3
+    DIFF_DISTANCES_LOWER_BOUND, SCALE_X3, REGEX_PATTERN, REGEX_SUBPATTERN, PATTERN_LENGTH
 from sCoda.util.midi_wrapper import MidiTrack, MidiMessage
 from sCoda.util.music_theory import KeyNoteMapping, Note
 from sCoda.util.util import minmax, simple_regression, regress
@@ -195,20 +196,60 @@ class RelativeSequence(AbstractSequence):
 
             string_representation += str(abs(value))
 
-        # Iterate over length of pattern
-        pattern_length = 2
-        found_pattern = True
-
         regex_pattern = r"(?P<pattern>(?:[+-]\d+)"
-        regex_buffer = r"(?:[+-]\d+)*?"
+        regex_buffer = r"(?:[+-]\d+)*"
+        # Regex to match patterns
         regex = regex_pattern + r"{{{p_len}}})" + regex_buffer + r"(?:(?P=pattern)" + regex_buffer + r"){{{p_occ}}}"
-        regex_subpattern = r"^(?P<pattern>(?:[+-]\d+)+)(?P=pattern)+$"
+        # Check if pattern can be subdivided into smaller pattern
+        regex_subpattern = r"^" + regex_pattern + r"+)(?P=pattern)+$"
 
-        current_pattern = copy.copy(string_representation)
+        current_representation = copy.copy(string_representation)
 
-        # Find sub-patterns
+        result_matches = []
+
+        all_results = RelativeSequence._match_pattern(current_representation)
+        print(all_results)
+
+    @staticmethod
+    def _match_pattern(current_representation) -> [str]:
+        local_matches = []
+        current_pattern_length = PATTERN_LENGTH
+
         while True:
-            pass
+            matches = re.findall(REGEX_PATTERN.format(p_len=current_pattern_length), current_representation)
+
+            # If no more matches, end calculation
+            if len(matches) == 0:
+                break
+
+            for match in matches:
+                matched_string = match[0]
+
+                if matched_string not in local_matches and re.match(REGEX_SUBPATTERN, matched_string) is None:
+                    local_matches.append(matched_string)
+
+            current_pattern_length += 1
+
+        print(f"Iteration with string {current_representation}, Local: {local_matches}")
+
+        results = []
+
+        for i, local_match in enumerate(local_matches):
+            modified_string = current_representation.replace(local_match, "")
+
+            recursive_results = RelativeSequence._match_pattern(modified_string)
+
+            if len(recursive_results) == 0:
+                results.append([local_match])
+            else:
+                for recursive_result in recursive_results:
+                    result = [local_match]
+                    result.extend(recursive_result)
+                    results.append(result)
+
+        return results
+
+
 
     def split(self, capacities: [int]) -> [RelativeSequence]:
         """ Splits the sequence into parts of the given capacity.

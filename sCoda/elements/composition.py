@@ -110,9 +110,12 @@ class Composition:
         bars = final_sequences[0].split(
             [PPQN * 4, PPQN * 4, PPQN * 4, PPQN * 4, PPQN * 4, PPQN * 4, PPQN * 4, PPQN * 4, PPQN * 4, PPQN * 4])
 
+        print("Placeholder")
+
         for i, track in enumerate(bars):
             track.adjust_wait_messages()
-            track.difficulty()
+            if i == 0:
+                track.difficulty()
             # track = track.to_midi_track()
             # midi_file = MidiFile()
             # midi_file.tracks.append(track)

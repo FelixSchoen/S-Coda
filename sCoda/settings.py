@@ -17,6 +17,11 @@ DOTTED_ITERATIONS = 1
 # All allowed tuplets, e.g. a value of (3, 2) allows (normal) triplets
 VALID_TUPLETS = [(3, 2)]
 
+# Regex for pattern recognition
+PATTERN_LENGTH = 2
+REGEX_PATTERN = r"(?=(?P<pattern>(?:[+-]\d+){{{p_len}}})(?:[+-]\d+)*(?P<end>(?P=pattern)(?:[+-]\d+)*?)+)"
+REGEX_SUBPATTERN = r"^(?P<pattern>(?:[+-]\d+)+)(?P=pattern)+$"
+
 # Polynomials, generated using http://arachnoid.com
 SCALE_X3 = [
     -7.7160500211448380e-015,
