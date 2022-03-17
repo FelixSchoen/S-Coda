@@ -116,6 +116,8 @@ class Composition:
             track.adjust_wait_messages()
             if i <= 5:
                 track.difficulty()
+            if i == 0:
+                Sequence.pianorolls([track, bars[i+1]], title="Pianoroll of Sample Instance", x_label="ticks", y_label="note", y_scale=None)
             # track = track.to_midi_track()
             # midi_file = MidiFile()
             # midi_file.tracks.append(track)

@@ -1,9 +1,13 @@
 from __future__ import annotations
 
+import numpy as np
+from matplotlib import pyplot as plt
+from matplotlib.patches import Rectangle
+
 from sCoda.elements.message import MessageType
 from sCoda.sequence.absolute_sequence import AbsoluteSequence
 from sCoda.sequence.relative_sequence import RelativeSequence
-from sCoda.settings import PPQN
+from sCoda.settings import PPQN, NOTE_LOWER_BOUND, NOTE_UPPER_BOUND, MAX_VELOCITY
 from sCoda.util.midi_wrapper import MidiTrack
 from sCoda.util.util import minmax, simple_regression
 
@@ -126,6 +130,9 @@ class Sequence:
         self._get_abs().merge([seq._get_abs() for seq in sequences])
         self._rel_stale = True
 
+    def pianoroll(self):
+        self._get_abs().pianoroll()
+
     def split(self, capacities: [int]) -> [Sequence]:
         """ See `sCoda.sequence.relative_sequence.RelativeSequence.split`
 
@@ -160,3 +167,87 @@ class Sequence:
         """
         self._get_abs().quantise_note_lengths(possible_durations, standard_length=standard_length)
         self._rel_stale = True
+
+    @staticmethod
+    def pianorolls(sequences: [Sequence],
+                   title: str = None,
+                   x_label: str = None,
+                   y_label: str = None,
+                   x_scale: [int] = None,
+                   y_scale: [int] = (NOTE_LOWER_BOUND, NOTE_UPPER_BOUND),
+                   show_velocity: bool = True,
+                   x_tick_spacing=PPQN):
+        # Create new figure
+        fig = plt.figure()
+
+        # Create subplots for each of the sequences
+        gs = fig.add_gridspec(len(sequences), hspace=0.1)
+        axs = gs.subplots(sharex=True, sharey=True)
+
+        # Keep track of length and range of sequence
+        x_scale_max = 0
+        y_scale_min = NOTE_UPPER_BOUND
+        y_scale_max = NOTE_LOWER_BOUND
+
+        # Workaround for single sequences
+        if len(sequences) == 1:
+            axs = [axs]
+
+        # Draw notes
+        for i, sequence in enumerate(sequences):
+            note_array = sequence._get_abs()._get_absolute_note_array()
+
+            for note in note_array:
+                start_time = note[0].time
+                duration = note[1].time - start_time
+                pitch = note[0].note
+
+                # Keep track of scales
+                x_scale_max = max(x_scale_max, start_time + duration)
+                if pitch < y_scale_min:
+                    y_scale_min = pitch
+                if pitch > y_scale_max:
+                    y_scale_max = pitch
+
+                # Calculate opacity based on velocity
+                opacity = simple_regression(1, 1, 0, 0.5, note[0].velocity / MAX_VELOCITY)
+
+                # Draw rectangle
+                axs[i].add_patch(
+                    Rectangle((start_time, pitch), duration, 1,
+                              facecolor=(0, 0, 0, 1 if not show_velocity else opacity)))
+
+        # Define scale of plot
+        if x_scale is None:
+            x_scale = [0, x_scale_max]
+        if y_scale is None:
+            y_scale = [y_scale_min, y_scale_max + 1]
+        else:
+            y_scale = [y_scale[0], y_scale[1]]
+
+        for ax in axs:
+            ax.label_outer()
+
+            # X Ticks
+            ax.set_xticks(ticks=np.arange(0, ((x_scale[1] / x_tick_spacing) + 1) * x_tick_spacing, x_tick_spacing))
+
+            # Y Ticks
+            ax.set_yticks(ticks=np.arange(24, 24 + (8 + 1) * 12, 12),
+                          labels=["C1", "C2", "C3", "C4", "C5", "C6", "C7", "C8", "C9"])
+            ax.set_yticks(ticks=np.arange(NOTE_LOWER_BOUND, NOTE_UPPER_BOUND + 1, 1), minor=True)
+
+            # Activate grid
+            ax.grid(visible=True)
+
+        # Title plot
+        plt.suptitle(title, fontsize=20)
+
+        # Label axis
+        fig.supxlabel(x_label)
+        fig.supylabel(y_label)
+
+        # Define scale
+        plt.xlim(x_scale)
+        plt.ylim(y_scale)
+
+        plt.show()

@@ -5,6 +5,8 @@ import logging
 from statistics import geometric_mean
 from typing import TYPE_CHECKING
 
+import matplotlib.pyplot as plt
+
 from sCoda.elements.message import Message, MessageType
 from sCoda.sequence.abstract_sequence import AbstractSequence
 from sCoda.settings import PPQN, SCALE_X3, DIFF_NOTE_VALUES_UPPER_BOUND, \
@@ -146,6 +148,11 @@ class AbsoluteSequence(AbstractSequence):
         for sequence in sequences:
             for msg in copy.copy(sequence.messages):
                 b_insort(self.messages, msg)
+
+    def pianoroll(self):
+        fig, ax = plt.subplots()
+        ax.plot([1, 2, 3, 4], [1, 4, 2, 3])
+        plt.show()
 
     def quantise(self, step_sizes: [int]) -> None:
         """ Quantises the sequence to a given grid.
