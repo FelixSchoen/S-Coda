@@ -2,8 +2,6 @@ from __future__ import annotations
 
 import copy
 import logging
-import math
-import os
 
 from sCoda.elements.message import Message, MessageType
 from sCoda.sequence.sequence import Sequence
@@ -93,31 +91,75 @@ class Composition:
 
         final_sequences[meta_track_index].merge([meta_sequence])
 
-        # TODO Testing purposes
-
+        # Construct quantisation parameters
         quantise_parameters = get_note_durations(1, 8)
         quantise_parameters += get_tuplet_durations(quantise_parameters, 3, 2)
-        final_sequences[0].quantise(quantise_parameters)
 
         note_durations = get_note_durations(8, 8)
         triplet_durations = get_tuplet_durations(note_durations, 3, 2)
         dotted_durations = get_dotted_note_durations(note_durations, 1)
-
         possible_durations = note_durations + triplet_durations + dotted_durations
 
-        final_sequences[0].quantise_note_lengths(possible_durations)
+        # Quantisation
+        for sequence in final_sequences:
+            sequence.quantise(quantise_parameters)
+            sequence.quantise_note_lengths(possible_durations)
 
-        bars = final_sequences[0].split(
-            [PPQN * 4, PPQN * 4, PPQN * 4, PPQN * 4, PPQN * 4, PPQN * 4, PPQN * 4, PPQN * 4, PPQN * 4, PPQN * 4])
+        # Start splitting into bars
+        meta_track = final_sequences[meta_track_index]
+        time_signature_timings = meta_track.get_timing_of_message_type(MessageType.time_signature)
+        key_signature_timings = meta_track.get_timing_of_message_type(MessageType.key_signature)
 
-        print("Placeholder")
+        modifiable_sequences = [copy.copy(modifiable_sequence) for modifiable_sequence in final_sequences]
+        bars = [[] for _ in final_sequences]
 
-        for i, track in enumerate(bars):
-            track.adjust_wait_messages()
-            if i <= 5:
-                track.difficulty()
-            if i == 0:
-                Sequence.pianorolls([track, bars[i+1]], title="Pianoroll of Sample Instance", x_label="ticks", y_label="note", y_scale=None)
+        if len(time_signature_timings) == 0:
+            time_signature_timings = [0]
+
+        current_point_in_time = 0
+        current_ts_numerator = 4
+        current_ts_denominator = 4
+        current_key = None
+
+        all_done = False
+        while not all_done:
+            time_signature = next((timing for timing in time_signature_timings if timing[0] <= current_point_in_time), None)
+
+            if time_signature is not None:
+                time_signature_timings.remove(time_signature)
+                current_ts_numerator = time_signature[1].numerator
+                current_ts_denominator = time_signature[1].denominator
+
+            length_bar = current_ts_numerator * PPQN / (current_ts_denominator / 4)
+
+            all_done = True
+            for i, sequence in enumerate(modifiable_sequences):
+                split_up = sequence.split([length_bar])
+
+                # Check if we reached the end of the sequence
+                if len(split_up) > 1:
+                    all_done = False
+                    modifiable_sequences[i] = split_up[1]
+                # Fill with placeholder empty sequence
+                else:
+                    if len(split_up) == 0:
+                        split_up.append(Sequence())
+                    modifiable_sequences[i] = Sequence()
+
+                # Append split bar to list of bars
+                bars[i].append(split_up[0])
+
+        print(bars)
+
+        # TODO Testing purposes
+
+        # for i, track in enumerate(bars):
+        #     track.adjust_wait_messages()
+        #     if i <= 5:
+        #         track.difficulty()
+        #     if i == 0:
+        #         Sequence.pianorolls([track, bars[i + 1]], title="Pianoroll of Sample Instance", x_label="ticks",
+        #                             y_label="note", y_scale=None)
             # track = track.to_midi_track()
             # midi_file = MidiFile()
             # midi_file.tracks.append(track)

@@ -119,20 +119,21 @@ class AbsoluteSequence(AbstractSequence):
 
         return difficulty_scaled
 
-    def get_timing_of_message_type(self, message_type: MessageType) -> [int]:
+    def get_timing_of_message_type(self, message_type: MessageType) -> [(int, Message)]:
         """ Searches for the given message type and stores the time of all matching messages in the output array.
 
         Args:
             message_type: Which message type to search for
 
-        Returns: An array containing the absolute points in time of occurrence of the found messages
+        Returns: An array containing the absolute points in time of occurrence of the found messages, paired with the
+        messages themselves
 
         """
         timings = []
 
         for msg in self.messages:
             if msg.message_type == message_type:
-                timings.append(msg.time)
+                timings.append((msg.time, msg))
 
         return timings
 
@@ -148,11 +149,6 @@ class AbsoluteSequence(AbstractSequence):
         for sequence in sequences:
             for msg in copy.copy(sequence.messages):
                 b_insort(self.messages, msg)
-
-    def pianoroll(self):
-        fig, ax = plt.subplots()
-        ax.plot([1, 2, 3, 4], [1, 4, 2, 3])
-        plt.show()
 
     def quantise(self, step_sizes: [int]) -> None:
         """ Quantises the sequence to a given grid.

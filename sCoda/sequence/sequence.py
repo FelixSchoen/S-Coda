@@ -4,7 +4,7 @@ import numpy as np
 from matplotlib import pyplot as plt
 from matplotlib.patches import Rectangle
 
-from sCoda.elements.message import MessageType
+from sCoda.elements.message import MessageType, Message
 from sCoda.sequence.absolute_sequence import AbsoluteSequence
 from sCoda.sequence.relative_sequence import RelativeSequence
 from sCoda.settings import PPQN, NOTE_LOWER_BOUND, NOTE_UPPER_BOUND, MAX_VELOCITY
@@ -111,13 +111,13 @@ class Sequence:
 
         overall_difficulty = difficulty + difficulty * change_percent_points / 100
 
-        print(
-            f"Overall: {overall_difficulty} Note Values: {diff_note_values} Note Classes: {diff_note_classes} Key: {diff_key} "
-            f"Distances: {diff_distances} Rhythm: {diff_rhythm} Pattern: {diff_pattern}")
+        # print(
+        #     f"Overall: {overall_difficulty} Note Values: {diff_note_values} Note Classes: {diff_note_classes} Key: {diff_key} "
+        #     f"Distances: {diff_distances} Rhythm: {diff_rhythm} Pattern: {diff_pattern}")
 
         return overall_difficulty
 
-    def get_timing_of_message_type(self, message_type: MessageType) -> [int]:
+    def get_timing_of_message_type(self, message_type: MessageType) -> [(int, Message)]:
         """ See `sCoda.sequence.absolute_sequence.AbsoluteSequence.get_timing_of_message_type`
 
         """
@@ -178,7 +178,7 @@ class Sequence:
                    show_velocity: bool = True,
                    x_tick_spacing=PPQN):
         # Create new figure
-        fig = plt.figure()
+        fig = plt.figure(dpi=300)
 
         # Create subplots for each of the sequences
         gs = fig.add_gridspec(len(sequences), hspace=0.1)

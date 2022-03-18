@@ -13,7 +13,7 @@ from sCoda.settings import NOTE_LOWER_BOUND, NOTE_UPPER_BOUND, PPQN, DIFF_DISTAN
     DIFF_DISTANCES_LOWER_BOUND, SCALE_X3, DIFF_PATTERN_COVERAGE_UPPER_BOUND, DIFF_PATTERN_COVERAGE_LOWER_BOUND, \
     PATTERN_LENGTH, REGEX_PATTERN, REGEX_SUBPATTERN
 from sCoda.util.midi_wrapper import MidiTrack, MidiMessage
-from sCoda.util.music_theory import KeyNoteMapping, Note
+from sCoda.util.music_theory import KeyNoteMapping, Note, Key
 from sCoda.util.util import minmax, simple_regression, regress
 
 if TYPE_CHECKING:
@@ -80,7 +80,7 @@ class RelativeSequence(AbstractSequence):
         """
         self.messages.extend(sequence.messages)
 
-    def diff_key(self) -> float:
+    def diff_key(self, key: Key = None) -> float:
         """ Calculates the difficulty of the sequence based on the key it is in.
 
         Here, a key that is further from C is considered more difficult to play, since the performer has to consider
@@ -90,11 +90,11 @@ class RelativeSequence(AbstractSequence):
         Returns: A value from 0 (low difficulty) to 1 (high difficulty)
 
         """
-        key_signature = None
+        key_signature = key
 
         for msg in self.messages:
             if msg.message_type == MessageType.key_signature:
-                if key_signature is not None:
+                if key_signature is not None and key_signature is not msg.key:
                     logging.warning("More than one key specified, disregarding information")
                     key_signature = None
                     break
@@ -292,7 +292,8 @@ class RelativeSequence(AbstractSequence):
 
                         next_sequence_queue.append(Message(message_type=MessageType.wait, time=carry_time))
 
-                        split_sequences.append(current_sequence)
+                        if len(current_sequence.messages) > 0:
+                            split_sequences.append(current_sequence)
                         working_memory[0:0] = next_sequence_queue
                         current_sequence = next_sequence
                         break
