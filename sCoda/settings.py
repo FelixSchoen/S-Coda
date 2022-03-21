@@ -37,6 +37,8 @@ SCALE_LOGLIKE = [
 ]
 
 # Difficulty settings
+DIFF_NOTE_AMOUNT_UPPER_BOUND: float
+DIFF_NOTE_AMOUNT_LOWER_BOUND: float
 DIFF_NOTE_CLASSES_UPPER_BOUND: float
 DIFF_NOTE_CLASSES_LOWER_BOUND: float
 DIFF_NOTE_VALUES_UPPER_BOUND: float
@@ -76,6 +78,8 @@ def set_velocity_bins(velocity_bins: int) -> None:
 
 
 def initialize_values() -> None:
+    global DIFF_NOTE_AMOUNT_UPPER_BOUND
+    global DIFF_NOTE_AMOUNT_LOWER_BOUND
     global DIFF_NOTE_VALUES_LOWER_BOUND
     global DIFF_NOTE_VALUES_UPPER_BOUND
     global DIFF_DISTANCES_UPPER_BOUND
@@ -94,6 +98,9 @@ def initialize_values() -> None:
 
     DOTTED_ITERATIONS = 1
     VALID_TUPLETS = [(3, 2)]
+
+    DIFF_NOTE_AMOUNT_UPPER_BOUND = 12
+    DIFF_NOTE_AMOUNT_LOWER_BOUND = 2.5
 
     DIFF_NOTE_CLASSES_UPPER_BOUND = 12 / 4
     DIFF_NOTE_CLASSES_LOWER_BOUND = 6 / 4

@@ -85,6 +85,7 @@ class Sequence:
     def difficulty(self, key_signature: Key = None) -> float:
         self.adjust_wait_messages()
 
+        diff_note_amount = self._get_rel().diff_note_amount()
         diff_note_values = self._get_abs().diff_note_values()
         diff_note_classes = self._get_rel().diff_note_classes()
         diff_key = self._get_rel().diff_key(key=key_signature)
@@ -92,7 +93,7 @@ class Sequence:
         diff_rhythm = self._get_abs().diff_rhythm()
         diff_pattern = self._get_rel().diff_pattern()
 
-        difficulties_standard = [(diff_note_values, 10), (diff_note_classes, 6), (diff_key, 5)]
+        difficulties_standard = [(diff_note_values, 10), (diff_note_amount, 8), (diff_note_classes, 6), (diff_key, 5)]
         difficulties_increase = [(diff_distances, 10), (diff_rhythm, 15)]
         difficulties_decrease = [(diff_pattern, 60)]
 
@@ -121,8 +122,8 @@ class Sequence:
         overall_difficulty = difficulty + difficulty * change_percent_points / 100
 
         print(
-            f"Overall: {overall_difficulty} Note Values: {diff_note_values} Note Classes: {diff_note_classes} Key: {diff_key} "
-            f"Distances: {diff_distances} Rhythm: {diff_rhythm} Pattern: {diff_pattern}")
+            f"Overall: {overall_difficulty} Note Values: {diff_note_values} Note Amount: {diff_note_amount} Note "
+            f"Classes: {diff_note_classes} Key: {diff_key} Distances: {diff_distances} Rhythm: {diff_rhythm} Pattern: {diff_pattern}")
 
         return overall_difficulty
 
@@ -150,7 +151,7 @@ class Sequence:
         """ See `sCoda.sequence.relative_sequence.RelativeSequence.sequence_length`
 
         """
-        return self._get_rel().sequence_length()
+        return self._get_rel().sequence_length_relation()
 
     def split(self, capacities: [int]) -> [Sequence]:
         """ See `sCoda.sequence.relative_sequence.RelativeSequence.split`

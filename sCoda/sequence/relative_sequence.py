@@ -11,7 +11,8 @@ from sCoda.elements.message import Message, MessageType
 from sCoda.sequence.abstract_sequence import AbstractSequence
 from sCoda.settings import NOTE_LOWER_BOUND, NOTE_UPPER_BOUND, PPQN, DIFF_DISTANCES_UPPER_BOUND, \
     DIFF_DISTANCES_LOWER_BOUND, DIFF_PATTERN_COVERAGE_UPPER_BOUND, DIFF_PATTERN_COVERAGE_LOWER_BOUND, \
-    PATTERN_LENGTH, REGEX_PATTERN, REGEX_SUBPATTERN, DIFF_NOTE_CLASSES_UPPER_BOUND, DIFF_NOTE_CLASSES_LOWER_BOUND
+    PATTERN_LENGTH, REGEX_PATTERN, REGEX_SUBPATTERN, DIFF_NOTE_CLASSES_UPPER_BOUND, DIFF_NOTE_CLASSES_LOWER_BOUND, \
+    DIFF_NOTE_AMOUNT_UPPER_BOUND, DIFF_NOTE_AMOUNT_LOWER_BOUND
 from sCoda.util.midi_wrapper import MidiTrack, MidiMessage
 from sCoda.util.music_theory import KeyNoteMapping, Note, Key
 from sCoda.util.util import minmax, simple_regression
@@ -183,6 +184,28 @@ class RelativeSequence(AbstractSequence):
         scaled_difficulty = simple_regression(7, 1, 0, 0, accidentals)
         return minmax(0, 1, scaled_difficulty)
 
+    def diff_note_amount(self) -> float:
+        """ Calculates difficulty of the sequence based on the amount of notes played.
+
+        Returns: A value from 0 (low difficulty) to 1 (high difficulty)
+
+        """
+        amount_notes_played = 0
+
+        if self.sequence_length_relation() == 0:
+            return 0
+
+        for msg in self.messages:
+            if msg.message_type == MessageType.note_on:
+                amount_notes_played += 1
+
+        relation = amount_notes_played / self.sequence_length_relation()
+
+        scaled_difficulty = simple_regression(DIFF_NOTE_AMOUNT_UPPER_BOUND, 1, DIFF_NOTE_AMOUNT_LOWER_BOUND, 0,
+                                              relation)
+
+        return minmax(0, 1, scaled_difficulty)
+
     def diff_note_classes(self) -> float:
         """ Calculates difficulty of the sequence based on the amount of note classes (different notes played) in
         relation to the overall amount of messages.
@@ -200,7 +223,7 @@ class RelativeSequence(AbstractSequence):
         if len(note_classes) == 0:
             return 0
 
-        relation = len(note_classes) / self.sequence_length()
+        relation = len(note_classes) / self.sequence_length_relation()
         scaled_relation = simple_regression(DIFF_NOTE_CLASSES_UPPER_BOUND, 1, DIFF_NOTE_CLASSES_LOWER_BOUND, 0,
                                             relation)
 
@@ -282,7 +305,7 @@ class RelativeSequence(AbstractSequence):
         if current_length < padding_length:
             self.messages.append(Message(message_type=MessageType.wait, time=padding_length - current_length))
 
-    def sequence_length(self) -> float:
+    def sequence_length_relation(self) -> float:
         """ Calculates the length of the sequence in multiples of the `PPQN`.
 
         Returns: The length of the sequence as a multiple of the `PPQN`
