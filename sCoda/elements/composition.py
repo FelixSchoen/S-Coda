@@ -2,10 +2,10 @@ from __future__ import annotations
 
 import copy
 import logging
-import os
 
 from sCoda.elements.bar import Bar
 from sCoda.elements.message import Message, MessageType
+from sCoda.elements.track import Track
 from sCoda.sequence.sequence import Sequence
 from sCoda.settings import PPQN
 from sCoda.util.midi_wrapper import MidiFile
@@ -18,14 +18,23 @@ class Composition:
 
     """
 
-    def __init__(self) -> None:
+    def __init__(self, tracks: [Track]) -> None:
         super().__init__()
-        self._tracks = []
+        self._tracks = tracks
 
     @staticmethod
     def from_file(file_path: str, track_indices: [[int]],
                   meta_track_indices: [int], meta_track_index: int = 0) -> Composition:
-        composition = Composition()
+        """ Creates a new composition from the given MIDI file.
+
+        Args: file_path: Path to the MIDI file track_indices: Array of arrays of track indices, indices in the same
+        sub-array will be merged to a single track meta_track_indices: Indices of tracks to consider for meta
+        messages meta_track_index: Which final track to merge the meta messages into
+
+        Returns: The created composition
+
+        """
+        # Open file
         midi_file = MidiFile.open_midi_file(file_path)
 
         # Create absolute sequences
@@ -82,73 +91,83 @@ class Composition:
                         Message(message_type=MessageType.control_change, control=msg.control, velocity=msg.velocity,
                                 time=rounded_point_in_time))
 
-        final_sequences = []
+        extracted_sequences = []
 
         for sequences_to_merge in sequences:
             track = copy.copy(sequences_to_merge[0])
             track.merge(sequences_to_merge[1:])
-            final_sequences.append(track)
+            extracted_sequences.append(track)
 
-        if 0 > meta_track_index or meta_track_index >= len(final_sequences):
+        if 0 > meta_track_index or meta_track_index >= len(extracted_sequences):
             raise ValueError("Invalid meta track index")
 
-        final_sequences[meta_track_index].merge([meta_sequence])
+        extracted_sequences[meta_track_index].merge([meta_sequence])
 
         # Construct quantisation parameters
         quantise_parameters = get_note_durations(1, 8)
         quantise_parameters += get_tuplet_durations(quantise_parameters, 3, 2)
 
+        # Construct duration parameters
         note_durations = get_note_durations(8, 8)
         triplet_durations = get_tuplet_durations(note_durations, 3, 2)
         dotted_durations = get_dotted_note_durations(note_durations, 1)
         possible_durations = note_durations + triplet_durations + dotted_durations
 
         # Quantisation
-        for sequence in final_sequences:
+        for sequence in extracted_sequences:
             sequence.quantise(quantise_parameters)
             sequence.quantise_note_lengths(possible_durations)
 
         # Start splitting into bars
-        meta_track = final_sequences[meta_track_index]
+        meta_track = extracted_sequences[meta_track_index]
         time_signature_timings = meta_track.get_timing_of_message_type(MessageType.time_signature)
         key_signature_timings = meta_track.get_timing_of_message_type(MessageType.key_signature)
 
-        modifiable_sequences = [copy.copy(modifiable_sequence) for modifiable_sequence in final_sequences]
-        bars = [[] for _ in final_sequences]
+        # Create copies of sequences in order to split into bars
+        # TODO Check if works without copy
+        modifiable_sequences = [modifiable_sequence for modifiable_sequence in extracted_sequences]
+        bars = [[] for _ in extracted_sequences]
 
         if len(time_signature_timings) == 0:
             time_signature_timings = [0]
 
+        # Split into bars, carry key and time signature
         current_point_in_time = 0
         current_ts_numerator = 4
         current_ts_denominator = 4
         current_key = None
 
-        all_done = False
-        while not all_done:
+        # Create list of bars of equal lengths
+        tracks_synchronised = False
+        while not tracks_synchronised:
+            # Obtain new time or key signatures
             time_signature = next((timing for timing in time_signature_timings if timing[0] <= current_point_in_time)
                                   , None)
             key_signature = next((timing for timing in key_signature_timings if timing[0] <= current_point_in_time)
                                  , None)
 
+            # Remove time signature from list, change has occurred
             if time_signature is not None:
                 time_signature_timings.remove(time_signature)
                 current_ts_numerator = time_signature[1].numerator
                 current_ts_denominator = time_signature[1].denominator
 
+            # Remove key signature from list, change has occurred
             if key_signature is not None:
                 key_signature_timings.remove(key_signature)
                 current_key = key_signature[1].key
 
+            # Calculate length of current bar based on time signature
             length_bar = current_ts_numerator * PPQN / (current_ts_denominator / 4)
 
-            all_done = True
+            # Split sequences into bars
+            tracks_synchronised = True
             for i, sequence in enumerate(modifiable_sequences):
                 split_up = sequence.split([length_bar])
 
                 # Check if we reached the end of the sequence
                 if len(split_up) > 1:
-                    all_done = False
+                    tracks_synchronised = False
                     modifiable_sequences[i] = split_up[1]
                 # Fill with placeholder empty sequence
                 else:
@@ -159,23 +178,12 @@ class Composition:
                 # Append split bar to list of bars
                 bars[i].append(Bar(split_up[0], current_ts_numerator, current_ts_denominator, Key(current_key)))
 
-        print(f"Bars Track 1: {len(bars[0])}, Bars Track 2: {len(bars[1])}")
+        # Create tracks from bars
+        tracks = []
+        for track_index in range(0, len(bars)):
+            track = Track(bars[track_index])
+            tracks.append(track)
 
-        for i in range(0, len(bars[0])):
-            bar_r = bars[0][i]
-            bar_l = bars[1][i]
-            print(f"Right Hand Difficulty: {bar_r.difficulty()}, Left Hand Difficulty: {bar_l.difficulty()}")
-
-        # TODO Testing purposes
-
-        for i, sequence in enumerate(final_sequences):
-            track = sequence.to_midi_track()
-            midi_file = MidiFile()
-            midi_file.tracks.append(track)
-            if not os.path.exists("../output"):
-                os.makedirs("../output")
-            midi_file.save(f"../output/track_{i}.mid")
-
-        # TODO Add to composition
-
+        # Create composition from tracks
+        composition = Composition(tracks)
         return composition
