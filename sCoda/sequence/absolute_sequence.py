@@ -40,7 +40,7 @@ class AbsoluteSequence(AbstractSequence):
         b_insort(self.messages, msg)
 
     def diff_note_values(self) -> float:
-        """ Calculates complexity of the piece regarding to the geometric mean of the note values.
+        """ Calculates complexity of the piece regarding the geometric mean of the note values.
 
         Calculates the geometric mean based on all occurring notes in this sequence and then applies linear scaling
         to it. Returns a value from 0 to 1, where 0 indicates low difficulty. If no notes exist in this sequence,
@@ -61,7 +61,6 @@ class AbsoluteSequence(AbstractSequence):
         mean = geometric_mean(durations)
         bound_mean = minmax(0, 1,
                             simple_regression(DIFF_NOTE_VALUES_UPPER_BOUND, 1, DIFF_NOTE_VALUES_LOWER_BOUND, 0, mean))
-        # scaled_mean = regress(bound_mean, SCALE_X3)
 
         return minmax(0, 1, bound_mean)
 
@@ -108,10 +107,10 @@ class AbsoluteSequence(AbstractSequence):
         rhythm_occurrences += len(notes_dotted) * 0.5
         rhythm_occurrences += len(notes_tuplets) * 1
 
-        difficulty_unscaled = minmax(0, 1, rhythm_occurrences / len(notes))
-        difficulty_scaled = minmax(0, 1, regress(difficulty_unscaled, SCALE_LOGLIKE))
+        unscaled_difficulty = minmax(0, 1, rhythm_occurrences / len(notes))
+        scaled_difficulty = regress(unscaled_difficulty, SCALE_LOGLIKE)
 
-        return difficulty_scaled
+        return minmax(0, 1, scaled_difficulty)
 
     def get_timing_of_message_type(self, message_type: MessageType) -> [(int, Message)]:
         """ Searches for the given message type and stores the time of all matching messages in the output array.

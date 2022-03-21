@@ -122,12 +122,10 @@ class RelativeSequence(AbstractSequence):
 
         high_distances_mean = mean(sorted(distances, reverse=True)[0: max(1, math.ceil((len(distances) * 0.15)))])
 
-        unscaled_difficulty = minmax(0, 1,
-                                     simple_regression(DIFF_DISTANCES_UPPER_BOUND, 1, DIFF_DISTANCES_LOWER_BOUND, 0,
-                                                       high_distances_mean))
-        # scaled_mean = regress(unscaled_difficulty, SCALE_X3)
+        scaled_difficulty = simple_regression(DIFF_DISTANCES_UPPER_BOUND, 1, DIFF_DISTANCES_LOWER_BOUND, 0,
+                                              high_distances_mean)
 
-        return minmax(0, 1, unscaled_difficulty)
+        return minmax(0, 1, scaled_difficulty)
 
     def diff_key(self, key: Key = None) -> float:
         """ Calculates the difficulty of the sequence based on the key it is in.
@@ -182,8 +180,8 @@ class RelativeSequence(AbstractSequence):
         # Check how many accidentals this key uses
         _, accidentals = KeyNoteMapping[key_signature]
 
-        bound_difficulty = minmax(0, 1, simple_regression(7, 1, 0, 0, accidentals))
-        return bound_difficulty
+        scaled_difficulty = simple_regression(7, 1, 0, 0, accidentals)
+        return minmax(0, 1, scaled_difficulty)
 
     def diff_note_classes(self) -> float:
         """ Calculates difficulty of the sequence based on the amount of note classes (different notes played) in
@@ -203,8 +201,8 @@ class RelativeSequence(AbstractSequence):
             return 0
 
         relation = len(note_classes) / self._sequence_length()
-
-        scaled_relation = simple_regression(DIFF_NOTE_CLASSES_UPPER_BOUND, 1, DIFF_NOTE_CLASSES_LOWER_BOUND, 0, relation)
+        scaled_relation = simple_regression(DIFF_NOTE_CLASSES_UPPER_BOUND, 1, DIFF_NOTE_CLASSES_LOWER_BOUND, 0,
+                                            relation)
 
         return minmax(0, 1, scaled_relation)
 
@@ -255,14 +253,14 @@ class RelativeSequence(AbstractSequence):
 
         # Determine best fitting result
         if len(results_with_coverage) > 0:
+            print(results_with_coverage)
             best_fit = max(results_with_coverage, key=lambda x: x[0] / x[1])
 
-            bound_difficulty = minmax(0, 1,
-                                      simple_regression(DIFF_PATTERN_COVERAGE_UPPER_BOUND, 1,
-                                                        DIFF_PATTERN_COVERAGE_LOWER_BOUND, 0,
-                                                        best_fit[0] / best_fit[1]))
+            bound_difficulty = simple_regression(DIFF_PATTERN_COVERAGE_UPPER_BOUND, 1,
+                                                 DIFF_PATTERN_COVERAGE_LOWER_BOUND, 0,
+                                                 best_fit[0] / best_fit[1])
 
-            return bound_difficulty
+            return minmax(0, 1, bound_difficulty)
         else:
             return 1
 

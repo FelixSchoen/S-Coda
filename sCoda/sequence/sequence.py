@@ -92,7 +92,7 @@ class Sequence:
 
         difficulties_standard = [(diff_note_values, 10), (diff_note_classes, 6), (diff_key, 5)]
         difficulties_increase = [(diff_distances, 10), (diff_rhythm, 15)]
-        difficulties_decrease = [(diff_pattern, 50)]
+        difficulties_decrease = [(diff_pattern, 60)]
 
         difficulty = 0
 
