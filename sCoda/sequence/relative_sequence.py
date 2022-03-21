@@ -87,6 +87,9 @@ class RelativeSequence(AbstractSequence):
         more accidentals. Furthermore, if no key is specified, a key is guessed based on the amount of the induced
         accidentals that would have to be played.
 
+        Args:
+            key: A fixed key of the sequence, will prevent the program from trying to determine one.
+
         Returns: A value from 0 (low difficulty) to 1 (high difficulty)
 
         """
@@ -157,6 +160,10 @@ class RelativeSequence(AbstractSequence):
             distance_higher = abs(notes_played[i][-1] - notes_played[i - 1][-1])
             distance = max(distance_lower, distance_higher)
             distances.append(distance)
+
+        # If bar is empty, return easiest difficulty
+        if len(distances) == 0:
+            return 0
 
         high_distances_mean = mean(sorted(distances, reverse=True)[0: max(1, math.ceil((len(distances) * 0.15)))])
 
@@ -346,7 +353,7 @@ class RelativeSequence(AbstractSequence):
 
         return track
 
-    def transpose(self, transpose_by: int) -> None:
+    def transpose(self, transpose_by: int) -> bool:
         """ Transposes the sequence by the given amount.
 
         If the lower or upper bound is undercut over exceeded, these notes are transposed by an octave each.
@@ -354,14 +361,22 @@ class RelativeSequence(AbstractSequence):
         Args:
             transpose_by: Half-tone steps to transpose by
 
+        Returns: `True` if at least one note had to be shifted due to it otherwise being out of bounds
+
         """
+        had_to_shift = False
+
         for msg in self.messages:
             if msg.message_type == MessageType.note_on or msg.message_type == MessageType.note_off:
                 msg.note += transpose_by
                 while msg.note < NOTE_LOWER_BOUND:
+                    had_to_shift = True
                     msg.note += 12
                 while msg.note > NOTE_UPPER_BOUND:
+                    had_to_shift = True
                     msg.note -= 12
+
+        return had_to_shift
 
     @staticmethod
     def _match_pattern(current_representation) -> [str]:

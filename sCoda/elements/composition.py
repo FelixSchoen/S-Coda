@@ -3,10 +3,12 @@ from __future__ import annotations
 import copy
 import logging
 
+from sCoda.elements.bar import Bar
 from sCoda.elements.message import Message, MessageType
 from sCoda.sequence.sequence import Sequence
 from sCoda.settings import PPQN
 from sCoda.util.midi_wrapper import MidiFile
+from sCoda.util.music_theory import Key
 from sCoda.util.util import get_note_durations, get_tuplet_durations, get_dotted_note_durations
 
 
@@ -123,12 +125,19 @@ class Composition:
 
         all_done = False
         while not all_done:
-            time_signature = next((timing for timing in time_signature_timings if timing[0] <= current_point_in_time), None)
+            time_signature = next((timing for timing in time_signature_timings if timing[0] <= current_point_in_time)
+                                  , None)
+            key_signature = next((timing for timing in key_signature_timings if timing[0] <= current_point_in_time)
+                                 , None)
 
             if time_signature is not None:
                 time_signature_timings.remove(time_signature)
                 current_ts_numerator = time_signature[1].numerator
                 current_ts_denominator = time_signature[1].denominator
+
+            if key_signature is not None:
+                key_signature_timings.remove(key_signature)
+                current_key = key_signature[1].key
 
             length_bar = current_ts_numerator * PPQN / (current_ts_denominator / 4)
 
@@ -147,9 +156,12 @@ class Composition:
                     modifiable_sequences[i] = Sequence()
 
                 # Append split bar to list of bars
-                bars[i].append(split_up[0])
+                bars[i].append(Bar(split_up[0], current_ts_numerator, current_ts_denominator, Key(current_key)))
 
-        print(bars)
+        print(f"Bars Track 1: {len(bars[0])}, Bars Track 2: {len(bars[1])}")
+
+        for bar in bars[0]:
+            print(bar.difficulty())
 
         # TODO Testing purposes
 
@@ -160,12 +172,12 @@ class Composition:
         #     if i == 0:
         #         Sequence.pianorolls([track, bars[i + 1]], title="Pianoroll of Sample Instance", x_label="ticks",
         #                             y_label="note", y_scale=None)
-            # track = track.to_midi_track()
-            # midi_file = MidiFile()
-            # midi_file.tracks.append(track)
-            # if not os.path.exists("../output"):
-            #     os.makedirs("../output")
-            # midi_file.save(f"../output/output{i}.mid")
+        # track = track.to_midi_track()
+        # midi_file = MidiFile()
+        # midi_file.tracks.append(track)
+        # if not os.path.exists("../output"):
+        #     os.makedirs("../output")
+        # midi_file.save(f"../output/output{i}.mid")
 
         # TODO Add to composition
 

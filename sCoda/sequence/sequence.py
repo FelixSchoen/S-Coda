@@ -9,6 +9,7 @@ from sCoda.sequence.absolute_sequence import AbsoluteSequence
 from sCoda.sequence.relative_sequence import RelativeSequence
 from sCoda.settings import PPQN, NOTE_LOWER_BOUND, NOTE_UPPER_BOUND, MAX_VELOCITY
 from sCoda.util.midi_wrapper import MidiTrack
+from sCoda.util.music_theory import Key
 from sCoda.util.util import minmax, simple_regression
 
 
@@ -75,10 +76,10 @@ class Sequence:
         self._get_rel().consolidate(sequence._get_rel())
         self._abs_stale = True
 
-    def difficulty(self) -> float:
+    def difficulty(self, key_signature: Key = None) -> float:
         diff_note_values = self._get_abs().diff_note_values()
         diff_note_classes = self._get_abs().diff_note_classes()
-        diff_key = self._get_rel().diff_key()
+        diff_key = self._get_rel().diff_key(key=key_signature)
         diff_distances = self._get_rel().diff_distances()
         diff_rhythm = self._get_abs().diff_rhythm()
         diff_pattern = self._get_rel().diff_pattern()

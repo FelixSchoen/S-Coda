@@ -70,6 +70,9 @@ class AbsoluteSequence(AbstractSequence):
             if pairing[0].note not in note_classes:
                 note_classes.append(pairing[0].note)
 
+        if len(notes) == 0:
+            return 0
+
         relation = len(note_classes) / len(notes)
         scaled_relation = regress(relation, SCALE_X3)
 
@@ -84,6 +87,10 @@ class AbsoluteSequence(AbstractSequence):
 
         """
         notes = self._get_absolute_note_array()
+
+        # If bar is empty, return easiest difficulty
+        if len(notes) == 0:
+            return 0
 
         note_durations = get_note_durations(NOTE_VALUE_UPPER_BOUND, NOTE_VALUE_LOWER_BOUND)
 
@@ -330,7 +337,7 @@ class AbsoluteSequence(AbstractSequence):
 
         return relative_sequence
 
-    def _get_absolute_note_array(self, standard_length=PPQN) -> []:
+    def _get_absolute_note_array(self, standard_length=PPQN) -> [[Message, Message]]:
         open_messages = dict()
         notes: [[]] = []
         i = 0
