@@ -27,6 +27,17 @@ class AbsoluteSequence(AbstractSequence):
     def __init__(self) -> None:
         super().__init__()
 
+    def __copy__(self):
+        copied_messages = []
+
+        for message in self.messages:
+            copied_messages.append(message.__copy__())
+
+        copied_sequence = AbsoluteSequence()
+        copied_sequence.messages = copied_messages
+
+        return copied_sequence
+
     def add_message(self, msg: Message) -> None:
         b_insort(self.messages, msg)
 

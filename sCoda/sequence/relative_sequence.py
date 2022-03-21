@@ -28,6 +28,17 @@ class RelativeSequence(AbstractSequence):
     def __init__(self) -> None:
         super().__init__()
 
+    def __copy__(self):
+        copied_messages = []
+
+        for message in self.messages:
+            copied_messages.append(message.__copy__())
+
+        copied_sequence = RelativeSequence()
+        copied_sequence.messages = copied_messages
+
+        return copied_sequence
+
     def add_message(self, msg: Message) -> None:
         self.messages.append(msg)
 

@@ -36,6 +36,12 @@ class Sequence:
             self._rel = relative_sequence
             self._rel_stale = False
 
+    def __copy__(self) -> Sequence:
+        copied_absolute_sequence = None if self._get_abs() is None else self._get_abs().__copy__()
+        copied_relative_sequence = None if self._get_rel() is None else self._get_rel().__copy__()
+
+        return Sequence(copied_absolute_sequence, copied_relative_sequence)
+
     def _get_abs(self) -> AbsoluteSequence:
         if self._abs_stale:
             self._abs_stale = False
