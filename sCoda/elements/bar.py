@@ -19,9 +19,12 @@ class Bar:
         self._key_signature = key
         self._difficulty = None
 
-        if len(sequence._get_abs().messages) > 0 and sequence._get_abs().messages[-1].time > \
-                self._time_signature_numerator * PPQN / (self._time_signature_denominator / 4):
+        if self._sequence.sequence_length() > self._time_signature_numerator * PPQN / (
+                self._time_signature_denominator / 4):
             logging.warning("Bar capacity exceeded")
+        if self._sequence.sequence_length() < self._time_signature_numerator * PPQN / (
+                self._time_signature_denominator / 4):
+            self._sequence.pad_sequence(self._time_signature_numerator * PPQN / (self._time_signature_denominator / 4))
 
     def __copy__(self):
         return Bar(self._sequence.__copy__(), self._time_signature_numerator, self._time_signature_denominator,

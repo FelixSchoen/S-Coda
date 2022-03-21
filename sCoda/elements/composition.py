@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import copy
 import logging
+import os
 
 from sCoda.elements.bar import Bar
 from sCoda.elements.message import Message, MessageType
@@ -160,26 +161,20 @@ class Composition:
 
         print(f"Bars Track 1: {len(bars[0])}, Bars Track 2: {len(bars[1])}")
 
-        for i in range(0,len(bars[0])):
+        for i in range(0, len(bars[0])):
             bar_r = bars[0][i]
             bar_l = bars[1][i]
             print(f"Right Hand Difficulty: {bar_r.difficulty()}, Left Hand Difficulty: {bar_l.difficulty()}")
 
         # TODO Testing purposes
 
-        # for i, track in enumerate(bars):
-        #     track.adjust_wait_messages()
-        #     if i <= 5:
-        #         track.difficulty()
-        #     if i == 0:
-        #         Sequence.pianorolls([track, bars[i + 1]], title="Pianoroll of Sample Instance", x_label="ticks",
-        #                             y_label="note", y_scale=None)
-        # track = track.to_midi_track()
-        # midi_file = MidiFile()
-        # midi_file.tracks.append(track)
-        # if not os.path.exists("../output"):
-        #     os.makedirs("../output")
-        # midi_file.save(f"../output/output{i}.mid")
+        for i, sequence in enumerate(final_sequences):
+            track = sequence.to_midi_track()
+            midi_file = MidiFile()
+            midi_file.tracks.append(track)
+            if not os.path.exists("../output"):
+                os.makedirs("../output")
+            midi_file.save(f"../output/track_{i}.mid")
 
         # TODO Add to composition
 

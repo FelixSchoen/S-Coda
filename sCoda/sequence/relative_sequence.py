@@ -200,7 +200,7 @@ class RelativeSequence(AbstractSequence):
         if len(note_classes) == 0:
             return 0
 
-        relation = len(note_classes) / self._sequence_length()
+        relation = len(note_classes) / self.sequence_length()
         scaled_relation = simple_regression(DIFF_NOTE_CLASSES_UPPER_BOUND, 1, DIFF_NOTE_CLASSES_LOWER_BOUND, 0,
                                             relation)
 
@@ -253,7 +253,6 @@ class RelativeSequence(AbstractSequence):
 
         # Determine best fitting result
         if len(results_with_coverage) > 0:
-            print(results_with_coverage)
             best_fit = max(results_with_coverage, key=lambda x: x[0] / x[1])
 
             bound_difficulty = simple_regression(DIFF_PATTERN_COVERAGE_UPPER_BOUND, 1,
@@ -263,6 +262,39 @@ class RelativeSequence(AbstractSequence):
             return minmax(0, 1, bound_difficulty)
         else:
             return 1
+
+    def pad_sequence(self, padding_length):
+        """ Pads the sequence to a minimum fixed length.
+
+        Args:
+            padding_length: The minimum length this sequence should have after this operation
+
+        """
+        current_length = 0
+
+        for msg in self.messages:
+            if msg.message_type == MessageType.wait:
+                current_length += msg.time
+
+                if current_length >= padding_length:
+                    break
+
+        if current_length < padding_length:
+            self.messages.append(Message(message_type=MessageType.wait, time=padding_length - current_length))
+
+    def sequence_length(self) -> float:
+        """ Calculates the length of the sequence in multiples of the `PPQN`.
+
+        Returns: The length of the sequence as a multiple of the `PPQN`
+
+        """
+        length = 0
+
+        for msg in self.messages:
+            if msg.message_type == MessageType.wait:
+                length += msg.time
+
+        return length / PPQN
 
     def split(self, capacities: [int]) -> [RelativeSequence]:
         """ Splits the sequence into parts of the given capacity.
@@ -410,20 +442,6 @@ class RelativeSequence(AbstractSequence):
 
         return had_to_shift
 
-    def _sequence_length(self) -> float:
-        """ Calculates the length of the sequence in multiples of the `PPQN`.
-
-        Returns: The length of the sequence as a multiple of the `PPQN`
-
-        """
-        length = 0
-
-        for msg in self.messages:
-            if msg.message_type == MessageType.wait:
-                length += msg.time
-
-        return length / PPQN
-
     @staticmethod
     def _match_pattern(current_representation) -> [str]:
         """ Finds all possible combinations of patterns for input string.
@@ -466,11 +484,12 @@ class RelativeSequence(AbstractSequence):
 
             recursive_results = RelativeSequence._match_pattern(modified_string)
 
-            # No more patterns exist
-            if len(recursive_results) == 0:
+            # Consider also only parent match
+            if local_match not in results:
                 results.append([local_match])
+
             # Add current results to recursive results
-            else:
+            if len(recursive_results) != 0:
                 for recursive_result in recursive_results:
                     result = [local_match]
                     result.extend(recursive_result)

@@ -83,6 +83,8 @@ class Sequence:
         self._abs_stale = True
 
     def difficulty(self, key_signature: Key = None) -> float:
+        self.adjust_wait_messages()
+
         diff_note_values = self._get_abs().diff_note_values()
         diff_note_classes = self._get_rel().diff_note_classes()
         diff_key = self._get_rel().diff_key(key=key_signature)
@@ -137,8 +139,18 @@ class Sequence:
         self._get_abs().merge([seq._get_abs() for seq in sequences])
         self._rel_stale = True
 
-    def pianoroll(self):
-        self._get_abs().pianoroll()
+    def pad_sequence(self, padding_length):
+        """ See `sCoda.sequence.relative_sequence.RelativeSequence.pad_sequence`
+
+        """
+        self._get_rel().pad_sequence(padding_length)
+        self._abs_stale = True
+
+    def sequence_length(self) -> float:
+        """ See `sCoda.sequence.relative_sequence.RelativeSequence.sequence_length`
+
+        """
+        return self._get_rel().sequence_length()
 
     def split(self, capacities: [int]) -> [Sequence]:
         """ See `sCoda.sequence.relative_sequence.RelativeSequence.split`
@@ -183,7 +195,25 @@ class Sequence:
                    x_scale: [int] = None,
                    y_scale: [int] = (NOTE_LOWER_BOUND, NOTE_UPPER_BOUND),
                    show_velocity: bool = True,
-                   x_tick_spacing=PPQN):
+                   x_tick_spacing=PPQN) -> None:
+        """ Creates a piano roll from the given sequences.
+
+        Creates a visualisation in form of a piano roll from the given sequences, where each note is visualised using
+        a rectangle. The opacity of the rectangles corresponds to the velocity the notes are played with. Options for
+        scaling the representation are given, where in the default case height and width of the piano roll are
+        selected in such a way that all notes fit exactly.
+
+        Args:
+            sequences: The sequences to create a representation for
+            title: An optional title to set
+            x_label: Label of the x-axis
+            y_label: Label of the y-axis
+            x_scale: The scale of the x-axis, if not given will be chosen in such a way that all notes fit exactly
+            y_scale: The scale of the y-axis, if not given will be chosen in such a way that all notes fit exactly
+            show_velocity: Whether to show the velocity by changing the opacity of some notes
+            x_tick_spacing: Spacing of the ticks on the x-axis
+
+        """
         # Create new figure
         fig = plt.figure(dpi=300)
 
