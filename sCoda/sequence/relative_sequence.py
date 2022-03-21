@@ -10,11 +10,11 @@ from typing import TYPE_CHECKING
 from sCoda.elements.message import Message, MessageType
 from sCoda.sequence.abstract_sequence import AbstractSequence
 from sCoda.settings import NOTE_LOWER_BOUND, NOTE_UPPER_BOUND, PPQN, DIFF_DISTANCES_UPPER_BOUND, \
-    DIFF_DISTANCES_LOWER_BOUND, SCALE_X3, DIFF_PATTERN_COVERAGE_UPPER_BOUND, DIFF_PATTERN_COVERAGE_LOWER_BOUND, \
-    PATTERN_LENGTH, REGEX_PATTERN, REGEX_SUBPATTERN
+    DIFF_DISTANCES_LOWER_BOUND, DIFF_PATTERN_COVERAGE_UPPER_BOUND, DIFF_PATTERN_COVERAGE_LOWER_BOUND, \
+    PATTERN_LENGTH, REGEX_PATTERN, REGEX_SUBPATTERN, DIFF_NOTE_CLASSES_UPPER_BOUND, DIFF_NOTE_CLASSES_LOWER_BOUND
 from sCoda.util.midi_wrapper import MidiTrack, MidiMessage
 from sCoda.util.music_theory import KeyNoteMapping, Note, Key
-from sCoda.util.util import minmax, simple_regression, regress
+from sCoda.util.util import minmax, simple_regression
 
 if TYPE_CHECKING:
     from sCoda.sequence.absolute_sequence import AbsoluteSequence
@@ -91,6 +91,44 @@ class RelativeSequence(AbstractSequence):
         """
         self.messages.extend(sequence.messages)
 
+    def diff_distances(self) -> float:
+        """ Calculates the difficulty of the sequence based on the distances between notes.
+
+        Here, only the top 15% of distances are considered, in order not to disregard notes due to dilution.
+
+        Returns: A value from 0 (low difficulty) to 1 (high difficulty)
+
+        """
+        notes_played = []
+        current_notes = []
+        distances = []
+
+        for msg in self.messages:
+            if msg.message_type == MessageType.wait and len(current_notes) > 0:
+                notes_played.append(sorted(current_notes))
+                current_notes = []
+            elif msg.message_type == MessageType.note_on:
+                current_notes.append(msg.note)
+
+        for i in range(1, len(notes_played)):
+            distance_lower = abs(notes_played[i][0] - notes_played[i - 1][0])
+            distance_higher = abs(notes_played[i][-1] - notes_played[i - 1][-1])
+            distance = max(distance_lower, distance_higher)
+            distances.append(distance)
+
+        # If bar is empty, return easiest difficulty
+        if len(distances) == 0:
+            return 0
+
+        high_distances_mean = mean(sorted(distances, reverse=True)[0: max(1, math.ceil((len(distances) * 0.15)))])
+
+        unscaled_difficulty = minmax(0, 1,
+                                     simple_regression(DIFF_DISTANCES_UPPER_BOUND, 1, DIFF_DISTANCES_LOWER_BOUND, 0,
+                                                       high_distances_mean))
+        # scaled_mean = regress(unscaled_difficulty, SCALE_X3)
+
+        return minmax(0, 1, unscaled_difficulty)
+
     def diff_key(self, key: Key = None) -> float:
         """ Calculates the difficulty of the sequence based on the key it is in.
 
@@ -147,43 +185,28 @@ class RelativeSequence(AbstractSequence):
         bound_difficulty = minmax(0, 1, simple_regression(7, 1, 0, 0, accidentals))
         return bound_difficulty
 
-    def diff_distances(self) -> float:
-        """ Calculates the difficulty of the sequence based on the distances between notes.
-
-        Here, only the top 15% of distances are considered, in order not to disregard notes due to dilution.
+    def diff_note_classes(self) -> float:
+        """ Calculates difficulty of the sequence based on the amount of note classes (different notes played) in
+        relation to the overall amount of messages.
 
         Returns: A value from 0 (low difficulty) to 1 (high difficulty)
 
         """
-        notes_played = []
-        current_notes = []
-        distances = []
+        note_classes = []
 
         for msg in self.messages:
-            if msg.message_type == MessageType.wait and len(current_notes) > 0:
-                notes_played.append(sorted(current_notes))
-                current_notes = []
-            elif msg.message_type == MessageType.note_on:
-                current_notes.append(msg.note)
+            if msg.message_type == MessageType.note_on and msg.note not in note_classes:
+                note_classes.append(msg.note)
 
-        for i in range(1, len(notes_played)):
-            distance_lower = abs(notes_played[i][0] - notes_played[i - 1][0])
-            distance_higher = abs(notes_played[i][-1] - notes_played[i - 1][-1])
-            distance = max(distance_lower, distance_higher)
-            distances.append(distance)
-
-        # If bar is empty, return easiest difficulty
-        if len(distances) == 0:
+        # If sequence is empty, return easiest difficulty
+        if len(note_classes) == 0:
             return 0
 
-        high_distances_mean = mean(sorted(distances, reverse=True)[0: max(1, math.ceil((len(distances) * 0.15)))])
+        relation = len(note_classes) / self._sequence_length()
 
-        unscaled_difficulty = minmax(0, 1,
-                                     simple_regression(DIFF_DISTANCES_UPPER_BOUND, 1, DIFF_DISTANCES_LOWER_BOUND, 0,
-                                                       high_distances_mean))
-        scaled_mean = regress(unscaled_difficulty, SCALE_X3)
+        scaled_relation = simple_regression(DIFF_NOTE_CLASSES_UPPER_BOUND, 1, DIFF_NOTE_CLASSES_LOWER_BOUND, 0, relation)
 
-        return minmax(0, 1, scaled_mean)
+        return minmax(0, 1, scaled_relation)
 
     def diff_pattern(self) -> float:
         """ Calculates the difficulty of the sequence based on the patterns of the start messages.
@@ -388,6 +411,20 @@ class RelativeSequence(AbstractSequence):
                     msg.note -= 12
 
         return had_to_shift
+
+    def _sequence_length(self) -> float:
+        """ Calculates the length of the sequence in multiples of the `PPQN`.
+
+        Returns: The length of the sequence as a multiple of the `PPQN`
+
+        """
+        length = 0
+
+        for msg in self.messages:
+            if msg.message_type == MessageType.wait:
+                length += msg.time
+
+        return length / PPQN
 
     @staticmethod
     def _match_pattern(current_representation) -> [str]:

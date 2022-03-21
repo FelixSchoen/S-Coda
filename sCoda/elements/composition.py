@@ -160,8 +160,10 @@ class Composition:
 
         print(f"Bars Track 1: {len(bars[0])}, Bars Track 2: {len(bars[1])}")
 
-        for bar in bars[0]:
-            print(bar.difficulty())
+        for i in range(0,len(bars[0])):
+            bar_r = bars[0][i]
+            bar_l = bars[1][i]
+            print(f"Right Hand Difficulty: {bar_r.difficulty()}, Left Hand Difficulty: {bar_l.difficulty()}")
 
         # TODO Testing purposes
 

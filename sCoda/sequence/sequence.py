@@ -84,7 +84,7 @@ class Sequence:
 
     def difficulty(self, key_signature: Key = None) -> float:
         diff_note_values = self._get_abs().diff_note_values()
-        diff_note_classes = self._get_abs().diff_note_classes()
+        diff_note_classes = self._get_rel().diff_note_classes()
         diff_key = self._get_rel().diff_key(key=key_signature)
         diff_distances = self._get_rel().diff_distances()
         diff_rhythm = self._get_abs().diff_rhythm()
@@ -118,9 +118,9 @@ class Sequence:
 
         overall_difficulty = difficulty + difficulty * change_percent_points / 100
 
-        # print(
-        #     f"Overall: {overall_difficulty} Note Values: {diff_note_values} Note Classes: {diff_note_classes} Key: {diff_key} "
-        #     f"Distances: {diff_distances} Rhythm: {diff_rhythm} Pattern: {diff_pattern}")
+        print(
+            f"Overall: {overall_difficulty} Note Values: {diff_note_values} Note Classes: {diff_note_classes} Key: {diff_key} "
+            f"Distances: {diff_distances} Rhythm: {diff_rhythm} Pattern: {diff_pattern}")
 
         return overall_difficulty
 

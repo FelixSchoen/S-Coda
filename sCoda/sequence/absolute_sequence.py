@@ -5,11 +5,9 @@ import logging
 from statistics import geometric_mean
 from typing import TYPE_CHECKING
 
-import matplotlib.pyplot as plt
-
 from sCoda.elements.message import Message, MessageType
 from sCoda.sequence.abstract_sequence import AbstractSequence
-from sCoda.settings import PPQN, SCALE_X3, DIFF_NOTE_VALUES_UPPER_BOUND, \
+from sCoda.settings import PPQN, DIFF_NOTE_VALUES_UPPER_BOUND, \
     DIFF_NOTE_VALUES_LOWER_BOUND, NOTE_VALUE_UPPER_BOUND, NOTE_VALUE_LOWER_BOUND, VALID_TUPLETS, DOTTED_ITERATIONS, \
     SCALE_LOGLIKE
 from sCoda.util.util import b_insort, find_minimal_distance, regress, minmax, simple_regression, get_note_durations, \
@@ -63,31 +61,9 @@ class AbsoluteSequence(AbstractSequence):
         mean = geometric_mean(durations)
         bound_mean = minmax(0, 1,
                             simple_regression(DIFF_NOTE_VALUES_UPPER_BOUND, 1, DIFF_NOTE_VALUES_LOWER_BOUND, 0, mean))
-        scaled_mean = regress(bound_mean, SCALE_X3)
+        # scaled_mean = regress(bound_mean, SCALE_X3)
 
-        return minmax(0, 1, scaled_mean)
-
-    def diff_note_classes(self) -> float:
-        """ Calculates difficulty of the sequence based on the amount of note classes (different notes played) in
-        relation to the overall amount of messages.
-
-        Returns: A value from 0 (low difficulty) to 1 (high difficulty)
-
-        """
-        notes = self._get_absolute_note_array()
-        note_classes = []
-
-        for pairing in notes:
-            if pairing[0].note not in note_classes:
-                note_classes.append(pairing[0].note)
-
-        if len(notes) == 0:
-            return 0
-
-        relation = len(note_classes) / len(notes)
-        scaled_relation = regress(relation, SCALE_X3)
-
-        return minmax(0, 1, scaled_relation)
+        return minmax(0, 1, bound_mean)
 
     def diff_rhythm(self) -> float:
         """ Calculates difficulty based on the rhythm of the sequence.
@@ -99,7 +75,7 @@ class AbsoluteSequence(AbstractSequence):
         """
         notes = self._get_absolute_note_array()
 
-        # If bar is empty, return easiest difficulty
+        # If sequence is empty, return easiest difficulty
         if len(notes) == 0:
             return 0
 
