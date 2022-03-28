@@ -23,7 +23,7 @@ class Composition:
         self._tracks = tracks
 
     @property
-    def tracks(self):
+    def tracks(self) -> [Track]:
         return self._tracks
 
     @staticmethod

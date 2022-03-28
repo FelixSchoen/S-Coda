@@ -12,9 +12,9 @@ class Track:
         self._bars = bars
 
     @property
-    def name(self):
+    def name(self) -> str:
         return self._name
 
     @property
-    def bars(self):
+    def bars(self) -> [Bar]:
         return self._bars
