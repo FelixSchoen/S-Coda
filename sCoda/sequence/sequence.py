@@ -125,7 +125,8 @@ class Sequence:
 
         print(
             f"Overall: {overall_difficulty} Note Values: {diff_note_values} Note Amount: {diff_note_amount} Note "
-            f"Classes: {diff_note_classes} Key: {diff_key} Distances: {diff_distances} Rhythm: {diff_rhythm} Pattern: {diff_pattern}")
+            f"Classes: {diff_note_classes} Key: {diff_key} Distances: {diff_distances} Rhythm: {diff_rhythm} "
+            f"Pattern: {diff_pattern}")
 
         return overall_difficulty
 

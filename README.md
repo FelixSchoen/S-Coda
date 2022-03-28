@@ -1,9 +1,5 @@
 # sCoda
 
-## Difficulty Assessment
-
-### Average Time of Note and Rest Values
-
-**Fitness for long sequences**: High
-
-Assess the average value of wait messages.
+`sCoda` is a Python library for handling MIDI files.
+It supports preprocessing of the files (e.g., quantisation, splitting of sequences, ...) and a difficulty assessment.
+`sCoda` is currently in development.
