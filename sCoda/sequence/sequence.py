@@ -3,6 +3,7 @@ from __future__ import annotations
 import numpy as np
 from matplotlib import pyplot as plt
 from matplotlib.patches import Rectangle
+from pandas import DataFrame
 
 from sCoda.elements.message import MessageType, Message
 from sCoda.sequence.absolute_sequence import AbsoluteSequence
@@ -166,6 +167,12 @@ class Sequence:
 
         """
         return self._get_rel().to_midi_track()
+
+    def to_relative_dataframe(self) -> DataFrame:
+        """ See `sCoda.sequence.relative_sequence.RelativeSequence.to_dataframe`
+
+        """
+        return self._get_rel().to_dataframe()
 
     def transpose(self, transpose_by: int) -> None:
         """ See `sCoda.sequence.relative_sequence.RelativeSequence.transpose`

@@ -9,6 +9,8 @@ def test_create_composition_from_file():
     # composition = Composition.from_file("resources/32.mid", [[0]], [0])
     # composition = Composition.from_file("resources/test_quantisation_64triplet.mid", [[0]], [0])
 
+    print(composition.tracks[0].bars[0].to_relative_dataframe())
+
     # # Testing purposes
     #
     # for i, sequence in enumerate(final_sequences):

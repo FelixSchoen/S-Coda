@@ -1,7 +1,9 @@
-mido >= 1.2.10
-pytest-runner >= 6.0.0
-pytest >= 7.0.1
-twine >= 3.8.0
-numpy >= 1.22.2
-pdoc3 >= 0.10.0
-matplotlib >= 3.5.1
+mido ~= 1.2.10
+pytest-runner ~= 6.0.0
+pytest ~= 7.0.1
+twine ~= 3.8.0
+numpy ~= 1.22.2
+pdoc3 ~= 0.10.0
+matplotlib ~= 3.5.1
+pandas ~= 1.4.1
+setuptools ~= 60.9.3

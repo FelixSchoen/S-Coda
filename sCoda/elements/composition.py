@@ -22,6 +22,10 @@ class Composition:
         super().__init__()
         self._tracks = tracks
 
+    @property
+    def tracks(self):
+        return self._tracks
+
     @staticmethod
     def from_file(file_path: str, track_indices: [[int]],
                   meta_track_indices: [int], meta_track_index: int = 0) -> Composition:

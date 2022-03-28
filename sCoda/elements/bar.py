@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import logging
 
+from pandas import DataFrame
+
 from sCoda.sequence.sequence import Sequence
 from sCoda.settings import PPQN
 
@@ -30,14 +32,21 @@ class Bar:
         return Bar(self._sequence.__copy__(), self._time_signature_numerator, self._time_signature_denominator,
                    self._key_signature)
 
+    @property
     def difficulty(self) -> float:
+        if self._difficulty is None:
+            self._difficulty = self.calculate_difficulty()
+
+        return self._difficulty
+
+    def calculate_difficulty(self) -> float:
         """ See `sCoda.sequence.sequence.Sequence.difficulty`
 
         """
         return self._sequence.difficulty(key_signature=self._key_signature)
 
-    def get_difficulty(self) -> float:
-        if self._difficulty is None:
-            self._difficulty = self.difficulty()
+    def to_relative_dataframe(self) -> DataFrame:
+        """ See `sCoda.sequence.relative_sequence.RelativeSequence.to_dataframe`
 
-        return self._difficulty
+        """
+        return self._sequence.to_relative_dataframe()

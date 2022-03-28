@@ -10,3 +10,11 @@ class Track:
         super().__init__()
         self._name = name
         self._bars = bars
+
+    @property
+    def name(self):
+        return self._name
+
+    @property
+    def bars(self):
+        return self._bars
