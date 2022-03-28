@@ -45,8 +45,14 @@ class Bar:
         """
         return self._sequence.difficulty(key_signature=self._key_signature)
 
+    def to_absolute_dataframe(self) -> DataFrame:
+        """ See `sCoda.sequence.sequence.Sequence.to_absolute_dataframe`
+
+        """
+        return self._sequence.to_absolute_dataframe()
+
     def to_relative_dataframe(self) -> DataFrame:
-        """ See `sCoda.sequence.relative_sequence.RelativeSequence.to_dataframe`
+        """ See `sCoda.sequence.sequence.Sequence.to_relative_dataframe`
 
         """
         return self._sequence.to_relative_dataframe()

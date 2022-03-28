@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import numpy as np
+import pandas as pd
 from matplotlib import pyplot as plt
 from matplotlib.patches import Rectangle
 from pandas import DataFrame
@@ -168,11 +169,21 @@ class Sequence:
         """
         return self._get_rel().to_midi_track()
 
-    def to_relative_dataframe(self) -> DataFrame:
-        """ See `sCoda.sequence.relative_sequence.RelativeSequence.to_dataframe`
+    def to_absolute_dataframe(self) -> DataFrame:
+        """ Creates a `DataFrame` from the messages in this sequence
+
+        Returns: A `DataFrame` filled with all the messages in this sequence in their textual or numeric representation
 
         """
-        return self._get_rel().to_dataframe()
+        return Sequence.to_dataframe(self._get_abs().messages)
+
+    def to_relative_dataframe(self) -> DataFrame:
+        """ Creates a `DataFrame` from the messages in this sequence
+
+        Returns: A `DataFrame` filled with all the messages in this sequence in their textual or numeric representation
+
+        """
+        return Sequence.to_dataframe(self._get_rel().messages)
 
     def transpose(self, transpose_by: int) -> None:
         """ See `sCoda.sequence.relative_sequence.RelativeSequence.transpose`
@@ -194,6 +205,19 @@ class Sequence:
         """
         self._get_abs().quantise_note_lengths(possible_durations, standard_length=standard_length)
         self._rel_stale = True
+
+    @staticmethod
+    def to_dataframe(messages) -> DataFrame:
+        data = []
+
+        for msg in messages:
+            data.append(
+                {"message_type": msg.message_type.value, "time": msg.time, "note": msg.note,
+                 "velocity": msg.velocity,
+                 "control": msg.control, "numerator": msg.numerator, "denominator": msg.denominator,
+                 "key": None if msg.key is None else msg.key.value})
+
+        return pd.DataFrame(data)
 
     @staticmethod
     def pianorolls(sequences: [Sequence],

@@ -7,9 +7,6 @@ import re
 from statistics import mean
 from typing import TYPE_CHECKING
 
-import pandas as pd
-from pandas import DataFrame
-
 from sCoda.elements.message import Message, MessageType
 from sCoda.sequence.abstract_sequence import AbstractSequence
 from sCoda.settings import NOTE_LOWER_BOUND, NOTE_UPPER_BOUND, PPQN, DIFF_DISTANCES_UPPER_BOUND, \
@@ -429,22 +426,6 @@ class RelativeSequence(AbstractSequence):
                 absolute_sequence.add_message(message_to_add)
 
         return absolute_sequence
-
-    def to_dataframe(self) -> DataFrame:
-        """ Creates a `DataFrame` from the messages in this sequence
-
-        Returns: A `DataFrame` filled with all the messages in this sequence in their textual or numeric representation
-
-        """
-        data = []
-
-        for msg in self.messages:
-            data.append(
-                {"message_type": msg.message_type.value, "time": msg.time, "note": msg.note, "velocity": msg.velocity,
-                 "control": msg.control, "numerator": msg.numerator, "denominator": msg.denominator,
-                 "key": None if msg.key is None else msg.key.value})
-
-        return pd.DataFrame(data)
 
     def to_midi_track(self) -> MidiTrack:
         """ Converts the sequence to a `MidiTrack`

@@ -10,6 +10,7 @@ def test_create_composition_from_file():
     # composition = Composition.from_file("resources/test_quantisation_64triplet.mid", [[0]], [0])
 
     print(composition.tracks[0].bars[0].to_relative_dataframe())
+    print(composition.tracks[0].bars[0].to_absolute_dataframe())
 
     # # Testing purposes
     #
