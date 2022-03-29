@@ -123,10 +123,10 @@ class Sequence:
 
         overall_difficulty = difficulty + difficulty * change_percent_points / 100
 
-        print(
-            f"Overall: {overall_difficulty} Note Values: {diff_note_values} Note Amount: {diff_note_amount} Note "
-            f"Classes: {diff_note_classes} Key: {diff_key} Distances: {diff_distances} Rhythm: {diff_rhythm} "
-            f"Pattern: {diff_pattern}")
+        # print(
+        #     f"Overall: {overall_difficulty} Note Values: {diff_note_values} Note Amount: {diff_note_amount} Note "
+        #     f"Classes: {diff_note_classes} Key: {diff_key} Distances: {diff_distances} Rhythm: {diff_rhythm} "
+        #     f"Pattern: {diff_pattern}")
 
         return overall_difficulty
 
@@ -186,12 +186,12 @@ class Sequence:
         """
         return Sequence.to_dataframe(self._get_rel().messages)
 
-    def transpose(self, transpose_by: int) -> None:
+    def transpose(self, transpose_by: int) -> bool:
         """ See `sCoda.sequence.relative_sequence.RelativeSequence.transpose`
 
         """
-        self._get_rel().transpose(transpose_by)
         self._abs_stale = True
+        return self._get_rel().transpose(transpose_by)
 
     def quantise(self, step_sizes: [int]) -> None:
         """ See `sCoda.sequence.absolute_sequence.AbsoluteSequence.quantise`

@@ -100,7 +100,7 @@ class AbsoluteSequence(AbstractSequence):
             elif duration in dotted_durations:
                 notes_dotted.append(note)
             else:
-                logging.warning("Note value not covered")
+                logging.warning(f"Note value {duration} not in considered values")
 
         rhythm_occurrences = 0
 

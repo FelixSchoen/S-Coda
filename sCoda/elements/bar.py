@@ -29,13 +29,16 @@ class Bar:
             self._sequence.pad_sequence(self._time_signature_numerator * PPQN / (self._time_signature_denominator / 4))
 
     def __copy__(self):
-        return Bar(self._sequence.__copy__(), self._time_signature_numerator, self._time_signature_denominator,
-                   self._key_signature)
+        bar = Bar(self._sequence.__copy__(), self._time_signature_numerator, self._time_signature_denominator,
+                  self._key_signature)
+        bar._difficulty = self._difficulty
+
+        return bar
 
     @property
     def difficulty(self) -> float:
         if self._difficulty is None:
-            self._difficulty = self.calculate_difficulty()
+            self.set_difficulty()
 
         return self._difficulty
 
@@ -44,6 +47,12 @@ class Bar:
 
         """
         return self._sequence.difficulty(key_signature=self._key_signature)
+
+    def set_difficulty(self) -> None:
+        """ Calculates and assigns the difficulty of this bar
+
+        """
+        self._difficulty = self.calculate_difficulty()
 
     def to_absolute_dataframe(self) -> DataFrame:
         """ See `sCoda.sequence.sequence.Sequence.to_absolute_dataframe`
@@ -56,3 +65,9 @@ class Bar:
 
         """
         return self._sequence.to_relative_dataframe()
+
+    def transpose(self, transpose_by: int) -> bool:
+        """ See `sCoda.sequence.relative_sequence.RelativeSequence.transpose`
+
+        """
+        return self._sequence.transpose(transpose_by)
