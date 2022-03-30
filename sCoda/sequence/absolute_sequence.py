@@ -224,7 +224,7 @@ class AbsoluteSequence(AbstractSequence):
         self.messages = quantised_messages
         self.sort()
 
-    def quantise_note_lengths(self, possible_durations, standard_length=PPQN) -> None:
+    def quantise_note_lengths(self, possible_durations=None, standard_length=PPQN) -> None:
         """ Quantises the note lengths of this sequence, only affecting the ending of the notes.
 
         Quantises notes to the given values, ensuring that all notes are of one of the sizes defined by the
@@ -245,6 +245,15 @@ class AbsoluteSequence(AbstractSequence):
         # Track when each type of note occurs, in order to check for possible overlaps
         note_occurrences = dict()
         quantised_messages = []
+
+        # Construct possible durations
+        if possible_durations is None:
+            normal_durations = get_note_durations(NOTE_VALUE_UPPER_BOUND, NOTE_VALUE_LOWER_BOUND)
+            triplet_durations = []
+            for valid_tuplet in VALID_TUPLETS:
+                triplet_durations.extend(get_tuplet_durations(normal_durations, valid_tuplet[0], valid_tuplet[1]))
+            dotted_durations = get_dotted_note_durations(normal_durations, DOTTED_ITERATIONS)
+            possible_durations = normal_durations + triplet_durations + dotted_durations
 
         # Construct array keeping track of when each note occurs
         for pairing in notes:

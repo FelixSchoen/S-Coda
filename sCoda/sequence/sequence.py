@@ -191,7 +191,12 @@ class Sequence:
 
         """
         self._abs_stale = True
-        return self._get_rel().transpose(transpose_by)
+        shifted = self._get_rel().transpose(transpose_by)
+
+        if shifted:
+            self.quantise_note_lengths()
+
+        return shifted
 
     def quantise(self, step_sizes: [int]) -> None:
         """ See `sCoda.sequence.absolute_sequence.AbsoluteSequence.quantise`
@@ -200,7 +205,7 @@ class Sequence:
         self._get_abs().quantise(step_sizes)
         self._rel_stale = True
 
-    def quantise_note_lengths(self, possible_durations, standard_length=PPQN) -> None:
+    def quantise_note_lengths(self, possible_durations=None, standard_length=PPQN) -> None:
         """ See `sCoda.sequence.absolute_sequence.AbsoluteSequence.quantise_note_lengths`
 
         """

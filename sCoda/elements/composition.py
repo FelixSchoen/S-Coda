@@ -10,7 +10,7 @@ from sCoda.sequence.sequence import Sequence
 from sCoda.settings import PPQN
 from sCoda.util.midi_wrapper import MidiFile
 from sCoda.util.music_theory import Key
-from sCoda.util.util import get_note_durations, get_tuplet_durations, get_dotted_note_durations
+from sCoda.util.util import get_note_durations, get_tuplet_durations
 
 
 class Composition:
@@ -111,16 +111,10 @@ class Composition:
         quantise_parameters = get_note_durations(1, 8)
         quantise_parameters += get_tuplet_durations(quantise_parameters, 3, 2)
 
-        # Construct duration parameters
-        note_durations = get_note_durations(8, 8)
-        triplet_durations = get_tuplet_durations(note_durations, 3, 2)
-        dotted_durations = get_dotted_note_durations(note_durations, 1)
-        possible_durations = note_durations + triplet_durations + dotted_durations
-
         # Quantisation
         for sequence in extracted_sequences:
             sequence.quantise(quantise_parameters)
-            sequence.quantise_note_lengths(possible_durations)
+            sequence.quantise_note_lengths()
 
         # Start splitting into bars
         meta_track = extracted_sequences[meta_track_index]
@@ -185,7 +179,7 @@ class Composition:
         # Quantise note lengths again, in case splitting into bars affected them
         for bars_track in bars:
             for bar in bars_track:
-                bar._sequence.quantise_note_lengths(possible_durations)
+                bar._sequence.quantise_note_lengths()
 
         # Create tracks from bars
         tracks = []
