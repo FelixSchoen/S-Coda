@@ -18,7 +18,7 @@ DOTTED_ITERATIONS = 1
 VALID_TUPLETS = [(3, 2)]
 
 # Regex for pattern recognition
-PATTERN_LENGTH = 1
+PATTERN_LENGTH = 2
 REGEX_PATTERN = r"(?=(?P<pattern>(?:[+-]\d+){{{p_len}}})(?:[+-]\d+)*(?P<end>(?P=pattern)(?:[+-]\d+)*?)+)"
 REGEX_SUBPATTERN = r"^(?P<pattern>(?:[+-]\d+)+)(?P=pattern)+$"
 

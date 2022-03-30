@@ -274,6 +274,9 @@ class RelativeSequence(AbstractSequence):
             coverage = (len(string_representation) - len(uncovered)) / len(string_representation)
             results_with_coverage.append((coverage, length, result))
 
+        # TODO Remove
+        print(len(results_with_coverage))
+
         # Determine best fitting result
         if len(results_with_coverage) > 0:
             best_fit = max(results_with_coverage, key=lambda x: x[0] / x[1])

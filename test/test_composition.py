@@ -1,3 +1,4 @@
+from sCoda import Sequence
 from sCoda.elements.composition import Composition
 
 
@@ -9,9 +10,9 @@ def test_create_composition_from_file():
     # composition = Composition.from_file("resources/32.mid", [[0]], [0])
     # composition = Composition.from_file("resources/test_quantisation_64triplet.mid", [[0]], [0])
 
-    for bar in composition.tracks[0].bars:
+    for i, bar in enumerate(composition.tracks[0].bars):
         bar.set_difficulty()
-        print(bar.difficulty)
+        print(f"Bar {i+1}, Difficulty {bar.difficulty}")
 
     # # Testing purposes
     #
