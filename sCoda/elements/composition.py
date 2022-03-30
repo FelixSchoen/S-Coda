@@ -146,17 +146,18 @@ class Composition:
 
             # Remove time signature from list, change has occurred
             if time_signature is not None:
-                time_signature_timings.remove(time_signature)
+                time_signature_timings.pop(0)
                 current_ts_numerator = time_signature[1].numerator
                 current_ts_denominator = time_signature[1].denominator
 
             # Remove key signature from list, change has occurred
             if key_signature is not None:
-                key_signature_timings.remove(key_signature)
+                key_signature_timings.pop(0)
                 current_key = key_signature[1].key
 
             # Calculate length of current bar based on time signature
             length_bar = current_ts_numerator * PPQN / (current_ts_denominator / 4)
+            current_point_in_time += length_bar
 
             # Split sequences into bars
             tracks_synchronised = True

@@ -2,15 +2,13 @@ from mido import MidiFile
 
 
 def test_import_midi_file():
-    midi = MidiFile("resources/beethoven_o27-2_m1.mid")
+    midi = MidiFile("resources/albeniz_sEspanola_aragon.mid")
 
     print(midi.ticks_per_beat)
 
     for i, track in enumerate(midi.tracks):
-        print('Track {}: {}'.format(i, track.name))
-        time = 0
-        # for msg in track:
-        #     time += msg.time
-        #     print(f"{msg}, absolute time: {time}")
+        for msg in track:
+            if msg.type == "key_signature":
+                print(msg)
 
     assert True

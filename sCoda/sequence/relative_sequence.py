@@ -146,10 +146,12 @@ class RelativeSequence(AbstractSequence):
         for msg in self.messages:
             if msg.message_type == MessageType.key_signature:
                 if key_signature is not None and key_signature is not msg.key:
-                    logging.warning("More than one key specified, disregarding information")
+                    logging.warning(f"Key was {key_signature}, now is {msg.key}")
                     key_signature = None
                     break
                 key_signature = msg.key
+            if msg.message_type == MessageType.wait:
+                break
 
         # Have to guess key signature based on induced accidentals
         if key_signature is None:
