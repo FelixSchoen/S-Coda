@@ -12,7 +12,6 @@ def test_create_composition_from_file():
 
     for i, bar in enumerate(composition.tracks[0].bars):
         bar.set_difficulty()
-        print(f"Bar {i+1}, Difficulty {bar.difficulty}")
 
     # # Testing purposes
     #

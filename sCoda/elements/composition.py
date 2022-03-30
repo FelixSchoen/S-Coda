@@ -182,6 +182,11 @@ class Composition:
                 # Append split bar to list of bars
                 bars[i].append(Bar(split_up[0], current_ts_numerator, current_ts_denominator, Key(current_key)))
 
+        # Quantise note lengths again, in case splitting into bars affected them
+        for bars_track in bars:
+            for bar in bars_track:
+                bar._sequence.quantise_note_lengths(possible_durations)
+
         # Create tracks from bars
         tracks = []
         for track_index in range(0, len(bars)):

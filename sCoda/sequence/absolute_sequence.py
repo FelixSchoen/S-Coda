@@ -240,7 +240,7 @@ class AbsoluteSequence(AbstractSequence):
             standard_length: Note length for notes which are not closed
 
         """
-        # Construct possible durations
+        # Construct current durations
         notes = self._get_absolute_note_array(standard_length=standard_length)
         # Track when each type of note occurs, in order to check for possible overlaps
         note_occurrences = dict()
