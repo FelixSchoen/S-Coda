@@ -3,6 +3,7 @@ from __future__ import annotations
 import copy
 import logging
 import math
+import multiprocessing
 import re
 from statistics import mean
 from typing import TYPE_CHECKING
@@ -262,7 +263,25 @@ class RelativeSequence(AbstractSequence):
             string_representation += str(abs(value))
 
         # Obtain all possible patterns
-        results = RelativeSequence._match_pattern(string_representation)
+        ret = {"pattern": None}
+
+        queue = multiprocessing.Queue()
+        queue.put(ret)
+
+        process = multiprocessing.Process(target=self._match_pattern, name="Match Pattern",
+                                          args=(string_representation, queue,))
+        process.start()
+        process.join(10)
+
+        # Check if after the specified amount of seconds pattern matching is not done, in this case switch to greedy
+        # matching
+        if process.is_alive():
+            print("Alive")
+            process.terminate()
+            process.join()
+            results = RelativeSequence._greedy_match_pattern(string_representation)
+        else:
+            results = queue.get()["pattern"]
 
         results_with_coverage = []
 
@@ -468,7 +487,7 @@ class RelativeSequence(AbstractSequence):
         return had_to_shift
 
     @staticmethod
-    def _match_pattern(current_representation) -> [str]:
+    def _match_pattern(current_representation, queue) -> [[str]]:
         """ Finds all possible combinations of patterns for input string.
 
         Recursively finds patterns that fit the input ```current_representation```, removes these patterns from the
@@ -507,17 +526,71 @@ class RelativeSequence(AbstractSequence):
         for local_match in local_matches:
             modified_string = current_representation.replace(local_match, "")
 
-            recursive_results = RelativeSequence._match_pattern(modified_string)
+            recursive_results = RelativeSequence._match_pattern(modified_string, queue)
 
             # Consider also only parent match
             if local_match not in results:
                 results.append([local_match])
 
             # Add current results to recursive results
-            if len(recursive_results) != 0:
-                for recursive_result in recursive_results:
-                    result = [local_match]
-                    result.extend(recursive_result)
-                    results.append(result)
+            for recursive_result in recursive_results:
+                result = [local_match]
+                result.extend(recursive_result)
+                results.append(result)
+
+        ret = queue.get()
+        ret["pattern"] = results
+        queue.put(ret)
+
+        return results
+
+    @staticmethod
+    def _greedy_match_pattern(current_representation):
+        """ Finds possible combinations of patterns for input string, fixing patterns greedily.
+
+        Args:
+            current_representation: The current string to pattern-match
+
+        Returns: A list of lists, containing the valid patterns that can be matched, in this order, to the input string
+
+        """
+        # Store matches found in this iteration
+        local_match = None
+        current_pattern_length = PATTERN_LENGTH
+
+        # Increase length of pattern each step
+        while True:
+            matches = re.findall(REGEX_PATTERN.format(p_len=current_pattern_length), current_representation)
+            match = matches[0] if len(matches) > 0 else None
+
+            # If no more matches, end calculation
+            if match is None:
+                break
+
+            matched_string = match[0]
+
+            # Check if match either already handled, or not a valid pattern (since it contains pattern itself)
+            if re.match(REGEX_SUBPATTERN, matched_string) is None:
+                local_match = matched_string
+
+            current_pattern_length += 1
+
+        results = []
+
+        # Handle found matches: Remove pattern from input and try to find patterns in the resulting string
+        if local_match is not None:
+            modified_string = current_representation.replace(local_match, "")
+
+            recursive_results = RelativeSequence._greedy_match_pattern(modified_string)
+
+            # Consider also only parent match
+            if local_match not in results:
+                results.append([local_match])
+
+            # Add current results to recursive results
+            for recursive_result in recursive_results:
+                result = [local_match]
+                result.extend(recursive_result)
+                results.append(result)
 
         return results
