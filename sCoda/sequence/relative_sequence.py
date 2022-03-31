@@ -5,6 +5,8 @@ import logging
 import math
 import multiprocessing
 import re
+import signal
+import time
 from statistics import mean
 from typing import TYPE_CHECKING
 
@@ -262,26 +264,11 @@ class RelativeSequence(AbstractSequence):
 
             string_representation += str(abs(value))
 
-        # Obtain all possible patterns
-        ret = {"pattern": None}
-
-        queue = multiprocessing.Queue()
-        queue.put(ret)
-
-        process = multiprocessing.Process(target=self._match_pattern, name="Match Pattern",
-                                          args=(string_representation, queue,))
-        process.start()
-        process.join(10)
-
-        # Check if after the specified amount of seconds pattern matching is not done, in this case switch to greedy
-        # matching
-        if process.is_alive():
-            print("Alive")
-            process.terminate()
-            process.join()
+        # Obtain patterns, switch to greedy method if pattern matching takes too long
+        try:
+            results = RelativeSequence._match_pattern(string_representation, start_time=time.time(), max_duration=60)
+        except TimeoutError:
             results = RelativeSequence._greedy_match_pattern(string_representation)
-        else:
-            results = queue.get()["pattern"]
 
         results_with_coverage = []
 
@@ -487,7 +474,7 @@ class RelativeSequence(AbstractSequence):
         return had_to_shift
 
     @staticmethod
-    def _match_pattern(current_representation, queue) -> [[str]]:
+    def _match_pattern(current_representation, start_time, max_duration=10) -> [[str]]:
         """ Finds all possible combinations of patterns for input string.
 
         Recursively finds patterns that fit the input ```current_representation```, removes these patterns from the
@@ -499,7 +486,10 @@ class RelativeSequence(AbstractSequence):
         Returns: A list of lists, containing the valid patterns that can be matched, in this order, to the input string
 
         """
-        # Store matches found in this iteration
+        if time.time() - start_time > max_duration:
+            raise TimeoutError
+
+            # Store matches found in this iteration
         local_matches = []
         current_pattern_length = PATTERN_LENGTH
 
@@ -526,7 +516,7 @@ class RelativeSequence(AbstractSequence):
         for local_match in local_matches:
             modified_string = current_representation.replace(local_match, "")
 
-            recursive_results = RelativeSequence._match_pattern(modified_string, queue)
+            recursive_results = RelativeSequence._match_pattern(modified_string, start_time, max_duration=max_duration)
 
             # Consider also only parent match
             if local_match not in results:
@@ -538,15 +528,13 @@ class RelativeSequence(AbstractSequence):
                 result.extend(recursive_result)
                 results.append(result)
 
-        ret = queue.get()
-        ret["pattern"] = results
-        queue.put(ret)
-
         return results
 
     @staticmethod
     def _greedy_match_pattern(current_representation):
         """ Finds possible combinations of patterns for input string, fixing patterns greedily.
+
+        Only considers the first found pattern for further matching, reducing the time needed to pattern match greatly.
 
         Args:
             current_representation: The current string to pattern-match
