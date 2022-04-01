@@ -3,9 +3,7 @@ from __future__ import annotations
 import copy
 import logging
 import math
-import multiprocessing
 import re
-import signal
 import time
 from statistics import mean
 from typing import TYPE_CHECKING
@@ -432,6 +430,8 @@ class RelativeSequence(AbstractSequence):
                 message_to_add = copy.copy(msg)
                 message_to_add.time = current_point_in_time
                 absolute_sequence.add_message(message_to_add)
+
+        absolute_sequence.add_message(Message(message_type=MessageType.internal, time=current_point_in_time))
 
         return absolute_sequence
 

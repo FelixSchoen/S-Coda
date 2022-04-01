@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import copy
+
 import numpy as np
 import pandas as pd
 from matplotlib import pyplot as plt
@@ -96,8 +98,8 @@ class Sequence:
         diff_pattern = self._get_rel().diff_pattern()
 
         difficulties_standard = [(diff_note_values, 10), (diff_note_amount, 8), (diff_note_classes, 6), (diff_key, 5)]
-        difficulties_increase = [(diff_distances, 10), (diff_rhythm, 15)]
-        difficulties_decrease = [(diff_pattern, 40)]
+        difficulties_increase = [(diff_distances, 10), (diff_rhythm, 25)]
+        difficulties_decrease = [(diff_pattern, 50)]
 
         difficulty = 0
 
@@ -171,20 +173,28 @@ class Sequence:
         return self._get_rel().to_midi_track()
 
     def to_absolute_dataframe(self) -> DataFrame:
-        """ Creates a `DataFrame` from the messages in this sequence
+        """ Creates a `DataFrame` from the messages in this sequence.
 
         Returns: A `DataFrame` filled with all the messages in this sequence in their textual or numeric representation
 
         """
         return Sequence.to_dataframe(self._get_abs().messages)
 
-    def to_relative_dataframe(self) -> DataFrame:
-        """ Creates a `DataFrame` from the messages in this sequence
+    def to_relative_dataframe(self, adjust_wait_messages=True) -> DataFrame:
+        """ Creates a `DataFrame` from the messages in this sequence.
+
+        Args:
+            adjust_wait_messages: Whether to adjust the wait messages in this sequence or not
 
         Returns: A `DataFrame` filled with all the messages in this sequence in their textual or numeric representation
 
         """
-        return Sequence.to_dataframe(self._get_rel().messages)
+        relative_sequence = copy.copy(self._get_rel())
+
+        if adjust_wait_messages:
+            relative_sequence.adjust_wait_messages()
+
+        return Sequence.to_dataframe(relative_sequence.messages)
 
     def transpose(self, transpose_by: int) -> bool:
         """ See `sCoda.sequence.relative_sequence.RelativeSequence.transpose`
@@ -278,7 +288,6 @@ class Sequence:
                 pitch = note[0].note
 
                 # Keep track of scales
-                x_scale_max = max(x_scale_max, start_time + duration)
                 if pitch < y_scale_min:
                     y_scale_min = pitch
                 if pitch > y_scale_max:
@@ -291,6 +300,14 @@ class Sequence:
                 axs[i].add_patch(
                     Rectangle((start_time, pitch), duration, 1,
                               facecolor=(0, 0, 0, 1 if not show_velocity else opacity)))
+
+            # Get length of sequence (if wait messages occur after notes)
+            length = 0
+            for msg in sequence._get_rel().messages:
+                if msg.message_type == MessageType.wait:
+                    length += msg.time
+
+            x_scale_max = max(x_scale_max, length)
 
         # Define scale of plot
         if x_scale is None:

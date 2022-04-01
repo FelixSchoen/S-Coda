@@ -6,6 +6,7 @@ from sCoda.util.music_theory import Key
 
 
 class MessageType(enum.Enum):
+    internal = "internal"
     note_on = "note_on"
     note_off = "note_off"
     wait = "wait"

@@ -326,9 +326,10 @@ class AbsoluteSequence(AbstractSequence):
                     Message(message_type=MessageType.wait, time=time - current_point_in_time))
                 current_point_in_time = time
 
-            message_to_add = copy.copy(msg)
-            message_to_add.time = None
-            relative_sequence.add_message(message_to_add)
+            if msg.message_type != MessageType.internal:
+                message_to_add = copy.copy(msg)
+                message_to_add.time = None
+                relative_sequence.add_message(message_to_add)
 
         return relative_sequence
 
