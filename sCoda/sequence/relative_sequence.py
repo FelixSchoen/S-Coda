@@ -65,7 +65,7 @@ class RelativeSequence(AbstractSequence):
                     messages_normalized.append(Message(message_type=MessageType.wait, time=PPQN))
                     wait_buffer -= PPQN
                 if wait_buffer > 0:
-                    messages_normalized.append(Message(message_type=MessageType.wait, time=wait_buffer))
+                    messages_normalized.append(Message(message_type=MessageType.wait, time=int(wait_buffer)))
 
                 # Keep track of open notes
                 if msg.message_type == MessageType.note_on:
@@ -76,11 +76,23 @@ class RelativeSequence(AbstractSequence):
                 messages_buffer.append(msg)
                 wait_buffer = 0
 
+        # Sanity check
+        assert not (wait_buffer > 0 and len(messages_buffer) > 0)
+
+        # Repeat procedure for wait messages that occur at the end of the sequence
+        while wait_buffer > PPQN:
+            messages_normalized.append(Message(message_type=MessageType.wait, time=PPQN))
+            wait_buffer -= PPQN
+        if wait_buffer > 0:
+            messages_normalized.append(Message(message_type=MessageType.wait, time=int(wait_buffer)))
+
+        # Add messages that are not followed by a wait message
         if len(messages_buffer) > 0:
             messages_normalized.extend(messages_buffer)
 
         if len(open_messages) > 0:
             logging.warning("The sequence contains messages that have not been closed")
+
         self.messages = messages_normalized
 
     def consolidate(self, sequence: RelativeSequence) -> None:
