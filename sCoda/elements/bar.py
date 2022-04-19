@@ -4,6 +4,7 @@ import logging
 
 from pandas import DataFrame
 
+from sCoda.elements.message import MessageType, Message
 from sCoda.sequence.sequence import Sequence
 from sCoda.settings import PPQN
 
@@ -21,12 +22,25 @@ class Bar:
         self._key_signature = key
         self._difficulty = None
 
+        # Assert bar has correct capacity
         if self._sequence.sequence_length() > self._time_signature_numerator * PPQN / (
                 self._time_signature_denominator / 4):
             logging.warning("Bar capacity exceeded")
+            assert False
+
+        # Pad bar
         if self._sequence.sequence_length() < self._time_signature_numerator * PPQN / (
                 self._time_signature_denominator / 4):
             self._sequence.pad_sequence(self._time_signature_numerator * PPQN / (self._time_signature_denominator / 4))
+
+        # Set time signature
+        relative_sequence = self._sequence._get_rel()
+        relative_sequence.messages = [msg for msg in relative_sequence.messages if
+                                      msg.message_type != MessageType.time_signature]
+        relative_sequence.messages.insert(0, Message(message_type=MessageType.time_signature,
+                                                     numerator=self._time_signature_numerator,
+                                                     denominator=self._time_signature_denominator))
+        self._sequence._abs_stale = True
 
     def __copy__(self):
         bar = Bar(self._sequence.__copy__(), self._time_signature_numerator, self._time_signature_denominator,

@@ -7,7 +7,7 @@ from setuptools import find_packages, setup
 NAME = "sCoda"
 DESCRIPTION = "A music library for judging difficulty of pieces"
 AUTHOR = "Felix Schön"
-VERSION = "0.1.2"
+VERSION = "0.1.3"
 
 # Load long description
 LOCATION = path.abspath(path.dirname(__file__))

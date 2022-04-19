@@ -156,7 +156,7 @@ class Composition:
                 current_key = key_signature[1].key
 
             # Calculate length of current bar based on time signature
-            length_bar = current_ts_numerator * PPQN / (current_ts_denominator / 4)
+            length_bar = PPQN * (current_ts_numerator / (current_ts_denominator / 4))
             current_point_in_time += length_bar
 
             # Split sequences into bars
