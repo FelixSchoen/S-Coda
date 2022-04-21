@@ -22,6 +22,8 @@ PATTERN_LENGTH = 2
 REGEX_PATTERN = r"(?=(?P<pattern>(?:[+-]\d+){{{p_len}}})(?:[+-]\d+)*(?P<end>(?P=pattern)(?:[+-]\d+)*?)+)"
 REGEX_SUBPATTERN = r"^(?P<pattern>(?:[+-]\d+)+)(?P=pattern)+$"
 
+ROOT_LOGGER = "scoda"
+
 # Polynomials, generated using http://arachnoid.com
 SCALE_X3 = [
     -7.7160500211448380e-015,

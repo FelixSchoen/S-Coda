@@ -1,28 +1,33 @@
 import logging
-import sys
+import logging.config
 
-loggers = dict()
+from sCoda.settings import ROOT_LOGGER
+
+initial_call = True
 
 
 def get_logger(name):
-    if name is None:
-        name = __name__
-    print(name)
-    if name in loggers:
-        return loggers[name]
+    # Check if this is the first logger on this thread
+    global initial_call
 
-    logger = logging.getLogger(name)
+    if initial_call:
+        setup_root_logger()
+        initial_call = False
 
-    logger.setLevel(logging.INFO)
-
-    handler = logging.StreamHandler(sys.stdout)
-    handler.setLevel(logging.INFO)
-
-    formatter = logging.Formatter("%(asctime)s - %(name)s - %(levelname)s: %(message)s")
-
-    handler.setFormatter(formatter)
-    logger.addHandler(logging.StreamHandler(sys.stdout))
-
-    loggers[name] = logger
+    logger = logging.getLogger(ROOT_LOGGER + "." + name)
 
     return logger
+
+
+def setup_root_logger():
+    root_logger = logging.getLogger(ROOT_LOGGER)
+    root_logger.setLevel(logging.WARNING)
+    root_logger.propagate = False
+
+    handler = logging.StreamHandler()
+    handler.setLevel(logging.WARNING)
+
+    formatter = logging.Formatter("%(asctime)s - [%(name)s] - %(levelname)s: %(message)s")
+    handler.setFormatter(formatter)
+
+    root_logger.addHandler(handler)

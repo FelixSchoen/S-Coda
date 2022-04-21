@@ -1,4 +1,5 @@
 import math
+from pathlib import Path
 
 import numpy as np
 
@@ -119,6 +120,11 @@ def get_note_durations(upper_bound_multiplier: int, lower_bound_divisor: int, ba
         j *= 2
 
     return durations
+
+
+def get_project_root() -> str:
+    root_path = Path(__file__).parent.parent
+    return str(root_path)
 
 
 def get_tuplet_durations(note_durations, ratio_numerator, ratio_denominator) -> [int]:
