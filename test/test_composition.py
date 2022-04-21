@@ -17,6 +17,9 @@ def test_create_composition_from_file():
         if i > 2:
             break
         print(f"Bar {i + 1}")
-        Sequence.pianorolls([bar._sequence])
+        data_frame = bar.to_relative_dataframe()
+
+        for _, row in data_frame.iterrows():
+            print(row)
 
     assert True

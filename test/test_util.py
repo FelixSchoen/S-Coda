@@ -13,8 +13,3 @@ def test_velocity_digitised_to_correct_bin_indices():
 
     for pair in values_to_digitise:
         assert bin_from_velocity(pair[0]) == pair[1]
-
-
-def test_remove_me():
-    string = "+1+1+1"
-    print(string.replace("+1+1",""))

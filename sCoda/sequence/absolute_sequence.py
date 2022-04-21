@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import copy
-import logging
 from statistics import geometric_mean
 from typing import TYPE_CHECKING
 
@@ -10,6 +9,7 @@ from sCoda.sequence.abstract_sequence import AbstractSequence
 from sCoda.settings import PPQN, DIFF_NOTE_VALUES_UPPER_BOUND, \
     DIFF_NOTE_VALUES_LOWER_BOUND, NOTE_VALUE_UPPER_BOUND, NOTE_VALUE_LOWER_BOUND, VALID_TUPLETS, DOTTED_ITERATIONS, \
     SCALE_LOGLIKE
+from sCoda.util.logging import get_logger
 from sCoda.util.util import b_insort, find_minimal_distance, regress, minmax, simple_regression, get_note_durations, \
     get_tuplet_durations, get_dotted_note_durations
 
@@ -72,6 +72,7 @@ class AbsoluteSequence(AbstractSequence):
         Returns: A value from 0 (low difficulty) to 1 (high difficulty)
 
         """
+        logger = get_logger(__name__)
         notes = self._get_absolute_note_array()
 
         # If sequence is empty, return easiest difficulty
@@ -100,7 +101,7 @@ class AbsoluteSequence(AbstractSequence):
             elif duration in dotted_durations:
                 notes_dotted.append(note)
             else:
-                logging.warning(f"Note value {duration} not in considered values")
+                logger.info(f"Note value {duration} not in known values.")
 
         rhythm_occurrences = 0
 
@@ -161,6 +162,8 @@ class AbsoluteSequence(AbstractSequence):
             step_sizes: Array of numbers corresponding to divisors of the grid length
 
         """
+        logger = get_logger(__name__)
+
         quantised_messages = []
         # Keep track of open messages, in order to guarantee quantisation does not smother them
         open_messages = dict()
@@ -182,7 +185,7 @@ class AbsoluteSequence(AbstractSequence):
             if msg.message_type == MessageType.note_on:
                 # Sanity check
                 if msg.note in open_messages:
-                    logging.warning(f"Note {msg.note} not previously stopped, inserting stop message")
+                    logger.info(f"Note {msg.note} not previously stopped, inserting stop message.")
                     quantised_messages.append(Message(message_type=MessageType.note_off, note=msg.note, time=msg.time))
                     open_messages.pop(msg.note, None)
                     message_timings[msg.note].append(message_to_append.time)
@@ -334,6 +337,8 @@ class AbsoluteSequence(AbstractSequence):
         return relative_sequence
 
     def _get_absolute_note_array(self, standard_length=PPQN) -> [[Message, Message]]:
+        logger = get_logger(__name__)
+
         open_messages = dict()
         notes: [[]] = []
         i = 0
@@ -343,8 +348,7 @@ class AbsoluteSequence(AbstractSequence):
             # Add notes to open messages
             if msg.message_type == MessageType.note_on:
                 if msg.note in open_messages:
-                    logging.warning(
-                        f"Note {msg.note} at time {msg.time} not previously stopped, inserting stop message")
+                    logger.info(f"Note {msg.note} at time {msg.time} not previously stopped, inserting stop message.")
                     index = open_messages.pop(msg.note)
                     notes[index].append(Message(message_type=MessageType.note_off, note=msg.note, time=msg.time))
 
@@ -355,7 +359,7 @@ class AbsoluteSequence(AbstractSequence):
             # Add closing message to fitting open message
             elif msg.message_type == MessageType.note_off:
                 if msg.note not in open_messages:
-                    logging.warning(f"Note {msg.note} at time {msg.time} not previously started, skipping")
+                    logger.info(f"Note {msg.note} at time {msg.time} not previously started, skipping.")
                 else:
                     index = open_messages.pop(msg.note)
                     notes[index].append(msg)

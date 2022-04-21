@@ -1,12 +1,11 @@
 from __future__ import annotations
 
-import logging
-
 from pandas import DataFrame
 
 from sCoda.elements.message import MessageType, Message
 from sCoda.sequence.sequence import Sequence
 from sCoda.settings import PPQN
+from sCoda.util.logging import get_logger
 
 
 class Bar:
@@ -16,6 +15,8 @@ class Bar:
 
     def __init__(self, sequence: Sequence, numerator: int, denominator: int, key=None) -> None:
         super().__init__()
+        logger = get_logger(__name__)
+
         self._sequence: Sequence = sequence
         self._time_signature_numerator = numerator
         self._time_signature_denominator = denominator
@@ -25,7 +26,7 @@ class Bar:
         # Assert bar has correct capacity
         if self._sequence.sequence_length() > self._time_signature_numerator * PPQN / (
                 self._time_signature_denominator / 4):
-            logging.warning("Bar capacity exceeded")
+            logger.warning("Bar capacity exceeded.")
             assert False
 
         # Pad bar

@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import copy
-import logging
 import math
 import re
 import time
@@ -14,6 +13,7 @@ from sCoda.settings import NOTE_LOWER_BOUND, NOTE_UPPER_BOUND, PPQN, DIFF_DISTAN
     DIFF_DISTANCES_LOWER_BOUND, DIFF_PATTERN_COVERAGE_UPPER_BOUND, DIFF_PATTERN_COVERAGE_LOWER_BOUND, \
     PATTERN_LENGTH, REGEX_PATTERN, REGEX_SUBPATTERN, DIFF_NOTE_CLASSES_UPPER_BOUND, DIFF_NOTE_CLASSES_LOWER_BOUND, \
     DIFF_NOTE_AMOUNT_UPPER_BOUND, DIFF_NOTE_AMOUNT_LOWER_BOUND
+from sCoda.util.logging import get_logger
 from sCoda.util.midi_wrapper import MidiTrack, MidiMessage
 from sCoda.util.music_theory import KeyNoteMapping, Note, Key
 from sCoda.util.util import minmax, simple_regression
@@ -48,6 +48,8 @@ class RelativeSequence(AbstractSequence):
         """ Consolidates and then splits up wait messages to a maximum size of `PPQN`.
 
         """
+        logger = get_logger(__name__)
+
         open_messages = dict()
         messages_normalized = []
         messages_buffer = []
@@ -91,7 +93,7 @@ class RelativeSequence(AbstractSequence):
             messages_normalized.extend(messages_buffer)
 
         if len(open_messages) > 0:
-            logging.warning("The sequence contains messages that have not been closed")
+            logger.info("The sequence contains messages that have not been closed.")
 
         self.messages = messages_normalized
 
@@ -154,12 +156,14 @@ class RelativeSequence(AbstractSequence):
         Returns: A value from 0 (low difficulty) to 1 (high difficulty)
 
         """
+        logger = get_logger(__name__)
+
         key_signature = key
 
         for msg in self.messages:
             if msg.message_type == MessageType.key_signature:
                 if key_signature is not None and key_signature is not msg.key:
-                    logging.warning(f"Key was {key_signature}, now is {msg.key}")
+                    logger.info(f"Key was {key_signature}, now is {msg.key}.")
                     key_signature = None
                     break
                 key_signature = msg.key
