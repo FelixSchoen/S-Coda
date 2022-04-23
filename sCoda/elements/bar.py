@@ -34,6 +34,15 @@ class Bar:
                 self._time_signature_denominator / 4):
             self._sequence.pad_sequence(self._time_signature_numerator * PPQN / (self._time_signature_denominator / 4))
 
+        # Assert time signature is consistent
+        relative_sequence = self._sequence._get_rel()
+        time_signatures = [msg for msg in relative_sequence.messages if
+                           msg.message_type == MessageType.time_signature]
+        assert len(time_signatures) <= 1
+        assert all(
+            msg.numerator == self._time_signature_numerator and msg.denominator == self._time_signature_denominator for
+            msg in time_signatures)
+
         # Set time signature
         relative_sequence = self._sequence._get_rel()
         relative_sequence.messages = [msg for msg in relative_sequence.messages if
