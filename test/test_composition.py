@@ -1,4 +1,5 @@
-from sCoda import Sequence
+import copy
+
 from sCoda.elements.composition import Composition
 
 
@@ -14,12 +15,27 @@ def test_create_composition_from_file():
     composition = Composition.from_file("resources/albeniz_op165_caprichocatalan.mid", [[1], [2]], [0])
 
     for i, bar in enumerate(composition.tracks[0].bars):
-        if i > 2:
-            break
-        print(f"Bar {i + 1}")
-        data_frame = bar.to_relative_dataframe()
+        if i < 2:
+            continue
 
-        for _, row in data_frame.iterrows():
-            print(row)
+        print("Starting new bar")
 
-    assert True
+        seq = copy.copy(bar._sequence._get_rel())
+
+        valid_messages = []
+
+        for j in range(1, len(seq.messages)+1):
+            asdf = copy.copy(seq)
+            asdf.messages = asdf.messages[:j]
+            print(f"New message: {asdf.messages[-1]}")
+
+            valid_now = asdf.get_valid_next_messages(desired_bars=2)
+            added = [msg for msg in valid_now if msg not in valid_messages]
+            removed = [msg for msg in valid_messages if msg not in valid_now]
+            valid_messages = valid_now
+
+            print(f"Added: {added}")
+            print(f"Removed: {removed}")
+            print(f"Valid messages: {len(valid_messages)}")
+
+        break

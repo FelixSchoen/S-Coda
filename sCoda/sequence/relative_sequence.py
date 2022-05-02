@@ -8,6 +8,7 @@ from statistics import mean
 from typing import TYPE_CHECKING
 
 from sCoda.elements.message import Message, MessageType
+from sCoda.exception.exceptions import SequenceException
 from sCoda.sequence.abstract_sequence import AbstractSequence
 from sCoda.settings import NOTE_LOWER_BOUND, NOTE_UPPER_BOUND, PPQN, DIFF_DISTANCES_UPPER_BOUND, \
     DIFF_DISTANCES_LOWER_BOUND, DIFF_PATTERN_COVERAGE_UPPER_BOUND, DIFF_PATTERN_COVERAGE_LOWER_BOUND, \
@@ -307,6 +308,67 @@ class RelativeSequence(AbstractSequence):
             return minmax(0, 1, bound_difficulty)
         else:
             return 1
+
+    def get_valid_next_messages(self, desired_bars, force_time_siganture=True):
+        """ Determines, which messages are valid messages to be inserted into this sequence.
+
+        Returns:
+
+        """
+        amount_bars_completed = 0
+        current_bar_length = 4 * PPQN
+        current_point_in_time = 0
+        current_bar_time = 0
+        at_bar_border = True
+
+        open_messages = dict()
+
+        for msg in self.messages:
+            if msg.message_type == MessageType.note_on:
+                at_bar_border = False
+                open_messages[msg.note] = current_point_in_time
+            elif msg.message_type == MessageType.note_off:
+                open_messages.pop(msg.note, None)
+            elif msg.message_type == MessageType.wait:
+                at_bar_border = False
+
+                current_point_in_time += msg.time
+                current_bar_time += msg.time
+
+                if current_bar_time == current_bar_length:
+                    at_bar_border = True
+                    amount_bars_completed += 1
+                    current_bar_time -= current_bar_length
+
+                while current_bar_time > current_bar_length:
+                    current_bar_time -= current_bar_length
+                    amount_bars_completed += 1
+            elif msg.message_type == MessageType.time_signature:
+                if not at_bar_border:
+                    raise SequenceException("Time signature message may only occur at border of a bar")
+                at_bar_border = False
+
+                current_bar_length = PPQN * (msg.numerator / (msg.denominator / 4))
+
+        valid_messages = []
+
+        if amount_bars_completed < desired_bars:
+            if not (at_bar_border and force_time_siganture):
+                valid_messages.append({"message_type": MessageType.wait})
+
+        for note in range(NOTE_LOWER_BOUND, NOTE_UPPER_BOUND + 1):
+            if note not in open_messages and amount_bars_completed < desired_bars and not (
+                    at_bar_border and force_time_siganture):
+                valid_messages.append({"message_type": MessageType.note_on, "note": note})
+
+        for note in range(NOTE_LOWER_BOUND, NOTE_UPPER_BOUND + 1):
+            if note in open_messages and open_messages[note] != current_point_in_time:
+                valid_messages.append({"message_type": MessageType.note_off, "note": note})
+
+        if at_bar_border and amount_bars_completed < desired_bars:
+            valid_messages.append({"message_type": MessageType.time_signature})
+
+        return valid_messages
 
     def pad_sequence(self, padding_length):
         """ Pads the sequence to a minimum fixed length.

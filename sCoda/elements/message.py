@@ -40,7 +40,7 @@ class Message:
         return self.__copy__()
 
     def __repr__(self) -> str:
-        representation = f"{self.message_type.value}:"
+        representation = f"[{self.message_type.value}]:"
 
         if self.time is not None:
             representation += f" time={self.time}"
