@@ -104,6 +104,30 @@ def test_transpose():
         note_heights_after_quantization[i] == note_heights[i] + 1 for i in range(len(note_heights_after_quantization)))
 
 
+# Absolute Sequence
+
+def test_get_timing_of_message_type():
+    sequences = test_midi_to_sequences()
+    sequence = sequences[0]
+
+    timings = sequence.get_timing_of_message_type(MessageType.time_signature)
+    points_in_time = [timing[0] - timings[i - 1][0] if i >= 1 else timing[0] for i, timing in enumerate(timings)]
+
+    split_sequences = sequence.split(points_in_time)
+
+    assert all(len(seq.get_timing_of_message_type(MessageType.time_signature)) <= 1 for seq in split_sequences)
+
+
+def test_merge_sequences():
+    sequences = test_midi_to_sequences()
+    sequence = Sequence()
+
+    sequence.merge(sequences)
+
+    assert len(sequence._get_abs().messages) == len(sequences[0]._get_abs().messages) + len(
+        sequences[1]._get_abs().messages)
+
+
 # Util
 
 def test_velocity_values_digitised_to_correct_bins():

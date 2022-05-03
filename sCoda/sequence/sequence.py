@@ -30,11 +30,13 @@ class Sequence:
         super().__init__()
         self._abs_stale = True
         self._rel_stale = True
+
         if absolute_sequence is None:
             self._abs = AbsoluteSequence()
         else:
             self._abs = absolute_sequence
             self._abs_stale = False
+
         if relative_sequence is None:
             self._rel = RelativeSequence()
         else:

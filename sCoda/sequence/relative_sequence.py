@@ -408,7 +408,7 @@ class RelativeSequence(AbstractSequence):
 
         Creates up to `len(capacities) + 1` new `RelativeSequence`s, where the first `len(capacities)` entries contain
         sequences of the given capacities, while the last one contains any remaining notes. Messages at the boundaries
-        of a capacity are split up and possible reinserted at the beginning of the next sequence.
+        of a capacity are split up and possibly reinserted at the beginning of the next sequence.
 
         Args:
             capacities: An array of capacities to split the sequence into
@@ -500,16 +500,20 @@ class RelativeSequence(AbstractSequence):
         from sCoda.sequence.absolute_sequence import AbsoluteSequence
         absolute_sequence = AbsoluteSequence()
         current_point_in_time = 0
+        cap_message_exists = True
 
         for msg in self.messages:
             if msg.message_type == MessageType.wait:
                 current_point_in_time += msg.time
+                cap_message_exists = False
             else:
                 message_to_add = copy.copy(msg)
                 message_to_add.time = current_point_in_time
                 absolute_sequence.add_message(message_to_add)
+                cap_message_exists = True
 
-        absolute_sequence.add_message(Message(message_type=MessageType.internal, time=current_point_in_time))
+        if not cap_message_exists:
+            absolute_sequence.add_message(Message(message_type=MessageType.internal, time=current_point_in_time))
 
         return absolute_sequence
 
