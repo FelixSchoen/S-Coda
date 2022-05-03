@@ -1,10 +1,7 @@
 from __future__ import annotations
 
-import copy
-import logging
-
 from sCoda.elements.bar import Bar
-from sCoda.elements.message import Message, MessageType
+from sCoda.elements.message import MessageType
 from sCoda.elements.track import Track
 from sCoda.sequence.sequence import Sequence
 from sCoda.settings import PPQN
@@ -41,71 +38,9 @@ class Composition:
         # Open file
         midi_file = MidiFile.open_midi_file(file_path)
 
-        # Create absolute sequences
-        sequences = [[Sequence() for _ in indices] for indices in track_indices]
-        meta_sequence = Sequence()
-
-        # PPQN scaling
-        scaling_factor = PPQN / midi_file.PPQN
-
-        # Iterate over all tracks in midi file
-        for i, track in enumerate(midi_file.tracks):
-            # Skip tracks not specified
-            if not any(i in indices for indices in track_indices) and i not in meta_track_indices:
-                continue
-
-            # Keep track of current point in time
-            current_point_in_time = 0
-
-            # Get current sequence
-            current_sequence = None
-            if any(i in indices for indices in track_indices):
-                array = next(array for array in track_indices if i in array)
-                current_sequence = sequences[track_indices.index(array)][array.index(i)]
-            elif i in meta_track_indices:
-                current_sequence = meta_sequence
-
-            for j, msg in enumerate(track.messages):
-                # Add time induced by message
-                current_point_in_time += (msg.time * scaling_factor)
-                rounded_point_in_time = round(current_point_in_time)
-
-                if msg.message_type == MessageType.note_on and any(i in indices for indices in track_indices):
-                    current_sequence.add_absolute_message(
-                        Message(message_type=MessageType.note_on, note=msg.note, velocity=msg.velocity,
-                                time=rounded_point_in_time))
-                elif msg.message_type == MessageType.note_off and any(i in indices for indices in track_indices):
-                    current_sequence.add_absolute_message(
-                        Message(message_type=MessageType.note_off, note=msg.note, time=rounded_point_in_time))
-                elif msg.message_type == MessageType.time_signature:
-                    if i not in meta_track_indices:
-                        logging.warning("Encountered time signature change in unexpected track")
-
-                    meta_sequence.add_absolute_message(
-                        Message(message_type=MessageType.time_signature, numerator=msg.numerator,
-                                denominator=msg.denominator, time=rounded_point_in_time))
-                elif msg.message_type == MessageType.key_signature:
-                    if i not in meta_track_indices:
-                        logging.warning("Encountered key signature change in unexpected track")
-
-                    meta_sequence.add_absolute_message(
-                        Message(message_type=MessageType.key_signature, key=msg.key, time=rounded_point_in_time))
-                elif msg.message_type == MessageType.control_change:
-                    meta_sequence.add_absolute_message(
-                        Message(message_type=MessageType.control_change, control=msg.control, velocity=msg.velocity,
-                                time=rounded_point_in_time))
-
-        extracted_sequences = []
-
-        for sequences_to_merge in sequences:
-            track = copy.copy(sequences_to_merge[0])
-            track.merge(sequences_to_merge[1:])
-            extracted_sequences.append(track)
-
-        if 0 > meta_track_index or meta_track_index >= len(extracted_sequences):
-            raise ValueError("Invalid meta track index")
-
-        extracted_sequences[meta_track_index].merge([meta_sequence])
+        # Extract sequences
+        extracted_sequences = midi_file.to_sequences(track_indices, meta_track_indices,
+                                                     meta_track_index=meta_track_index)
 
         # Construct quantisation parameters
         quantise_parameters = get_note_durations(1, 8)
