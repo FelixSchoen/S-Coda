@@ -99,7 +99,7 @@ class RelativeSequence(AbstractSequence):
         self.messages = messages_normalized
 
     def consolidate(self, sequence: RelativeSequence) -> None:
-        """ Consolidates the two sequences, resulting in the current sequence containing messages from both of the
+        """ Consolidates this one and the given sequence, resulting in the current sequence containing messages from both of the
         previous sequences.
 
         Args:
