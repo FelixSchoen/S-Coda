@@ -16,7 +16,7 @@ class MidiFile:
     def __init__(self) -> None:
         super().__init__()
         self.tracks: [MidiTrack] = []
-        self.PPQN = None
+        self.PPQN = PPQN
 
     def to_sequences(self, track_indices: [[int]], meta_track_indices: [int], meta_track_index: int = 0) -> [
         sCoda.Sequence]:

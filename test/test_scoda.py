@@ -132,11 +132,17 @@ def test_quantise():
     sequences = test_midi_to_sequences()
     sequence = sequences[0]
 
-    bars = Sequence.split_into_bars([sequence], 0)
+    sequence.quantise([PPQN])
 
-    for i, bar in enumerate(bars[0]):
-        print(i)
-        bar._sequence.quantise([PPQN])
+    assert all(msg.time % PPQN == 0 for msg in sequence._get_abs().messages)
+
+
+def test_quantise_note_lengths():
+    sequences = test_midi_to_sequences()
+    sequence = sequences[0]
+
+    sequence.quantise([PPQN])
+    sequence.quantise_note_lengths()
 
 
 # Util
