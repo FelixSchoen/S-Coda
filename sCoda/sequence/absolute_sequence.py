@@ -164,6 +164,7 @@ class AbsoluteSequence(AbstractSequence):
         """
         logger = get_logger(__name__)
 
+        # List of finally quantised messages
         quantised_messages = []
         # Keep track of open messages, in order to guarantee quantisation does not smother them
         open_messages = dict()
@@ -171,11 +172,11 @@ class AbsoluteSequence(AbstractSequence):
         message_timings = dict()
 
         for msg in self.messages:
-            original_time = msg.time
+            message_original_time = msg.time
             message_to_append = copy.copy(msg)
 
             # Positions the note would land at according to each of the quantisation parameters
-            positions_left = [(original_time // step_size) * step_size for step_size in step_sizes]
+            positions_left = [(message_original_time // step_size) * step_size for step_size in step_sizes]
             positions_right = [positions_left[i] + step_sizes[i] for i in range(0, len(step_sizes))]
 
             possible_positions = positions_left + positions_right
@@ -183,22 +184,23 @@ class AbsoluteSequence(AbstractSequence):
 
             # Consider quantisations that could smother notes
             if msg.message_type == MessageType.note_on:
-                # Sanity check
+                valid_positions += possible_positions
+                message_to_append.time = valid_positions[find_minimal_distance(message_original_time, valid_positions)]
+
+                # Check if note was not yet closed
                 if msg.note in open_messages:
                     logger.info(f"Note {msg.note} not previously stopped, inserting stop message.")
-                    quantised_messages.append(Message(message_type=MessageType.note_off, note=msg.note, time=msg.time))
+                    quantised_messages.append(
+                        Message(message_type=MessageType.note_off, note=msg.note, time=message_to_append.time))
                     open_messages.pop(msg.note, None)
                     message_timings[msg.note].append(message_to_append.time)
 
-                valid_positions += possible_positions
-                message_to_append.time = valid_positions[find_minimal_distance(original_time, valid_positions)]
-
-                # Can open new note
+                # Check if we can open note without overlaps
                 if msg.note not in message_timings \
                         or not message_to_append.time < message_timings[msg.note][1]:
                     open_messages[msg.note] = message_to_append.time
                     message_timings[msg.note] = [message_to_append.time]
-                # Note would overlap with other, existing note
+                # In this case note would overlap with other, existing note
                 else:
                     message_to_append = None
             elif msg.message_type == MessageType.note_off:
@@ -211,18 +213,42 @@ class AbsoluteSequence(AbstractSequence):
                         if not position - note_open_timing <= 0:
                             valid_positions.append(position)
 
-                    # Valid positions will always exist, since if order held before quantisation, same will hold after
-                    message_to_append.time = valid_positions[find_minimal_distance(original_time, valid_positions)]
+                    # If no valid positions exists, set note length to 0
+                    if len(valid_positions) == 0:
+                        valid_positions.append(note_open_timing)
+
+                    # Valid positions will always exist, since if order held before quantisation, same will hold
+                    # after, and if initially no valid position was found note length will be set to 0
+                    message_to_append.time = valid_positions[
+                        find_minimal_distance(message_original_time, valid_positions)]
                     message_timings[msg.note].append(message_to_append.time)
+
                 # Message is not currently open (e.g., if start message was removed due to an overlap)
                 else:
                     message_to_append = None
             else:
                 valid_positions += possible_positions
-                message_to_append.time = valid_positions[find_minimal_distance(original_time, valid_positions)]
+                message_to_append.time = valid_positions[find_minimal_distance(message_original_time, valid_positions)]
 
             if message_to_append is not None:
                 quantised_messages.append(message_to_append)
+
+        # Remove smothered notes
+        message_timings_with_indices = dict()
+        original_indices_to_remove = []
+
+        # Get indices of violating messages
+        for i, msg in enumerate(quantised_messages):
+            if msg.message_type == MessageType.note_on:
+                message_timings_with_indices[msg.note] = (i, msg.time)
+            elif msg.message_type == MessageType.note_off:
+                j, time = message_timings_with_indices.pop(msg.note)
+                if msg.time - time <= 0:
+                    original_indices_to_remove.extend([j, i])
+
+        # Remove messages
+        for index_shifter, index_to_remove in enumerate(original_indices_to_remove):
+            quantised_messages.pop(index_to_remove - index_shifter)
 
         self.messages = quantised_messages
         self.sort()

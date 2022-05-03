@@ -128,6 +128,17 @@ def test_merge_sequences():
         sequences[1]._get_abs().messages)
 
 
+def test_quantise():
+    sequences = test_midi_to_sequences()
+    sequence = sequences[0]
+
+    bars = Sequence.split_into_bars([sequence], 0)
+
+    for i, bar in enumerate(bars[0]):
+        print(i)
+        bar._sequence.quantise([PPQN])
+
+
 # Util
 
 def test_velocity_values_digitised_to_correct_bins():
