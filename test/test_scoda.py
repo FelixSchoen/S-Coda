@@ -1,11 +1,24 @@
+import copy
+
+import mido
+
 from sCoda import Sequence, Composition
-from sCoda.elements.message import MessageType
+from sCoda.elements.message import MessageType, Message
 from sCoda.settings import PPQN
 from sCoda.util.midi_wrapper import MidiFile
+from sCoda.util.music_theory import Key
 from sCoda.util.util import digitise_velocity, bin_from_velocity
 
 
 # General
+
+def test_load_composition():
+    composition = Composition.from_file("resources/beethoven_o27-2_m3.mid", [[1], [2]], [0, 3])
+
+    assert len(composition.tracks) == 2
+
+    return composition
+
 
 def test_midi_to_sequences():
     midi_file = MidiFile.open_midi_file("resources/beethoven_o27-2_m3.mid")
@@ -14,6 +27,9 @@ def test_midi_to_sequences():
     assert len(sequences) == 2
 
     return sequences
+
+
+# Sequence
 
 
 def test_split_into_bars():
@@ -26,12 +42,23 @@ def test_split_into_bars():
     return bars
 
 
-def test_load_composition():
-    composition = Composition.from_file("resources/beethoven_o27-2_m3.mid", [[1], [2]], [0, 3])
+def test_pianorolls():
+    sequences = test_midi_to_sequences()
+    bars = Sequence.split_into_bars(sequences)
 
-    assert len(composition.tracks) == 2
+    Sequence.pianorolls([bars[0][0]._sequence, bars[1][0]._sequence])
 
-    return composition
+
+# Bar
+
+def test_copy_bar():
+    sequences = test_midi_to_sequences()
+    bars = Sequence.split_into_bars(sequences)
+    bar = bars[0][0]
+
+    bar_copy = copy.copy(bar)
+
+    assert len(bar_copy._sequence._get_rel().messages) == len(bar._sequence._get_rel().messages)
 
 
 # Relative Sequence
@@ -54,9 +81,23 @@ def test_consolidate_sequences():
     assert all(msg in sequence._get_rel().messages for msg in sequences[1]._get_rel().messages)
 
 
+def test_get_valid_next_messages():
+    sequences = test_midi_to_sequences()
+    bars = Sequence.split_into_bars(sequences)
+    sequence = bars[0][0]._sequence
+
+    assert len(sequence._get_rel().get_valid_next_messages(2)) == 1
+
+
 def test_difficulty_assessment():
     bars = test_split_into_bars()
     bar = bars[0][0]
+    for msg in bar._sequence._get_rel().messages:
+        if msg.message_type == MessageType.key_signature:
+            bar._sequence._get_rel().messages.remove(msg)
+            bar._sequence._abs_stale = True
+    bar._key_signature = None
+
     difficulty = bar.difficulty
 
     assert 0 <= difficulty <= 1
@@ -159,3 +200,23 @@ def test_velocity_digitised_to_correct_bin_indices():
 
     for pair in values_to_digitise:
         assert bin_from_velocity(pair[0]) == pair[1]
+
+
+# MidiFile
+
+def test_midi_file_to_mido_track():
+    midi_file = MidiFile.open_midi_file("resources/beethoven_o27-2_m3.mid")
+    mido_track = midi_file.tracks[0].to_mido_track()
+
+    assert isinstance(mido_track, mido.MidiTrack)
+
+
+# Misc
+
+def test_message_representation():
+    msg = Message(message_type=MessageType.note_on, note=42, time=10, numerator=4, denominator=4, velocity=127,
+                  control=0, key=Key.c)
+
+    representation = msg.__repr__()
+
+    assert "42" in representation

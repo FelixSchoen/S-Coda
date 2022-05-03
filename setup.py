@@ -28,6 +28,6 @@ setup(
     license="MIT",
     install_requires=["mido ~= 1.2.10", "numpy ~= 1.22.2", "matplotlib ~= 3.5.1", "pandas ~= 1.4.1"],
     setup_requires=["pytest-runner >= 6.0.0", "twine >= 3.8.0", "pdoc3 >= 0.10.0"],
-    tests_require=["pytest >= 7.0.1"],
+    tests_require=["pytest >= 7.0.1", "coverage >= 6.3.2"],
     test_suite="test",
 )

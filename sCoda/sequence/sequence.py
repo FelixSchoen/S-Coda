@@ -4,7 +4,7 @@ import copy
 
 import numpy as np
 import pandas as pd
-from matplotlib import pyplot as plt
+from matplotlib import pyplot as plt, pyplot
 from matplotlib.patches import Rectangle
 from pandas import DataFrame
 
@@ -331,7 +331,7 @@ class Sequence:
                    x_scale: [int] = None,
                    y_scale: [int] = (NOTE_LOWER_BOUND, NOTE_UPPER_BOUND),
                    show_velocity: bool = True,
-                   x_tick_spacing=PPQN) -> None:
+                   x_tick_spacing=PPQN) -> pyplot:
         """ Creates a piano roll from the given sequences.
 
         Creates a visualisation in form of a piano roll from the given sequences, where each note is visualised using
@@ -430,4 +430,4 @@ class Sequence:
         plt.xlim(x_scale)
         plt.ylim(y_scale)
 
-        plt.show()
+        return plt
