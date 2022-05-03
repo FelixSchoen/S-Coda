@@ -8,6 +8,7 @@ from matplotlib import pyplot as plt
 from matplotlib.patches import Rectangle
 from pandas import DataFrame
 
+import sCoda
 from sCoda.elements.message import MessageType, Message
 from sCoda.sequence.absolute_sequence import AbsoluteSequence
 from sCoda.sequence.relative_sequence import RelativeSequence
@@ -221,6 +222,91 @@ class Sequence:
         """
         self._get_abs().quantise_note_lengths(possible_durations, standard_length=standard_length)
         self._rel_stale = True
+
+    @staticmethod
+    def split_into_bars(sequences_input: [Sequence], meta_track_index=0) -> [sCoda.Bar]:
+        """ Splits the sequences into a list of `sCoda.Bar`, conforming to the contained time signatures.
+
+        Args:
+            sequences_input: The sequences to split
+            meta_track_index: The index of the sequence that contains the time signature changes
+
+        Returns: A list of bars
+
+        """
+
+        from sCoda import Bar
+
+        sequences = copy.copy(sequences_input)
+
+        # Determine signature timings
+        meta_track = sequences[meta_track_index]
+        time_signature_timings = meta_track.get_timing_of_message_type(MessageType.time_signature)
+        key_signature_timings = meta_track.get_timing_of_message_type(MessageType.key_signature)
+
+        tracks_bars = [[] for _ in sequences]
+
+        if len(time_signature_timings) == 0:
+            time_signature_timings = [0]
+
+        # Split into bars, carry key and time signature
+        current_point_in_time = 0
+        current_ts_numerator = 4
+        current_ts_denominator = 4
+        current_key = None
+
+        # Keep track of when bars are of equal length
+        tracks_synchronised = False
+
+        # Repeat until all tracks of exactly equal length
+        while not tracks_synchronised:
+            # Obtain new time or key signatures
+            time_signature = next((timing for timing in time_signature_timings if timing[0] <= current_point_in_time)
+                                  , None)
+            key_signature = next((timing for timing in key_signature_timings if timing[0] <= current_point_in_time)
+                                 , None)
+
+            # Remove time signature from list, change has occurred
+            if time_signature is not None:
+                time_signature_timings.pop(0)
+                current_ts_numerator = time_signature[1].numerator
+                current_ts_denominator = time_signature[1].denominator
+
+            # Remove key signature from list, change has occurred
+            if key_signature is not None:
+                key_signature_timings.pop(0)
+                current_key = key_signature[1].key
+
+            # Calculate length of current bar based on time signature
+            length_bar = PPQN * (current_ts_numerator / (current_ts_denominator / 4))
+            current_point_in_time += length_bar
+
+            # Assume after this split, tracks are synchronized
+            tracks_synchronised = True
+
+            # Split sequences into bars
+            for i, sequence in enumerate(sequences):
+                split_up = sequence.split([length_bar])
+
+                # Check if we reached the end of the sequence
+                if len(split_up) > 1:
+                    tracks_synchronised = False
+                    sequences[i] = split_up[1]
+                # Fill with placeholder empty sequence
+                else:
+                    if len(split_up) == 0:
+                        split_up.append(Sequence())
+                    sequences[i] = Sequence()
+
+                # Quantise note lengths again, in case splitting into bars affected them
+                sequence_to_add = split_up[0]
+                sequence_to_add.quantise_note_lengths()
+
+                # Append split bar to list of bars
+                tracks_bars[i].append(
+                    Bar(sequence_to_add, current_ts_numerator, current_ts_denominator, Key(current_key)))
+
+        return tracks_bars
 
     @staticmethod
     def to_dataframe(messages) -> DataFrame:

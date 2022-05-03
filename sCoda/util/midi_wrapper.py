@@ -4,6 +4,7 @@ import copy
 
 import mido
 
+import sCoda
 from sCoda.elements.message import MessageType, Message
 from sCoda.settings import PPQN
 from sCoda.util.logging import get_logger
@@ -17,7 +18,18 @@ class MidiFile:
         self.tracks: [MidiTrack] = []
         self.PPQN = None
 
-    def to_sequences(self, track_indices: [[int]], meta_track_indices: [int], meta_track_index: int = 0):
+    def to_sequences(self, track_indices: [[int]], meta_track_indices: [int], meta_track_index: int = 0) -> [
+        sCoda.Sequence]:
+        """ Parses this `MidiFile` and returns a list of `sCoda.Sequence`.
+
+        Args:
+            track_indices: A list of grouped indices of tracks. Tracks in the same group will be merged to a single sequence.
+            meta_track_indices: A list of indices of tracks, which can contain meta messages to consider.
+            meta_track_index: The index of the final sequence that should contain meta messages.
+
+        Returns: A list of parsed sequences.
+
+        """
         from sCoda import Sequence
 
         logger = get_logger(__name__)
