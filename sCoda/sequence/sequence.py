@@ -31,6 +31,14 @@ class Sequence:
         self._abs_stale = True
         self._rel_stale = True
 
+        self._diff_note_amount = None
+        self._diff_note_values = None
+        self._diff_note_classes = None
+        self._diff_key = None
+        self._diff_distances = None
+        self._diff_rhythm = None
+        self._diff_pattern = None
+
         if absolute_sequence is None:
             self._abs = AbsoluteSequence()
         else:
@@ -92,17 +100,10 @@ class Sequence:
     def difficulty(self, key_signature: Key = None) -> float:
         self.adjust_wait_messages()
 
-        diff_note_amount = self._get_rel().diff_note_amount()
-        diff_note_values = self._get_abs().diff_note_values()
-        diff_note_classes = self._get_rel().diff_note_classes()
-        diff_key = self._get_rel().diff_key(key=key_signature)
-        diff_distances = self._get_rel().diff_distances()
-        diff_rhythm = self._get_abs().diff_rhythm()
-        diff_pattern = self._get_rel().diff_pattern()
-
-        difficulties_standard = [(diff_note_values, 10), (diff_note_amount, 8), (diff_note_classes, 6), (diff_key, 5)]
-        difficulties_increase = [(diff_distances, 10), (diff_rhythm, 25)]
-        difficulties_decrease = [(diff_pattern, 50)]
+        difficulties_standard = [(self.diff_note_values, 10), (self.diff_note_amount, 8), (self.diff_note_classes, 6),
+                                 (self.diff_key(key_signature), 5)]
+        difficulties_increase = [(self.diff_distances, 10), (self.diff_rhythm, 25)]
+        difficulties_decrease = [(self.diff_pattern, 50)]
 
         difficulty = 0
 
@@ -128,12 +129,48 @@ class Sequence:
 
         overall_difficulty = difficulty + difficulty * change_percent_points / 100
 
-        # print(
-        #     f"Overall: {overall_difficulty} Note Values: {diff_note_values} Note Amount: {diff_note_amount} Note "
-        #     f"Classes: {diff_note_classes} Key: {diff_key} Distances: {diff_distances} Rhythm: {diff_rhythm} "
-        #     f"Pattern: {diff_pattern}")
-
         return overall_difficulty
+
+    @property
+    def diff_note_amount(self) -> float:
+        if self._diff_note_amount is None:
+            self._diff_note_amount = self._get_rel().diff_note_amount()
+        return self._diff_note_amount
+
+    @property
+    def diff_note_values(self) -> float:
+        if self._diff_note_values is None:
+            self._diff_note_values = self._get_abs().diff_note_values()
+        return self._diff_note_values
+
+    @property
+    def diff_note_classes(self) -> float:
+        if self._diff_note_classes is None:
+            self._diff_note_classes = self._get_rel().diff_note_classes()
+        return self._diff_note_classes
+
+    def diff_key(self, key_signature) -> float:
+        if self._diff_key is None:
+            self._diff_key = self._get_rel().diff_key(key=key_signature)
+        return self._diff_key
+
+    @property
+    def diff_distances(self) -> float:
+        if self._diff_distances is None:
+            self._diff_distances = self._get_rel().diff_distances()
+        return self._diff_distances
+
+    @property
+    def diff_rhythm(self) -> float:
+        if self._diff_rhythm is None:
+            self._diff_rhythm = self._get_abs().diff_rhythm()
+        return self._diff_rhythm
+
+    @property
+    def diff_pattern(self) -> float:
+        if self._diff_pattern is None:
+            self._diff_pattern = self._get_rel().diff_pattern()
+        return self._diff_pattern
 
     def get_timing_of_message_type(self, message_type: MessageType) -> [(int, Message)]:
         """ See `sCoda.sequence.absolute_sequence.AbsoluteSequence.get_timing_of_message_type`
@@ -206,8 +243,13 @@ class Sequence:
         self._abs_stale = True
         shifted = self._get_rel().transpose(transpose_by)
 
+        # Possible that notes overlap
         if shifted:
+            self._diff_pattern = None
             self.quantise_note_lengths()
+
+        if transpose_by != 0:
+            self._diff_key = None
 
         return shifted
 

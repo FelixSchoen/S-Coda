@@ -51,6 +51,4 @@ KeyNoteMapping = {
     Key.g_b: ([Note.f_s, Note.g_s, Note.a_s, Note.b, Note.c_s, Note.d_s, Note.f], 6),
     Key.c_b: ([Note.b, Note.c_s, Note.d_s, Note.e, Note.f_s, Note.g_s, Note.a_s], 7)}
 
-key_accidental_mapping = {
-
-}
+key_transpose_order = [Key.c, Key.c_s, Key.d, Key.e_b, Key.e, Key.f, Key.f_s, Key.g, Key.a_b, Key.a, Key.b_b, Key.b]

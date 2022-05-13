@@ -16,7 +16,7 @@ from sCoda.settings import NOTE_LOWER_BOUND, NOTE_UPPER_BOUND, PPQN, DIFF_DISTAN
     DIFF_NOTE_AMOUNT_UPPER_BOUND, DIFF_NOTE_AMOUNT_LOWER_BOUND
 from sCoda.util.logging import get_logger
 from sCoda.util.midi_wrapper import MidiTrack, MidiMessage
-from sCoda.util.music_theory import KeyNoteMapping, Note, Key
+from sCoda.util.music_theory import KeyNoteMapping, Note, Key, key_transpose_order
 from sCoda.util.util import minmax, simple_regression
 
 if TYPE_CHECKING:
@@ -354,19 +354,19 @@ class RelativeSequence(AbstractSequence):
 
         if amount_bars_completed < desired_bars:
             if not (at_bar_border and force_time_siganture):
-                valid_messages.append({"message_type": MessageType.wait})
+                valid_messages.append({"message_type": MessageType.wait.value})
 
         for note in range(NOTE_LOWER_BOUND, NOTE_UPPER_BOUND + 1):
             if note not in open_messages and amount_bars_completed < desired_bars and not (
                     at_bar_border and force_time_siganture):
-                valid_messages.append({"message_type": MessageType.note_on, "note": note})
+                valid_messages.append({"message_type": MessageType.note_on.value, "note": note})
 
         for note in range(NOTE_LOWER_BOUND, NOTE_UPPER_BOUND + 1):
             if note in open_messages and open_messages[note] != current_point_in_time:
-                valid_messages.append({"message_type": MessageType.note_off, "note": note})
+                valid_messages.append({"message_type": MessageType.note_off.value, "note": note})
 
         if at_bar_border and amount_bars_completed < desired_bars:
-            valid_messages.append({"message_type": MessageType.time_signature})
+            valid_messages.append({"message_type": MessageType.time_signature.value})
 
         return valid_messages
 
@@ -552,6 +552,18 @@ class RelativeSequence(AbstractSequence):
                 while msg.note > NOTE_UPPER_BOUND:
                     had_to_shift = True
                     msg.note -= 12
+            elif msg.message_type == MessageType.key_signature:
+                if transpose_by % 12 != 0:
+                    if msg.key == Key.c_s:
+                        msg.key = Key.d_b
+                    elif msg.key == Key.c_b:
+                        msg.key = Key.b
+                    elif msg.key == Key.g_b:
+                        msg.key = Key.f_s
+
+                    index = key_transpose_order.index(msg.key)
+                    index = (index + transpose_by) % 12
+                    msg.key = key_transpose_order[index]
 
         return had_to_shift
 

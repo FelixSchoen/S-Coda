@@ -64,3 +64,16 @@ class Message:
             representation += f" key={self.key.value}"
 
         return representation
+
+    @staticmethod
+    def from_dict(dictionary: dict) -> Message:
+        msg = Message(message_type=MessageType[dictionary.get("message_type", None)],
+                      note=dictionary.get("note", None),
+                      velocity=dictionary.get("velocity", None),
+                      control=dictionary.get("control", None),
+                      numerator=dictionary.get("numerator", None),
+                      denominator=dictionary.get("denominator", None),
+                      key=dictionary.get("key", None),
+                      time=dictionary.get("time", None))
+
+        return msg
