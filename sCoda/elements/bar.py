@@ -6,6 +6,7 @@ from sCoda.elements.message import MessageType, Message
 from sCoda.sequence.sequence import Sequence
 from sCoda.settings import PPQN
 from sCoda.util.logging import get_logger
+from sCoda.util.music_theory import Key
 
 
 class Bar:
@@ -21,7 +22,6 @@ class Bar:
         self._time_signature_numerator = numerator
         self._time_signature_denominator = denominator
         self._key_signature = key
-        self._difficulty = None
 
         # Assert bar has correct capacity
         if self._sequence.sequence_length() > self._time_signature_numerator * PPQN / (
@@ -55,28 +55,11 @@ class Bar:
     def __copy__(self):
         bar = Bar(self._sequence.__copy__(), self._time_signature_numerator, self._time_signature_denominator,
                   self._key_signature)
-        bar._difficulty = self._difficulty
 
         return bar
 
-    @property
-    def difficulty(self) -> float:
-        if self._difficulty is None:
-            self.set_difficulty()
-
-        return self._difficulty
-
-    def calculate_difficulty(self) -> float:
-        """ See `sCoda.sequence.sequence.Sequence.difficulty`
-
-        """
-        return self._sequence.difficulty(key_signature=self._key_signature)
-
-    def set_difficulty(self) -> None:
-        """ Calculates and assigns the difficulty of this bar
-
-        """
-        self._difficulty = self.calculate_difficulty()
+    def difficulty(self, key_signature: Key = None) -> float:
+        return self._sequence.difficulty(key_signature)
 
     def to_absolute_dataframe(self) -> DataFrame:
         """ See `sCoda.sequence.sequence.Sequence.to_absolute_dataframe`

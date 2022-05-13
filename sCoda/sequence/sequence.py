@@ -31,6 +31,7 @@ class Sequence:
         self._abs_stale = True
         self._rel_stale = True
 
+        self._difficulty = None
         self._diff_note_amount = None
         self._diff_note_values = None
         self._diff_note_classes = None
@@ -98,6 +99,11 @@ class Sequence:
         self._abs_stale = True
 
     def difficulty(self, key_signature: Key = None) -> float:
+        # If difficulty not stale
+        if None not in [self._difficulty, self._diff_note_amount, self._diff_note_values, self._diff_note_classes,
+                        self._diff_key, self._diff_distances, self._diff_rhythm, self._diff_pattern]:
+            return self._difficulty
+
         self.adjust_wait_messages()
 
         difficulties_standard = [(self.diff_note_values, 10), (self.diff_note_amount, 8), (self.diff_note_classes, 6),
@@ -128,8 +134,9 @@ class Sequence:
         change_percent_points -= decrease_percent_points
 
         overall_difficulty = difficulty + difficulty * change_percent_points / 100
+        self._difficulty = overall_difficulty
 
-        return overall_difficulty
+        return self._difficulty
 
     @property
     def diff_note_amount(self) -> float:
@@ -248,7 +255,7 @@ class Sequence:
             self._diff_pattern = None
             self.quantise_note_lengths()
 
-        if transpose_by != 0:
+        if transpose_by % 12 != 0:
             self._diff_key = None
 
         return shifted
