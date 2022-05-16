@@ -21,6 +21,8 @@ VALID_TUPLETS = [(3, 2)]
 PATTERN_LENGTH = 2
 REGEX_PATTERN = r"(?=(?P<pattern>(?:[+-]\d+){{{p_len}}})(?:[+-]\d+)*(?P<end>(?P=pattern)(?:[+-]\d+)*?)+)"
 REGEX_SUBPATTERN = r"^(?P<pattern>(?:[+-]\d+)+)(?P=pattern)+$"
+# Amount of seconds after which greedy pattern matching is applied
+PATTERN_MAX_SEARCH_DURATION = 5
 
 ROOT_LOGGER = "scoda"
 

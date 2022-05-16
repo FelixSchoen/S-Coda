@@ -13,10 +13,10 @@ from sCoda.sequence.abstract_sequence import AbstractSequence
 from sCoda.settings import NOTE_LOWER_BOUND, NOTE_UPPER_BOUND, PPQN, DIFF_DISTANCES_UPPER_BOUND, \
     DIFF_DISTANCES_LOWER_BOUND, DIFF_PATTERN_COVERAGE_UPPER_BOUND, DIFF_PATTERN_COVERAGE_LOWER_BOUND, \
     PATTERN_LENGTH, REGEX_PATTERN, REGEX_SUBPATTERN, DIFF_NOTE_CLASSES_UPPER_BOUND, DIFF_NOTE_CLASSES_LOWER_BOUND, \
-    DIFF_NOTE_AMOUNT_UPPER_BOUND, DIFF_NOTE_AMOUNT_LOWER_BOUND
+    DIFF_NOTE_AMOUNT_UPPER_BOUND, DIFF_NOTE_AMOUNT_LOWER_BOUND, PATTERN_MAX_SEARCH_DURATION
 from sCoda.util.logging import get_logger
 from sCoda.util.midi_wrapper import MidiTrack, MidiMessage
-from sCoda.util.music_theory import KeyNoteMapping, Note, Key, key_transpose_order
+from sCoda.util.music_theory import KeyNoteMapping, Note, Key, key_transpose_order, key_transpose_mapping
 from sCoda.util.util import minmax, simple_regression
 
 if TYPE_CHECKING:
@@ -281,7 +281,7 @@ class RelativeSequence(AbstractSequence):
 
         # Obtain patterns, switch to greedy method if pattern matching takes too long
         try:
-            results = RelativeSequence._match_pattern(string_representation, start_time=time.time(), max_duration=60)
+            results = RelativeSequence._match_pattern(string_representation, start_time=time.time(), max_duration=PATTERN_MAX_SEARCH_DURATION)
         except TimeoutError:
             results = RelativeSequence._greedy_match_pattern(string_representation)
 
@@ -554,12 +554,8 @@ class RelativeSequence(AbstractSequence):
                     msg.note -= 12
             elif msg.message_type == MessageType.key_signature:
                 if transpose_by % 12 != 0:
-                    if msg.key == Key.c_s:
-                        msg.key = Key.d_b
-                    elif msg.key == Key.c_b:
-                        msg.key = Key.b
-                    elif msg.key == Key.g_b:
-                        msg.key = Key.f_s
+                    if msg.key in key_transpose_mapping:
+                        msg.key = key_transpose_mapping[msg.key]
 
                     index = key_transpose_order.index(msg.key)
                     index = (index + transpose_by) % 12
