@@ -2,8 +2,6 @@ from __future__ import annotations
 
 from sCoda.elements.track import Track
 from sCoda.sequence.sequence import Sequence
-from sCoda.util.midi_wrapper import MidiFile
-from sCoda.util.util import get_note_durations, get_tuplet_durations
 
 
 class Composition:
@@ -31,24 +29,17 @@ class Composition:
         Returns: The created composition
 
         """
-        # Open file
-        midi_file = MidiFile.open_midi_file(file_path)
+        # Load sequences from file
+        merged_sequences = Sequence.sequences_from_midi_file(file_path, track_indices, meta_track_indices,
+                                                             meta_track_index)
 
-        # Get sequences from MIDI file
-        merged_sequences = midi_file.to_sequences(track_indices, meta_track_indices,
-                                                  meta_track_index=meta_track_index)
+        # Load composition from sequences
+        return Composition.from_sequences(merged_sequences, meta_track_index)
 
-        # Construct quantisation parameters
-        quantise_parameters = get_note_durations(1, 8)
-        quantise_parameters += get_tuplet_durations(quantise_parameters, 3, 2)
-
-        # Quantisation
-        for sequence in merged_sequences:
-            sequence.quantise(quantise_parameters)
-            sequence.quantise_note_lengths()
-
+    @staticmethod
+    def from_sequences(sequences, meta_track_index: int = 0):
         # Split sequences into bars
-        tracks_bars = Sequence.split_into_bars(merged_sequences, meta_track_index=meta_track_index)
+        tracks_bars = Sequence.split_into_bars(sequences, meta_track_index=meta_track_index)
 
         # Create tracks from bars
         tracks = []

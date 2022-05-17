@@ -13,9 +13,9 @@ from sCoda.elements.message import MessageType, Message
 from sCoda.sequence.absolute_sequence import AbsoluteSequence
 from sCoda.sequence.relative_sequence import RelativeSequence
 from sCoda.settings import PPQN, NOTE_LOWER_BOUND, NOTE_UPPER_BOUND, MAX_VELOCITY
-from sCoda.util.midi_wrapper import MidiTrack
+from sCoda.util.midi_wrapper import MidiTrack, MidiFile
 from sCoda.util.music_theory import Key
-from sCoda.util.util import minmax, simple_regression
+from sCoda.util.util import minmax, simple_regression, get_note_durations, get_tuplet_durations
 
 
 class Sequence:
@@ -106,10 +106,10 @@ class Sequence:
 
         self.adjust_wait_messages()
 
-        difficulties_standard = [(self.diff_note_values, 10), (self.diff_note_amount, 8), (self.diff_note_classes, 6),
-                                 (self.diff_key(key_signature), 5)]
+        difficulties_standard = [(self.diff_note_values, 10), (self.diff_note_amount, 7), (self.diff_note_classes, 3),
+                                 (self.diff_key(key_signature), 4)]
         difficulties_increase = [(self.diff_distances, 10), (self.diff_rhythm, 25)]
-        difficulties_decrease = [(self.diff_pattern, 50)]
+        difficulties_decrease = [(self.diff_pattern, 30)]
 
         difficulty = 0
 
@@ -213,6 +213,13 @@ class Sequence:
         sequences = [Sequence(relative_sequence=seq) for seq in relative_sequences]
         return sequences
 
+    def stretch(self, factor) -> None:
+        """ See `sCoda.sequence.relative_sequence.RelativeSequence.stretch`
+
+        """
+        self._get_rel().stretch(factor)
+        self._abs_stale = True
+
     def to_midi_track(self) -> MidiTrack:
         """ See `sCoda.sequence.relative_sequence.RelativeSequence.to_midi_track`
 
@@ -273,6 +280,27 @@ class Sequence:
         """
         self._get_abs().quantise_note_lengths(possible_durations, standard_length=standard_length)
         self._rel_stale = True
+
+    @staticmethod
+    def sequences_from_midi_file(file_path: str, track_indices: [[int]],
+                                 meta_track_indices: [int], meta_track_index: int = 0):
+        # Open file
+        midi_file = MidiFile.open_midi_file(file_path)
+
+        # Get sequences from MIDI file
+        merged_sequences = midi_file.to_sequences(track_indices, meta_track_indices,
+                                                  meta_track_index=meta_track_index)
+
+        # Construct quantisation parameters
+        quantise_parameters = get_note_durations(1, 8)
+        quantise_parameters += get_tuplet_durations(quantise_parameters, 3, 2)
+
+        # Quantisation
+        for sequence in merged_sequences:
+            sequence.quantise(quantise_parameters)
+            sequence.quantise_note_lengths()
+
+        return merged_sequences
 
     @staticmethod
     def split_into_bars(sequences_input: [Sequence], meta_track_index=0) -> [sCoda.Bar]:
