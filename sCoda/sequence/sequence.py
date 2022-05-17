@@ -56,7 +56,18 @@ class Sequence:
         copied_absolute_sequence = None if self._get_abs() is None else self._get_abs().__copy__()
         copied_relative_sequence = None if self._get_rel() is None else self._get_rel().__copy__()
 
-        return Sequence(copied_absolute_sequence, copied_relative_sequence)
+        cpy = Sequence(copied_absolute_sequence, copied_relative_sequence)
+
+        cpy._difficulty = self._difficulty
+        cpy._diff_note_amount = self._diff_note_amount
+        cpy._diff_note_values = self._diff_note_values
+        cpy._diff_note_classes = self._diff_note_classes
+        cpy._diff_key = self._diff_key
+        cpy._diff_distances = self._diff_distances
+        cpy._diff_rhythm = self._diff_rhythm
+        cpy._diff_pattern = self._diff_pattern
+
+        return cpy
 
     def _get_abs(self) -> AbsoluteSequence:
         if self._abs_stale:
@@ -106,7 +117,7 @@ class Sequence:
 
         self.adjust_wait_messages()
 
-        difficulties_standard = [(self.diff_note_values, 10), (self.diff_note_amount, 7), (self.diff_note_classes, 3),
+        difficulties_standard = [(self.diff_note_values, 10), (self.diff_note_amount, 6), (self.diff_note_classes, 3),
                                  (self.diff_key(key_signature), 4)]
         difficulties_increase = [(self.diff_distances, 10), (self.diff_rhythm, 25)]
         difficulties_decrease = [(self.diff_pattern, 30)]
@@ -383,7 +394,8 @@ class Sequence:
 
                 # Append split bar to list of bars
                 tracks_bars[i].append(
-                    Bar(sequence_to_add, current_ts_numerator, current_ts_denominator, Key(current_key)))
+                    Bar(sequence_to_add, current_ts_numerator, current_ts_denominator,
+                        Key(current_key) if current_key is not None else None))
 
         return tracks_bars
 

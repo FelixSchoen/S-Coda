@@ -13,6 +13,16 @@ class Composition:
         super().__init__()
         self._tracks = tracks
 
+    def __copy__(self):
+        tracks = []
+
+        for track in self._tracks:
+            tracks.append(track.__copy__())
+
+        cpy = Composition(tracks)
+
+        return cpy
+
     @property
     def tracks(self) -> [Track]:
         return self._tracks
