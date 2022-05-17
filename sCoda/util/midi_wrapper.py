@@ -108,7 +108,14 @@ class MidiFile:
         if 0 > meta_track_index or meta_track_index >= len(merged_sequences):
             raise ValueError("Invalid meta track index")
 
-        merged_sequences[meta_track_index].merge([meta_sequence])
+        meta_track = merged_sequences[meta_track_index]
+        meta_track.merge([meta_sequence])
+
+        # Set standard time if not set
+        if not any(timing_tuple[0] == 0 for timing_tuple in
+                   meta_track.get_timing_of_message_type(MessageType.time_signature)):
+            meta_track.add_absolute_message(
+                Message(message_type=MessageType.time_signature, numerator=4, denominator=4, time=0))
 
         return merged_sequences
 

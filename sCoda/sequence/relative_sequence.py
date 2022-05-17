@@ -502,6 +502,11 @@ class RelativeSequence(AbstractSequence):
         for msg in self.messages:
             if msg.message_type == MessageType.wait:
                 msg.time = msg.time * factor
+            elif msg.message_type == MessageType.time_signature and factor < 1:
+                if msg.numerator % (1 / factor) == 0:
+                    msg.numerator = int(msg.numerator * factor)
+                else:
+                    msg.denominator = int(msg.denominator * (1 / factor))
 
     def to_absolute_sequence(self) -> AbsoluteSequence:
         """ Converts this `RelativeSequence` to an `AbsoluteSequence`

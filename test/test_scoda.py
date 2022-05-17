@@ -126,6 +126,23 @@ def test_split():
         msg.time for msg in split_up[0]._get_rel().messages if msg.message_type == MessageType.wait) == 4 * PPQN
 
 
+def test_stretch():
+    sequences = test_midi_to_sequences()
+    original_sequence = sequences[0]
+    stretched_sequence = copy.copy(original_sequence)
+
+    stretch_factor = 0.5
+
+    stretched_sequence.stretch(stretch_factor)
+
+    messages_stretched = stretched_sequence._get_rel().messages
+    messages_original = original_sequence._get_rel().messages
+
+    for msg_s, msg_o in zip(messages_stretched, messages_original):
+        if msg_s.message_type == MessageType.wait:
+            assert msg_s.time == msg_o.time * stretch_factor
+
+
 def test_transpose():
     sequences = test_midi_to_sequences()
     sequence = sequences[0]
