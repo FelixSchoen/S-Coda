@@ -156,7 +156,9 @@ class MidiTrack:
 
         for msg in self.messages:
             if msg.message_type == MessageType.note_on:
-                track.append(mido.Message("note_on", note=msg.note, velocity=msg.velocity, time=int(time_buffer)))
+                track.append(
+                    mido.Message("note_on", note=msg.note, velocity=msg.velocity if msg.velocity is not None else 127,
+                                 time=int(time_buffer)))
                 time_buffer = 0
             elif msg.message_type == MessageType.note_off:
                 track.append(mido.Message("note_off", note=msg.note, velocity=0, time=int(time_buffer)))

@@ -281,7 +281,8 @@ class RelativeSequence(AbstractSequence):
 
         # Obtain patterns, switch to greedy method if pattern matching takes too long
         try:
-            results = RelativeSequence._match_pattern(string_representation, start_time=time.time(), max_duration=PATTERN_MAX_SEARCH_DURATION)
+            results = RelativeSequence._match_pattern(string_representation, start_time=time.time(),
+                                                      max_duration=PATTERN_MAX_SEARCH_DURATION)
         except TimeoutError:
             results = RelativeSequence._greedy_match_pattern(string_representation)
 
@@ -490,6 +491,17 @@ class RelativeSequence(AbstractSequence):
             split_sequences.append(current_sequence)
 
         return split_sequences
+
+    def stretch(self, factor):
+        """ Stretches the sequence by the given factor.
+
+        Args:
+            factor: Factor to stretch by
+
+        """
+        for msg in self.messages:
+            if msg.message_type == MessageType.wait:
+                msg.time = msg.time * factor
 
     def to_absolute_sequence(self) -> AbsoluteSequence:
         """ Converts this `RelativeSequence` to an `AbsoluteSequence`
