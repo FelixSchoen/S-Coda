@@ -117,17 +117,16 @@ class Sequence:
 
         self.adjust_wait_messages()
 
-        difficulties_standard = [(self.diff_note_values, 10), (self.diff_note_amount, 6), (self.diff_note_classes, 3),
-                                 (self.diff_key(key_signature), 4)]
-        difficulties_increase = [(self.diff_distances, 10), (self.diff_rhythm, 25)]
-        difficulties_decrease = [(self.diff_pattern, 30)]
+        difficulties_base = [(self.diff_note_values, 100), (self.diff_note_amount, 65), (self.diff_note_classes, 30)]
+        difficulties_increase = [(self.diff_distances, 10), (self.diff_rhythm, 25), (self.diff_key(key_signature), 15)]
+        difficulties_decrease = [(self.diff_pattern, 40)]
 
         difficulty = 0
 
-        standard_weight_sum = sum(weight for _, weight in difficulties_standard)
+        standard_weight_sum = sum(weight for _, weight in difficulties_base)
 
         # Calculate base difficulty
-        for difficulty_standard, weight in difficulties_standard:
+        for difficulty_standard, weight in difficulties_base:
             difficulty += difficulty_standard * weight / standard_weight_sum
 
         # Calculate increase of difficulty
@@ -145,8 +144,8 @@ class Sequence:
         change_percent_points -= decrease_percent_points
 
         overall_difficulty = difficulty + difficulty * change_percent_points / 100
-        self._difficulty = overall_difficulty
 
+        self._difficulty = overall_difficulty
         return self._difficulty
 
     @property
@@ -209,6 +208,17 @@ class Sequence:
         """
         self._get_rel().pad_sequence(padding_length)
         self._abs_stale = True
+
+    def save(self, file_path: str) -> MidiFile:
+        """ Saves the given sequence as a MIDI file.
+
+        Args:
+            file_path: Where to save the sequence to
+
+        Returns: The resulting MidiFile
+
+        """
+        return Sequence.save_sequences([self], file_path)
 
     def sequence_length(self) -> float:
         """ See `sCoda.sequence.relative_sequence.RelativeSequence.sequence_length`
@@ -291,6 +301,24 @@ class Sequence:
         """
         self._get_abs().quantise_note_lengths(possible_durations, standard_length=standard_length)
         self._rel_stale = True
+
+    @staticmethod
+    def save_sequences(sequences: [Sequence], file_path: str):
+        """ Saves the given sequences as a MIDI file.
+
+        Args:
+            sequences: Sequences to save
+            file_path: Where to save the sequence to
+
+        Returns: The resulting MidiFile
+
+        """
+        midi_file = MidiFile()
+        for sequence in sequences:
+            midi_file.tracks.append(sequence.to_midi_track())
+        midi_file.save(file_path)
+
+        return midi_file
 
     @staticmethod
     def sequences_from_midi_file(file_path: str, track_indices: [[int]],
