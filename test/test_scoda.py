@@ -96,7 +96,7 @@ def test_difficulty_assessment():
         if msg.message_type == MessageType.key_signature:
             bar._sequence._get_rel().messages.remove(msg)
             bar._sequence._abs_stale = True
-    bar._key_signature = None
+    bar.key_signature = None
 
     difficulty = bar.difficulty
 
@@ -126,21 +126,29 @@ def test_split():
         msg.time for msg in split_up[0]._get_rel().messages if msg.message_type == MessageType.wait) == 4 * PPQN
 
 
-def test_stretch():
+def test_scale():
     sequences = test_midi_to_sequences()
+
     original_sequence = sequences[0]
-    stretched_sequence = copy.copy(original_sequence)
+    original_bars = Sequence.split_into_bars([original_sequence], quantise_note_lengths=False)[0]
 
-    stretch_factor = 0.5
+    scaled_sequence = copy.copy(original_sequence)
+    scale_factor = 0.5
+    scaled_sequence.scale(scale_factor)
 
-    stretched_sequence.stretch(stretch_factor)
+    original_duration = 0
+    for bar in original_bars:
+        for msg in bar._sequence._get_rel().messages:
 
-    messages_stretched = stretched_sequence._get_rel().messages
-    messages_original = original_sequence._get_rel().messages
+            if msg.message_type == MessageType.wait:
+                original_duration += msg.time
 
-    for msg_s, msg_o in zip(messages_stretched, messages_original):
-        if msg_s.message_type == MessageType.wait:
-            assert msg_s.time == msg_o.time * stretch_factor
+    scaled_duration = 0
+    for msg in scaled_sequence._get_rel().messages:
+        if msg.message_type == MessageType.wait:
+            scaled_duration += msg.time
+
+    assert scaled_duration == original_duration * scale_factor
 
 
 def test_transpose():

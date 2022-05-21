@@ -353,7 +353,7 @@ class RelativeSequence(AbstractSequence):
 
         valid_messages = []
 
-        if amount_bars_completed < desired_bars and not(at_bar_border and force_time_siganture):
+        if amount_bars_completed < desired_bars and not (at_bar_border and force_time_siganture):
             valid_messages.append({"message_type": MessageType.wait.value})
 
         for note in range(NOTE_LOWER_BOUND, NOTE_UPPER_BOUND + 1):
@@ -491,21 +491,72 @@ class RelativeSequence(AbstractSequence):
 
         return split_sequences
 
-    def stretch(self, factor):
+    def scale(self, factor):
         """ Stretches the sequence by the given factor.
 
         Args:
             factor: Factor to stretch by
 
         """
-        for msg in self.messages:
-            if msg.message_type == MessageType.wait:
-                msg.time = msg.time * factor
-            elif msg.message_type == MessageType.time_signature and factor < 1:
-                if msg.numerator % (1 / factor) == 0:
-                    msg.numerator = int(msg.numerator * factor)
+        if factor > 1:
+            assert (factor * 1.0).is_integer()
+        else:
+            assert (1 / factor).is_integer()
+
+        # Normal case, simply multiply duration
+        if factor >= 1:
+            for msg in self.messages:
+                if msg.message_type == MessageType.wait:
+                    msg.time = msg.time * factor
+        # Handle special case, have to consider time signatures
+        else:
+            from sCoda import Sequence
+
+            modified_messages = []
+            sequence = Sequence(relative_sequence=self)
+
+            amount_consecutive_bars = 1 / factor
+            bars = Sequence.split_into_bars([sequence], quantise_note_lengths=False)[0]
+
+            bar_index = 0
+
+            # Handle each bar
+            while bar_index < len(bars):
+                current_bar = bars[bar_index]
+                consecutive_bars = [current_bar]
+
+                # Get all consecutive bars in chunk
+                for i in range(1, int(amount_consecutive_bars)):
+                    if bar_index + i < len(bars):
+                        consecutive_bars.append(bars[bar_index + i])
+
+                # Check if all have same time signature
+                if all(cbar.time_signature_numerator == current_bar.time_signature_numerator and \
+                       cbar.time_signature_denominator == current_bar.time_signature_denominator
+                       for cbar in consecutive_bars):
+                    for msg in [msg for cbar in consecutive_bars for msg in cbar._sequence._get_rel().messages]:
+                        if msg.message_type == MessageType.wait:
+                            msg.time = msg.time * factor
+
+                        modified_messages.append(msg)
+
+                    bar_index += len(consecutive_bars)
+                # Not all have same time signature
                 else:
-                    msg.denominator = int(msg.denominator * (1 / factor))
+                    for msg in current_bar._sequence._get_rel().messages:
+                        if msg.message_type == MessageType.wait:
+                            msg.time = msg.time * factor
+                        elif msg.message_type == MessageType.time_signature:
+                            if msg.numerator % (1 / factor) == 0:
+                                msg.numerator = int(msg.numerator * factor)
+                            else:
+                                msg.denominator = int(msg.denominator * (1 / factor))
+
+                        modified_messages.append(msg)
+
+                    bar_index += 1
+
+            self.messages = modified_messages
 
     def to_absolute_sequence(self) -> AbsoluteSequence:
         """ Converts this `RelativeSequence` to an `AbsoluteSequence`

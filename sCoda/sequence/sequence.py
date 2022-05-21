@@ -235,11 +235,11 @@ class Sequence:
         sequences = [Sequence(relative_sequence=seq) for seq in relative_sequences]
         return sequences
 
-    def stretch(self, factor) -> None:
-        """ See `sCoda.sequence.relative_sequence.RelativeSequence.stretch`
+    def scale(self, factor) -> None:
+        """ See `sCoda.sequence.relative_sequence.RelativeSequence.scale`
 
         """
-        self._get_rel().stretch(factor)
+        self._get_rel().scale(factor)
         self._abs_stale = True
 
     def to_midi_track(self) -> MidiTrack:
@@ -343,7 +343,7 @@ class Sequence:
         return merged_sequences
 
     @staticmethod
-    def split_into_bars(sequences_input: [Sequence], meta_track_index=0) -> [[sCoda.Bar]]:
+    def split_into_bars(sequences_input: [Sequence], meta_track_index=0, quantise_note_lengths=True) -> [[sCoda.Bar]]:
         """ Splits the sequences into a lists of `sCoda.Bar`, conforming to the contained time signatures.
 
         Each list of bars will correspond to one of the given sequences.
@@ -351,6 +351,7 @@ class Sequence:
         Args:
             sequences_input: The sequences to split
             meta_track_index: The index of the sequence that contains the time signature changes
+            quantise_note_lengths: Whether the note lengths of the split bar should be quantised again
 
         Returns: A list of bars
 
@@ -421,7 +422,8 @@ class Sequence:
 
                 # Quantise note lengths again, in case splitting into bars affected them
                 sequence_to_add = split_up[0]
-                sequence_to_add.quantise_note_lengths()
+                if quantise_note_lengths:
+                    sequence_to_add.quantise_note_lengths()
 
                 # Append split bar to list of bars
                 tracks_bars[i].append(

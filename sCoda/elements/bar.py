@@ -19,20 +19,20 @@ class Bar:
         logger = get_logger(__name__)
 
         self._sequence: Sequence = sequence
-        self._time_signature_numerator = numerator
-        self._time_signature_denominator = denominator
-        self._key_signature = key
+        self.time_signature_numerator = numerator
+        self.time_signature_denominator = denominator
+        self.key_signature = key
 
         # Assert bar has correct capacity
-        if self._sequence.sequence_length() > self._time_signature_numerator * PPQN / (
-                self._time_signature_denominator / 4):
+        if self._sequence.sequence_length() > self.time_signature_numerator * PPQN / (
+                self.time_signature_denominator / 4):
             logger.warning("Bar capacity exceeded.")
             assert False
 
         # Pad bar
-        if self._sequence.sequence_length() < self._time_signature_numerator * PPQN / (
-                self._time_signature_denominator / 4):
-            self._sequence.pad_sequence(self._time_signature_numerator * PPQN / (self._time_signature_denominator / 4))
+        if self._sequence.sequence_length() < self.time_signature_numerator * PPQN / (
+                self.time_signature_denominator / 4):
+            self._sequence.pad_sequence(self.time_signature_numerator * PPQN / (self.time_signature_denominator / 4))
 
         # Assert time signature is consistent
         relative_sequence = self._sequence._get_rel()
@@ -40,7 +40,7 @@ class Bar:
                            msg.message_type == MessageType.time_signature]
         assert len(time_signatures) <= 1
         assert all(
-            msg.numerator == self._time_signature_numerator and msg.denominator == self._time_signature_denominator for
+            msg.numerator == self.time_signature_numerator and msg.denominator == self.time_signature_denominator for
             msg in time_signatures)
 
         # Set time signature
@@ -48,13 +48,13 @@ class Bar:
         relative_sequence.messages = [msg for msg in relative_sequence.messages if
                                       msg.message_type != MessageType.time_signature]
         relative_sequence.messages.insert(0, Message(message_type=MessageType.time_signature,
-                                                     numerator=self._time_signature_numerator,
-                                                     denominator=self._time_signature_denominator))
+                                                     numerator=self.time_signature_numerator,
+                                                     denominator=self.time_signature_denominator))
         self._sequence._abs_stale = True
 
     def __copy__(self):
-        bar = Bar(self._sequence.__copy__(), self._time_signature_numerator, self._time_signature_denominator,
-                  self._key_signature)
+        bar = Bar(self._sequence.__copy__(), self.time_signature_numerator, self.time_signature_denominator,
+                  self.key_signature)
 
         return bar
 
