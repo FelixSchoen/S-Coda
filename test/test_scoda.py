@@ -66,8 +66,20 @@ def test_copy_bar():
 def test_adjust_wait_messages():
     sequences = test_midi_to_sequences()
     sequence = sequences[0]
-    sequence.adjust_wait_messages()
 
+    duration_pre = 0
+    for msg in sequence._get_rel().messages:
+        if msg.message_type == MessageType.wait:
+            duration_pre += msg.time
+
+    sequence.adjust_messages()
+
+    duration_post = 0
+    for msg in sequence._get_rel().messages:
+        if msg.message_type == MessageType.wait:
+            duration_post += msg.time
+
+    assert duration_pre == duration_post
     assert all((not (msg.message_type == MessageType.wait) or msg.time <= PPQN) for msg in sequence._get_rel().messages)
 
 
@@ -98,7 +110,7 @@ def test_difficulty_assessment():
             bar._sequence._abs_stale = True
     bar.key_signature = None
 
-    difficulty = bar.difficulty
+    difficulty = bar.difficulty()
 
     assert 0 <= difficulty <= 1
 
@@ -135,16 +147,18 @@ def test_scale():
     scaled_sequence = copy.copy(original_sequence)
     scale_factor = 0.5
     scaled_sequence.scale(scale_factor)
+    scaled_sequence.quantise()
+    scaled_sequence.quantise_note_lengths()
 
     original_duration = 0
     for bar in original_bars:
         for msg in bar._sequence._get_rel().messages:
-
             if msg.message_type == MessageType.wait:
                 original_duration += msg.time
 
     scaled_duration = 0
     for msg in scaled_sequence._get_rel().messages:
+        print(msg)
         if msg.message_type == MessageType.wait:
             scaled_duration += msg.time
 

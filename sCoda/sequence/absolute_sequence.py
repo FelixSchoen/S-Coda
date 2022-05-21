@@ -144,7 +144,7 @@ class AbsoluteSequence(AbstractSequence):
             for msg in copy.copy(sequence.messages):
                 b_insort(self.messages, msg)
 
-    def quantise(self, step_sizes: [int]) -> None:
+    def quantise(self, step_sizes: [int] = None) -> None:
         """ Quantises the sequence to a given grid.
 
         Quantises the sequence stored in this object according to the given step sizes. These step sizes determine the
@@ -163,6 +163,11 @@ class AbsoluteSequence(AbstractSequence):
 
         """
         logger = get_logger(__name__)
+
+        if step_sizes is None:
+            quantise_parameters = get_note_durations(1, 8)
+            quantise_parameters += get_tuplet_durations(quantise_parameters, 3, 2)
+            step_sizes = quantise_parameters
 
         # List of finally quantised messages
         quantised_messages = []

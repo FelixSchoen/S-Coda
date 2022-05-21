@@ -15,7 +15,7 @@ from sCoda.sequence.relative_sequence import RelativeSequence
 from sCoda.settings import PPQN, NOTE_LOWER_BOUND, NOTE_UPPER_BOUND, MAX_VELOCITY
 from sCoda.util.midi_wrapper import MidiTrack, MidiFile
 from sCoda.util.music_theory import Key
-from sCoda.util.util import minmax, simple_regression, get_note_durations, get_tuplet_durations
+from sCoda.util.util import minmax, simple_regression
 
 
 class Sequence:
@@ -95,11 +95,11 @@ class Sequence:
         self._get_rel().add_message(msg)
         self._abs_stale = True
 
-    def adjust_wait_messages(self) -> None:
-        """ See `sCoda.sequence.relative_sequence.RelativeSequence.adjust_wait_messages`
+    def adjust_messages(self) -> None:
+        """ See `sCoda.sequence.relative_sequence.RelativeSequence.adjust_messages`
 
         """
-        self._get_rel().adjust_wait_messages()
+        self._get_rel().adjust_messages()
         self._abs_stale = True
 
     def consolidate(self, sequence: Sequence) -> None:
@@ -115,7 +115,7 @@ class Sequence:
                         self._diff_key, self._diff_distances, self._diff_rhythm, self._diff_pattern]:
             return self._difficulty
 
-        self.adjust_wait_messages()
+        self.adjust_messages()
 
         difficulties_base = [(self.diff_note_values, 100), (self.diff_note_amount, 65), (self.diff_note_classes, 30)]
         difficulties_increase = [(self.diff_distances, 10), (self.diff_rhythm, 25), (self.diff_key(key_signature), 15)]
@@ -268,7 +268,7 @@ class Sequence:
         relative_sequence = copy.copy(self._get_rel())
 
         if adjust_wait_messages:
-            relative_sequence.adjust_wait_messages()
+            relative_sequence.adjust_messages()
 
         return Sequence.to_dataframe(relative_sequence.messages)
 
@@ -289,7 +289,7 @@ class Sequence:
 
         return shifted
 
-    def quantise(self, step_sizes: [int]) -> None:
+    def quantise(self, step_sizes: [int] = None) -> None:
         """ See `sCoda.sequence.absolute_sequence.AbsoluteSequence.quantise`
 
         """
@@ -331,13 +331,9 @@ class Sequence:
         merged_sequences = midi_file.to_sequences(track_indices, meta_track_indices,
                                                   meta_track_index=meta_track_index)
 
-        # Construct quantisation parameters
-        quantise_parameters = get_note_durations(1, 8)
-        quantise_parameters += get_tuplet_durations(quantise_parameters, 3, 2)
-
         # Quantisation
         for sequence in merged_sequences:
-            sequence.quantise(quantise_parameters)
+            sequence.quantise()
             sequence.quantise_note_lengths()
 
         return merged_sequences
@@ -361,6 +357,12 @@ class Sequence:
 
         sequences = copy.copy(sequences_input)
 
+        # Split into bars, carry key and time signature
+        current_point_in_time = 0
+        current_ts_numerator = 4
+        current_ts_denominator = 4
+        current_key = None
+
         # Determine signature timings
         meta_track = sequences[meta_track_index]
         time_signature_timings = meta_track.get_timing_of_message_type(MessageType.time_signature)
@@ -369,13 +371,9 @@ class Sequence:
         tracks_bars = [[] for _ in sequences]
 
         if len(time_signature_timings) == 0:
-            time_signature_timings = [0]
-
-        # Split into bars, carry key and time signature
-        current_point_in_time = 0
-        current_ts_numerator = 4
-        current_ts_denominator = 4
-        current_key = None
+            time_signature_timings = [(0,
+                                       Message(message_type=MessageType.time_signature, numerator=current_ts_numerator,
+                                               denominator=current_ts_denominator))]
 
         # Keep track of when bars are of equal length
         tracks_synchronised = False

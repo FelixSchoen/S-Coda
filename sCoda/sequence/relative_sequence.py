@@ -45,7 +45,7 @@ class RelativeSequence(AbstractSequence):
     def add_message(self, msg: Message) -> None:
         self.messages.append(msg)
 
-    def adjust_wait_messages(self) -> None:
+    def adjust_messages(self) -> None:
         """ Consolidates and then splits up wait messages to a maximum size of `PPQN`.
 
         """
@@ -53,22 +53,32 @@ class RelativeSequence(AbstractSequence):
 
         open_messages = dict()
         messages_normalized = []
-        messages_buffer = []
         wait_buffer = 0
+
+        current_ts_numerator = None
+        current_ts_denominator = None
 
         for msg in self.messages:
             if msg.message_type == MessageType.wait:
-                if len(messages_buffer) > 0:
-                    messages_normalized.extend(messages_buffer)
-                    messages_buffer = []
                 wait_buffer += msg.time
             else:
+                # Remove double time signatures
+                if msg.message_type == MessageType.time_signature:
+                    if msg.numerator != current_ts_numerator or msg.denominator != current_ts_denominator:
+                        current_ts_numerator = msg.numerator
+                        current_ts_denominator = msg.denominator
+                    else:
+                        continue
+
                 # Split up wait messages to maximum length of PPQN
                 while wait_buffer > PPQN:
                     messages_normalized.append(Message(message_type=MessageType.wait, time=PPQN))
                     wait_buffer -= PPQN
                 if wait_buffer > 0:
-                    messages_normalized.append(Message(message_type=MessageType.wait, time=int(wait_buffer)))
+                    messages_normalized.append(Message(message_type=MessageType.wait, time=wait_buffer))
+
+                # Clear wait buffer
+                wait_buffer = 0
 
                 # Keep track of open notes
                 if msg.message_type == MessageType.note_on:
@@ -76,22 +86,14 @@ class RelativeSequence(AbstractSequence):
                 elif msg.message_type == MessageType.note_off:
                     open_messages.pop(msg.note, None)
 
-                messages_buffer.append(msg)
-                wait_buffer = 0
-
-        # Sanity check
-        assert not (wait_buffer > 0 and len(messages_buffer) > 0)
+                messages_normalized.append(msg)
 
         # Repeat procedure for wait messages that occur at the end of the sequence
         while wait_buffer > PPQN:
             messages_normalized.append(Message(message_type=MessageType.wait, time=PPQN))
             wait_buffer -= PPQN
         if wait_buffer > 0:
-            messages_normalized.append(Message(message_type=MessageType.wait, time=int(wait_buffer)))
-
-        # Add messages that are not followed by a wait message
-        if len(messages_buffer) > 0:
-            messages_normalized.extend(messages_buffer)
+            messages_normalized.append(Message(message_type=MessageType.wait, time=wait_buffer))
 
         if len(open_messages) > 0:
             logger.info("The sequence contains messages that have not been closed.")
@@ -557,6 +559,7 @@ class RelativeSequence(AbstractSequence):
                     bar_index += 1
 
             self.messages = modified_messages
+            self.adjust_messages()
 
     def to_absolute_sequence(self) -> AbsoluteSequence:
         """ Converts this `RelativeSequence` to an `AbsoluteSequence`
