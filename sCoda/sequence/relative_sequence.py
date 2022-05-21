@@ -353,9 +353,8 @@ class RelativeSequence(AbstractSequence):
 
         valid_messages = []
 
-        if amount_bars_completed < desired_bars:
-            if not (at_bar_border and force_time_siganture):
-                valid_messages.append({"message_type": MessageType.wait.value})
+        if amount_bars_completed < desired_bars and not(at_bar_border and force_time_siganture):
+            valid_messages.append({"message_type": MessageType.wait.value})
 
         for note in range(NOTE_LOWER_BOUND, NOTE_UPPER_BOUND + 1):
             if note not in open_messages and amount_bars_completed < desired_bars and not (

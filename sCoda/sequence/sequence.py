@@ -144,6 +144,7 @@ class Sequence:
         change_percent_points -= decrease_percent_points
 
         overall_difficulty = difficulty + difficulty * change_percent_points / 100
+        overall_difficulty = minmax(0, 1, overall_difficulty)
 
         self._difficulty = overall_difficulty
         return self._difficulty
@@ -342,8 +343,10 @@ class Sequence:
         return merged_sequences
 
     @staticmethod
-    def split_into_bars(sequences_input: [Sequence], meta_track_index=0) -> [sCoda.Bar]:
-        """ Splits the sequences into a list of `sCoda.Bar`, conforming to the contained time signatures.
+    def split_into_bars(sequences_input: [Sequence], meta_track_index=0) -> [[sCoda.Bar]]:
+        """ Splits the sequences into a lists of `sCoda.Bar`, conforming to the contained time signatures.
+
+        Each list of bars will correspond to one of the given sequences.
 
         Args:
             sequences_input: The sequences to split
