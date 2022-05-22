@@ -189,8 +189,6 @@ def test_scale_then_create_composition():
 
             scaled_sequences.append(scaled_sequence)
 
-        Sequence.save_sequences(scaled_sequences, "test.mid")
-
         # Create composition from scaled sequences
         compositions.append(Composition.from_sequences(scaled_sequences))
 
