@@ -493,11 +493,12 @@ class RelativeSequence(AbstractSequence):
 
         return split_sequences
 
-    def scale(self, factor):
+    def scale(self, factor, meta_sequence=None):
         """ Stretches the sequence by the given factor.
 
         Args:
             factor: Factor to stretch by
+            meta_sequence: Sequence containing the time signatures to apply
 
         """
         if factor > 1:
@@ -517,8 +518,12 @@ class RelativeSequence(AbstractSequence):
             modified_messages = []
             sequence = Sequence(relative_sequence=self)
 
+            if meta_sequence is None:
+                meta_sequence = sequence
+
             amount_consecutive_bars = 1 / factor
-            bars = Sequence.split_into_bars([sequence], quantise_note_lengths=False)[0]
+            bars = Sequence.split_into_bars(
+                [sequence, meta_sequence], meta_track_index=1, quantise_note_lengths=False)[0]
 
             bar_index = 0
 

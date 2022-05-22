@@ -190,11 +190,11 @@ class Sequence:
             self._diff_pattern = self._get_rel().diff_pattern()
         return self._diff_pattern
 
-    def get_timing_of_message_type(self, message_type: MessageType) -> [(int, Message)]:
-        """ See `sCoda.sequence.absolute_sequence.AbsoluteSequence.get_timing_of_message_type`
+    def get_message_timing(self, message_type: MessageType) -> [(int, Message)]:
+        """ See `sCoda.sequence.absolute_sequence.AbsoluteSequence.get_message_timing`
 
         """
-        return self._get_abs().get_timing_of_message_type(message_type)
+        return self._get_abs().get_message_timing(message_type)
 
     def merge(self, sequences: [Sequence]) -> None:
         """ See `sCoda.sequence.absolute_sequence.AbsoluteSequence.merge`
@@ -235,11 +235,11 @@ class Sequence:
         sequences = [Sequence(relative_sequence=seq) for seq in relative_sequences]
         return sequences
 
-    def scale(self, factor) -> None:
+    def scale(self, factor, meta_sequence=None) -> None:
         """ See `sCoda.sequence.relative_sequence.RelativeSequence.scale`
 
         """
-        self._get_rel().scale(factor)
+        self._get_rel().scale(factor, meta_sequence)
         self._abs_stale = True
 
     def to_midi_track(self) -> MidiTrack:
@@ -365,8 +365,8 @@ class Sequence:
 
         # Determine signature timings
         meta_track = sequences[meta_track_index]
-        time_signature_timings = meta_track.get_timing_of_message_type(MessageType.time_signature)
-        key_signature_timings = meta_track.get_timing_of_message_type(MessageType.key_signature)
+        time_signature_timings = meta_track.get_message_timing(MessageType.time_signature)
+        key_signature_timings = meta_track.get_message_timing(MessageType.key_signature)
 
         tracks_bars = [[] for _ in sequences]
 

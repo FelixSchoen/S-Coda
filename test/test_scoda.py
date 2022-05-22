@@ -20,8 +20,8 @@ def test_load_composition():
     return composition
 
 
-def test_midi_to_sequences():
-    midi_file = MidiFile.open_midi_file("resources/beethoven_o27-2_m3.mid")
+def test_midi_to_sequences(file="resources/beethoven_o27-2_m3.mid"):
+    midi_file = MidiFile.open_midi_file(file)
     sequences = midi_file.to_sequences([[1], [2]], [0, 3])
 
     assert len(sequences) == 2
@@ -158,11 +158,41 @@ def test_scale():
 
     scaled_duration = 0
     for msg in scaled_sequence._get_rel().messages:
-        print(msg)
         if msg.message_type == MessageType.wait:
             scaled_duration += msg.time
 
     assert scaled_duration == original_duration * scale_factor
+
+
+def test_scale_then_create_composition():
+    sequences = test_midi_to_sequences(file="resources/albeniz_op165_caprichocatalan.mid")
+
+    assert all(msg.message_type != MessageType.time_signature for msg in sequences[1]._get_rel().messages)
+
+    compositions = []
+    scale_factors = [0.5]
+
+    # Scale sequences by given factors
+    for scale_factor in scale_factors:
+        scaled_sequences = []
+
+        for i, sequence in enumerate(sequences):
+            scaled_sequence = copy.copy(sequence)
+
+            scaled_sequence.quantise()
+            scaled_sequence.quantise_note_lengths()
+
+            scaled_sequence.scale(scale_factor, meta_sequence=sequences[0])
+
+            scaled_sequence.quantise()
+            scaled_sequence.quantise_note_lengths()
+
+            scaled_sequences.append(scaled_sequence)
+
+        Sequence.save_sequences(scaled_sequences, "test.mid")
+
+        # Create composition from scaled sequences
+        compositions.append(Composition.from_sequences(scaled_sequences))
 
 
 def test_transpose():
@@ -190,12 +220,12 @@ def test_get_timing_of_message_type():
     sequences = test_midi_to_sequences()
     sequence = sequences[0]
 
-    timings = sequence.get_timing_of_message_type(MessageType.time_signature)
+    timings = sequence.get_message_timing(MessageType.time_signature)
     points_in_time = [timing[0] - timings[i - 1][0] if i >= 1 else timing[0] for i, timing in enumerate(timings)]
 
     split_sequences = sequence.split(points_in_time)
 
-    assert all(len(seq.get_timing_of_message_type(MessageType.time_signature)) <= 1 for seq in split_sequences)
+    assert all(len(seq.get_message_timing(MessageType.time_signature)) <= 1 for seq in split_sequences)
 
 
 def test_merge_sequences():

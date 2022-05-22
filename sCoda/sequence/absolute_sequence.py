@@ -113,7 +113,7 @@ class AbsoluteSequence(AbstractSequence):
 
         return minmax(0, 1, scaled_difficulty)
 
-    def get_timing_of_message_type(self, message_type: MessageType) -> [(int, Message)]:
+    def get_message_timing(self, message_type: MessageType) -> [(int, Message)]:
         """ Searches for the given message type and stores the time of all matching messages in the output array.
 
         Args:

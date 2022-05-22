@@ -38,18 +38,20 @@ class Bar:
         relative_sequence = self._sequence._get_rel()
         time_signatures = [msg for msg in relative_sequence.messages if
                            msg.message_type == MessageType.time_signature]
+
         assert len(time_signatures) <= 1
         assert all(
             msg.numerator == self.time_signature_numerator and msg.denominator == self.time_signature_denominator for
             msg in time_signatures)
 
-        # Set time signature
+        # Set time signature and remove all other time signature messages
         relative_sequence = self._sequence._get_rel()
         relative_sequence.messages = [msg for msg in relative_sequence.messages if
                                       msg.message_type != MessageType.time_signature]
         relative_sequence.messages.insert(0, Message(message_type=MessageType.time_signature,
                                                      numerator=self.time_signature_numerator,
                                                      denominator=self.time_signature_denominator))
+
         self._sequence._abs_stale = True
 
     def __copy__(self):
