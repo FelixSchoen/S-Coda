@@ -11,21 +11,17 @@ class Composition:
 
     def __init__(self, tracks: [Track]) -> None:
         super().__init__()
-        self._tracks = tracks
+        self.tracks = tracks
 
     def __copy__(self):
         tracks = []
 
-        for track in self._tracks:
+        for track in self.tracks:
             tracks.append(track.__copy__())
 
         cpy = Composition(tracks)
 
         return cpy
-
-    @property
-    def tracks(self) -> [Track]:
-        return self._tracks
 
     @staticmethod
     def from_file(file_path: str, track_indices: [[int]],

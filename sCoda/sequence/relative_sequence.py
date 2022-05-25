@@ -542,7 +542,7 @@ class RelativeSequence(AbstractSequence):
                 if all(cbar.time_signature_numerator == current_bar.time_signature_numerator and \
                        cbar.time_signature_denominator == current_bar.time_signature_denominator
                        for cbar in consecutive_bars):
-                    for msg in [msg for cbar in consecutive_bars for msg in cbar.sequence._get_rel().messages]:
+                    for msg in [msg for cbar in consecutive_bars for msg in cbar.sequence.rel.messages]:
                         if msg.message_type == MessageType.wait:
                             msg.time = msg.time * factor
 
@@ -551,7 +551,7 @@ class RelativeSequence(AbstractSequence):
                     bar_index += len(consecutive_bars)
                 # Not all have same time signature
                 else:
-                    for msg in current_bar.sequence._get_rel().messages:
+                    for msg in current_bar.sequence.rel.messages:
                         if msg.message_type == MessageType.wait:
                             msg.time = msg.time * factor
                         elif msg.message_type == MessageType.time_signature:

@@ -26,6 +26,8 @@ class Sequence:
     understanding for the end-user, who does not have to concern themselves with implementational details.
     """
 
+    # === General ===
+
     def __init__(self, absolute_sequence: AbsoluteSequence = None, relative_sequence: RelativeSequence = None) -> None:
         super().__init__()
         self._abs_stale = True
@@ -53,8 +55,8 @@ class Sequence:
             self._rel_stale = False
 
     def __copy__(self) -> Sequence:
-        copied_absolute_sequence = None if self._get_abs() is None else self._get_abs().__copy__()
-        copied_relative_sequence = None if self._get_rel() is None else self._get_rel().__copy__()
+        copied_absolute_sequence = None if self.abs is None else self.abs.__copy__()
+        copied_relative_sequence = None if self.rel is None else self.rel.__copy__()
 
         cpy = Sequence(copied_absolute_sequence, copied_relative_sequence)
 
@@ -69,58 +71,48 @@ class Sequence:
 
         return cpy
 
-    def _get_abs(self) -> AbsoluteSequence:
-        if self._abs_stale:
-            self._abs_stale = False
-            self._abs = self._rel.to_absolute_sequence()
-        return self._abs
-
-    def _get_rel(self) -> RelativeSequence:
-        if self._rel_stale:
-            self._rel_stale = False
-            self._rel = self._abs.to_relative_sequence()
-        return self._rel
-
     @property
-    def abs_seq(self) -> AbsoluteSequence:
+    def abs(self) -> AbsoluteSequence:
         if self._abs_stale:
             self._abs_stale = False
             self._abs = self._rel.to_absolute_sequence()
         return self._abs
 
     @property
-    def rel_seq(self) -> RelativeSequence:
+    def rel(self) -> RelativeSequence:
         if self._rel_stale:
             self._rel_stale = False
             self._rel = self._abs.to_relative_sequence()
         return self._rel
+
+    # === Methods ===
 
     def add_absolute_message(self, msg) -> None:
         """ See `sCoda.sequence.absolute_sequence.AbsoluteSequence.add_message`
 
         """
-        self._get_abs().add_message(msg)
+        self.abs.add_message(msg)
         self._rel_stale = True
 
     def add_relative_message(self, msg) -> None:
         """ See `sCoda.sequence.relative_sequence.RelativeSequence.add_message`
 
         """
-        self._get_rel().add_message(msg)
+        self.rel.add_message(msg)
         self._abs_stale = True
 
     def adjust_messages(self) -> None:
         """ See `sCoda.sequence.relative_sequence.RelativeSequence.adjust_messages`
 
         """
-        self._get_rel().adjust_messages()
+        self.rel.adjust_messages()
         self._abs_stale = True
 
     def consolidate(self, sequences: [Sequence]) -> None:
         """ See `sCoda.sequence.relative_sequence.RelativeSequence.consolidate`
 
         """
-        self._get_rel().consolidate([seq._get_rel() for seq in sequences])
+        self.rel.consolidate([seq.rel for seq in sequences])
         self._abs_stale = True
 
     def difficulty(self, key_signature: Key = None) -> float:
@@ -166,62 +158,62 @@ class Sequence:
     @property
     def diff_note_amount(self) -> float:
         if self._diff_note_amount is None:
-            self._diff_note_amount = self._get_rel().diff_note_amount()
+            self._diff_note_amount = self.rel.diff_note_amount()
         return self._diff_note_amount
 
     @property
     def diff_note_values(self) -> float:
         if self._diff_note_values is None:
-            self._diff_note_values = self._get_abs().diff_note_values()
+            self._diff_note_values = self.abs.diff_note_values()
         return self._diff_note_values
 
     @property
     def diff_note_classes(self) -> float:
         if self._diff_note_classes is None:
-            self._diff_note_classes = self._get_rel().diff_note_classes()
+            self._diff_note_classes = self.rel.diff_note_classes()
         return self._diff_note_classes
 
     def diff_key(self, key_signature) -> float:
         if self._diff_key is None:
-            self._diff_key = self._get_rel().diff_key(key=key_signature)
+            self._diff_key = self.rel.diff_key(key=key_signature)
         return self._diff_key
 
     @property
     def diff_distances(self) -> float:
         if self._diff_distances is None:
-            self._diff_distances = self._get_rel().diff_distances()
+            self._diff_distances = self.rel.diff_distances()
         return self._diff_distances
 
     @property
     def diff_rhythm(self) -> float:
         if self._diff_rhythm is None:
-            self._diff_rhythm = self._get_abs().diff_rhythm()
+            self._diff_rhythm = self.abs.diff_rhythm()
         return self._diff_rhythm
 
     @property
     def diff_pattern(self) -> float:
         if self._diff_pattern is None:
-            self._diff_pattern = self._get_rel().diff_pattern()
+            self._diff_pattern = self.rel.diff_pattern()
         return self._diff_pattern
 
     def get_message_timing(self, message_type: MessageType) -> [(int, Message)]:
         """ See `sCoda.sequence.absolute_sequence.AbsoluteSequence.get_message_timing`
 
         """
-        return self._get_abs().get_message_timing(message_type)
+        return self.abs.get_message_timing(message_type)
 
     def merge(self, sequences: [Sequence]) -> None:
         """ See `sCoda.sequence.absolute_sequence.AbsoluteSequence.merge`
 
         """
-        self._get_abs().merge([seq._get_abs() for seq in sequences])
+        self.abs.merge([seq.abs for seq in sequences])
         self._rel_stale = True
 
     def pad_sequence(self, padding_length):
         """ See `sCoda.sequence.relative_sequence.RelativeSequence.pad_sequence`
 
         """
-        self._get_rel().pad_sequence(padding_length)
+        self.rel.pad_sequence(padding_length)
         self._abs_stale = True
 
     def save(self, file_path: str) -> MidiFile:
@@ -239,13 +231,13 @@ class Sequence:
         """ See `sCoda.sequence.relative_sequence.RelativeSequence.sequence_length`
 
         """
-        return self._get_rel().sequence_length_relation()
+        return self.rel.sequence_length_relation()
 
     def split(self, capacities: [int]) -> [Sequence]:
         """ See `sCoda.sequence.relative_sequence.RelativeSequence.split`
 
         """
-        relative_sequences = self._get_rel().split(capacities)
+        relative_sequences = self.rel.split(capacities)
         sequences = [Sequence(relative_sequence=seq) for seq in relative_sequences]
         return sequences
 
@@ -253,14 +245,14 @@ class Sequence:
         """ See `sCoda.sequence.relative_sequence.RelativeSequence.scale`
 
         """
-        self._get_rel().scale(factor, meta_sequence)
+        self.rel.scale(factor, meta_sequence)
         self._abs_stale = True
 
     def to_midi_track(self) -> MidiTrack:
         """ See `sCoda.sequence.relative_sequence.RelativeSequence.to_midi_track`
 
         """
-        return self._get_rel().to_midi_track()
+        return self.rel.to_midi_track()
 
     def to_absolute_dataframe(self) -> DataFrame:
         """ Creates a `DataFrame` from the messages in this sequence.
@@ -268,7 +260,7 @@ class Sequence:
         Returns: A `DataFrame` filled with all the messages in this sequence in their textual or numeric representation
 
         """
-        return Sequence.to_dataframe(self._get_abs().messages)
+        return Sequence.to_dataframe(self.abs.messages)
 
     def to_relative_dataframe(self, adjust_wait_messages=True) -> DataFrame:
         """ Creates a `DataFrame` from the messages in this sequence.
@@ -279,7 +271,7 @@ class Sequence:
         Returns: A `DataFrame` filled with all the messages in this sequence in their textual or numeric representation
 
         """
-        relative_sequence = copy.copy(self._get_rel())
+        relative_sequence = copy.copy(self.rel)
 
         if adjust_wait_messages:
             relative_sequence.adjust_messages()
@@ -291,7 +283,7 @@ class Sequence:
 
         """
         self._abs_stale = True
-        shifted = self._get_rel().transpose(transpose_by)
+        shifted = self.rel.transpose(transpose_by)
 
         # Possible that notes overlap
         if shifted:
@@ -307,15 +299,17 @@ class Sequence:
         """ See `sCoda.sequence.absolute_sequence.AbsoluteSequence.quantise`
 
         """
-        self._get_abs().quantise(step_sizes)
+        self.abs.quantise(step_sizes)
         self._rel_stale = True
 
     def quantise_note_lengths(self, possible_durations=None, standard_length=PPQN) -> None:
         """ See `sCoda.sequence.absolute_sequence.AbsoluteSequence.quantise_note_lengths`
 
         """
-        self._get_abs().quantise_note_lengths(possible_durations, standard_length=standard_length)
+        self.abs.quantise_note_lengths(possible_durations, standard_length=standard_length)
         self._rel_stale = True
+
+    # === Static Methods ===
 
     @staticmethod
     def save_sequences(sequences: [Sequence], file_path: str):
@@ -502,7 +496,7 @@ class Sequence:
 
         # Draw notes
         for i, sequence in enumerate(sequences):
-            note_array = sequence._get_abs()._get_absolute_note_array()
+            note_array = sequence.abs._get_absolute_note_array()
 
             for note in note_array:
                 start_time = note[0].time
@@ -525,7 +519,7 @@ class Sequence:
 
             # Get length of sequence (if wait messages occur after notes)
             length = 0
-            for msg in sequence._get_rel().messages:
+            for msg in sequence.rel.messages:
                 if msg.message_type == MessageType.wait:
                     length += msg.time
 

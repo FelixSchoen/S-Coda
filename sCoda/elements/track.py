@@ -8,22 +8,14 @@ class Track:
 
     def __init__(self, bars: [Bar], name: str = None) -> None:
         super().__init__()
-        self._name = name
-        self._bars = bars
+        self.name = name
+        self.bars = bars
 
     def __copy__(self):
         bars = []
-        for bar in self._bars:
+        for bar in self.bars:
             bars.append(bar.__copy__())
 
-        cpy = Track(bars, self._name)
+        cpy = Track(bars, self.name)
 
         return cpy
-
-    @property
-    def name(self) -> str:
-        return self._name
-
-    @property
-    def bars(self) -> [Bar]:
-        return self._bars

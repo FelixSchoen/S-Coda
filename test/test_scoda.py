@@ -58,7 +58,7 @@ def test_copy_bar():
 
     bar_copy = copy.copy(bar)
 
-    assert len(bar_copy.sequence._get_rel().messages) == len(bar.sequence._get_rel().messages)
+    assert len(bar_copy.sequence.rel.messages) == len(bar.sequence.rel.messages)
 
 
 # Relative Sequence
@@ -68,19 +68,19 @@ def test_adjust_wait_messages():
     sequence = sequences[0]
 
     duration_pre = 0
-    for msg in sequence._get_rel().messages:
+    for msg in sequence.rel.messages:
         if msg.message_type == MessageType.wait:
             duration_pre += msg.time
 
     sequence.adjust_messages()
 
     duration_post = 0
-    for msg in sequence._get_rel().messages:
+    for msg in sequence.rel.messages:
         if msg.message_type == MessageType.wait:
             duration_post += msg.time
 
     assert duration_pre == duration_post
-    assert all((not (msg.message_type == MessageType.wait) or msg.time <= PPQN) for msg in sequence._get_rel().messages)
+    assert all((not (msg.message_type == MessageType.wait) or msg.time <= PPQN) for msg in sequence.rel.messages)
 
 
 def test_consolidate_sequences():
@@ -88,8 +88,8 @@ def test_consolidate_sequences():
     sequence = Sequence()
     sequence.consolidate([sequences[0], sequences[1]])
 
-    assert all(msg in sequence._get_rel().messages for msg in sequences[0]._get_rel().messages)
-    assert all(msg in sequence._get_rel().messages for msg in sequences[1]._get_rel().messages)
+    assert all(msg in sequence.rel.messages for msg in sequences[0].rel.messages)
+    assert all(msg in sequence.rel.messages for msg in sequences[1].rel.messages)
 
 
 def test_get_valid_next_messages():
@@ -97,15 +97,15 @@ def test_get_valid_next_messages():
     bars = Sequence.split_into_bars(sequences)
     sequence = bars[0][0].sequence
 
-    assert len(sequence._get_rel().get_valid_next_messages(2)) == 1
+    assert len(sequence.rel.get_valid_next_messages(2)) == 1
 
 
 def test_difficulty_assessment():
     bars = test_split_into_bars()
     bar = bars[0][0]
-    for msg in bar.sequence._get_rel().messages:
+    for msg in bar.sequence.rel.messages:
         if msg.message_type == MessageType.key_signature:
-            bar.sequence._get_rel().messages.remove(msg)
+            bar.sequence.rel.messages.remove(msg)
             bar.sequence._abs_stale = True
     bar.key_signature = None
 
@@ -119,12 +119,12 @@ def test_pad_sequence():
     sequence = sequences[0]
 
     assert sum(
-        msg.time for msg in sequence._get_rel().messages if msg.message_type == MessageType.wait) < PPQN * 4 * 300
+        msg.time for msg in sequence.rel.messages if msg.message_type == MessageType.wait) < PPQN * 4 * 300
 
     sequence.pad_sequence(PPQN * 4 * 300)
 
     assert sum(
-        msg.time for msg in sequence._get_rel().messages if msg.message_type == MessageType.wait) >= PPQN * 4 * 300
+        msg.time for msg in sequence.rel.messages if msg.message_type == MessageType.wait) >= PPQN * 4 * 300
 
 
 def test_split():
@@ -134,7 +134,7 @@ def test_split():
     split_up = sequence.split([4 * PPQN])
 
     assert sum(
-        msg.time for msg in split_up[0]._get_rel().messages if msg.message_type == MessageType.wait) == 4 * PPQN
+        msg.time for msg in split_up[0].rel.messages if msg.message_type == MessageType.wait) == 4 * PPQN
 
 
 def test_scale():
@@ -151,12 +151,12 @@ def test_scale():
 
     original_duration = 0
     for bar in original_bars:
-        for msg in bar.sequence._get_rel().messages:
+        for msg in bar.sequence.rel.messages:
             if msg.message_type == MessageType.wait:
                 original_duration += msg.time
 
     scaled_duration = 0
-    for msg in scaled_sequence._get_rel().messages:
+    for msg in scaled_sequence.rel.messages:
         if msg.message_type == MessageType.wait:
             scaled_duration += msg.time
 
@@ -166,7 +166,7 @@ def test_scale():
 def test_scale_then_create_composition():
     sequences = test_midi_to_sequences(file="resources/albeniz_op165_caprichocatalan.mid")
 
-    assert all(msg.message_type != MessageType.time_signature for msg in sequences[1]._get_rel().messages)
+    assert all(msg.message_type != MessageType.time_signature for msg in sequences[1].rel.messages)
 
     compositions = []
     scale_factors = [0.5]
@@ -196,14 +196,14 @@ def test_transpose():
     sequences = test_midi_to_sequences()
     sequence = sequences[0]
 
-    note_heights = [msg.note for msg in sequence._get_rel().messages if
+    note_heights = [msg.note for msg in sequence.rel.messages if
                     msg.message_type == MessageType.note_on or msg.message_type == MessageType.note_off]
 
     had_to_wrap = sequence.transpose(1)
 
     assert not had_to_wrap
 
-    note_heights_after_quantization = [msg.note for msg in sequence._get_rel().messages if
+    note_heights_after_quantization = [msg.note for msg in sequence.rel.messages if
                                        msg.message_type == MessageType.note_on
                                        or msg.message_type == MessageType.note_off]
 
@@ -231,8 +231,8 @@ def test_merge_sequences():
 
     sequence.merge(sequences)
 
-    assert len(sequence._get_abs().messages) == len(sequences[0]._get_abs().messages) + len(
-        sequences[1]._get_abs().messages)
+    assert len(sequence.abs.messages) == len(sequences[0].abs.messages) + len(
+        sequences[1].abs.messages)
 
 
 def test_quantise():
@@ -241,7 +241,7 @@ def test_quantise():
 
     sequence.quantise([PPQN])
 
-    assert all(msg.time % PPQN == 0 for msg in sequence._get_abs().messages)
+    assert all(msg.time % PPQN == 0 for msg in sequence.abs.messages)
 
 
 def test_quantise_note_lengths():
