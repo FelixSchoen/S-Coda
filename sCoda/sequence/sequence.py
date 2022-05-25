@@ -73,6 +73,14 @@ class Sequence:
 
     @property
     def abs(self) -> AbsoluteSequence:
+        """ Returns a reference to the absolute representation of this sequence.
+
+        Note that if the sequence is modified without interacting via the interface provided by this object, the sequence
+        stored in this object might corrupt.
+
+        Returns: The stored AbsoluteSequence
+
+        """
         if self._abs_stale:
             self._abs_stale = False
             self._abs = self._rel.to_absolute_sequence()
@@ -80,6 +88,14 @@ class Sequence:
 
     @property
     def rel(self) -> RelativeSequence:
+        """ Returns a reference to the relative representation of this sequence.
+
+        Note that if the sequence is modified without interacting via the interface provided by this object, the sequence
+        stored in this object might corrupt.
+
+        Returns: The stored RelativeSequence
+
+        """
         if self._rel_stale:
             self._rel_stale = False
             self._rel = self._abs.to_relative_sequence()
