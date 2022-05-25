@@ -46,7 +46,7 @@ def test_pianorolls():
     sequences = test_midi_to_sequences()
     bars = Sequence.split_into_bars(sequences)
 
-    Sequence.pianorolls([bars[0][0]._sequence, bars[1][0]._sequence])
+    Sequence.pianorolls([bars[0][0].sequence, bars[1][0].sequence])
 
 
 # Bar
@@ -58,7 +58,7 @@ def test_copy_bar():
 
     bar_copy = copy.copy(bar)
 
-    assert len(bar_copy._sequence._get_rel().messages) == len(bar._sequence._get_rel().messages)
+    assert len(bar_copy.sequence._get_rel().messages) == len(bar.sequence._get_rel().messages)
 
 
 # Relative Sequence
@@ -86,8 +86,7 @@ def test_adjust_wait_messages():
 def test_consolidate_sequences():
     sequences = test_midi_to_sequences()
     sequence = Sequence()
-    sequence.consolidate(sequences[0])
-    sequence.consolidate(sequences[1])
+    sequence.consolidate([sequences[0], sequences[1]])
 
     assert all(msg in sequence._get_rel().messages for msg in sequences[0]._get_rel().messages)
     assert all(msg in sequence._get_rel().messages for msg in sequences[1]._get_rel().messages)
@@ -96,7 +95,7 @@ def test_consolidate_sequences():
 def test_get_valid_next_messages():
     sequences = test_midi_to_sequences()
     bars = Sequence.split_into_bars(sequences)
-    sequence = bars[0][0]._sequence
+    sequence = bars[0][0].sequence
 
     assert len(sequence._get_rel().get_valid_next_messages(2)) == 1
 
@@ -104,10 +103,10 @@ def test_get_valid_next_messages():
 def test_difficulty_assessment():
     bars = test_split_into_bars()
     bar = bars[0][0]
-    for msg in bar._sequence._get_rel().messages:
+    for msg in bar.sequence._get_rel().messages:
         if msg.message_type == MessageType.key_signature:
-            bar._sequence._get_rel().messages.remove(msg)
-            bar._sequence._abs_stale = True
+            bar.sequence._get_rel().messages.remove(msg)
+            bar.sequence._abs_stale = True
     bar.key_signature = None
 
     difficulty = bar.difficulty()
@@ -152,7 +151,7 @@ def test_scale():
 
     original_duration = 0
     for bar in original_bars:
-        for msg in bar._sequence._get_rel().messages:
+        for msg in bar.sequence._get_rel().messages:
             if msg.message_type == MessageType.wait:
                 original_duration += msg.time
 

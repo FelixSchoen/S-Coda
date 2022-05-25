@@ -81,6 +81,20 @@ class Sequence:
             self._rel = self._abs.to_relative_sequence()
         return self._rel
 
+    @property
+    def abs_seq(self) -> AbsoluteSequence:
+        if self._abs_stale:
+            self._abs_stale = False
+            self._abs = self._rel.to_absolute_sequence()
+        return self._abs
+
+    @property
+    def rel_seq(self) -> RelativeSequence:
+        if self._rel_stale:
+            self._rel_stale = False
+            self._rel = self._abs.to_relative_sequence()
+        return self._rel
+
     def add_absolute_message(self, msg) -> None:
         """ See `sCoda.sequence.absolute_sequence.AbsoluteSequence.add_message`
 
@@ -102,11 +116,11 @@ class Sequence:
         self._get_rel().adjust_messages()
         self._abs_stale = True
 
-    def consolidate(self, sequence: Sequence) -> None:
+    def consolidate(self, sequences: [Sequence]) -> None:
         """ See `sCoda.sequence.relative_sequence.RelativeSequence.consolidate`
 
         """
-        self._get_rel().consolidate(sequence._get_rel())
+        self._get_rel().consolidate([seq._get_rel() for seq in sequences])
         self._abs_stale = True
 
     def difficulty(self, key_signature: Key = None) -> float:

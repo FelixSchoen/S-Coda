@@ -100,15 +100,16 @@ class RelativeSequence(AbstractSequence):
 
         self.messages = messages_normalized
 
-    def consolidate(self, sequence: RelativeSequence) -> None:
+    def consolidate(self, sequences: [RelativeSequence]) -> None:
         """ Consolidates this one and the given sequence, resulting in the current sequence containing messages from both of the
         previous sequences.
 
         Args:
-            sequence: A sequence which should be appended to this sequence
+            sequences: A sequence which should be appended to this sequence
 
         """
-        self.messages.extend(sequence.messages)
+        for seq in sequences:
+            self.messages.extend(seq.messages)
 
     def diff_distances(self) -> float:
         """ Calculates the difficulty of the sequence based on the distances between notes.
@@ -541,7 +542,7 @@ class RelativeSequence(AbstractSequence):
                 if all(cbar.time_signature_numerator == current_bar.time_signature_numerator and \
                        cbar.time_signature_denominator == current_bar.time_signature_denominator
                        for cbar in consecutive_bars):
-                    for msg in [msg for cbar in consecutive_bars for msg in cbar._sequence._get_rel().messages]:
+                    for msg in [msg for cbar in consecutive_bars for msg in cbar.sequence._get_rel().messages]:
                         if msg.message_type == MessageType.wait:
                             msg.time = msg.time * factor
 
@@ -550,7 +551,7 @@ class RelativeSequence(AbstractSequence):
                     bar_index += len(consecutive_bars)
                 # Not all have same time signature
                 else:
-                    for msg in current_bar._sequence._get_rel().messages:
+                    for msg in current_bar.sequence._get_rel().messages:
                         if msg.message_type == MessageType.wait:
                             msg.time = msg.time * factor
                         elif msg.message_type == MessageType.time_signature:
