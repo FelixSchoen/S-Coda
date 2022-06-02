@@ -20,9 +20,19 @@ def test_load_composition():
     return composition
 
 
-def test_midi_to_sequences(file="resources/beethoven_o27-2_m3.mid"):
+def test_midi_to_sequences(file="resources/beethoven_o27-2_m3.mid", lead_tracks=None, acmp_tracks=None,
+                           meta_tracks=None):
+    if lead_tracks is None:
+        lead_tracks = [1]
+
+    if acmp_tracks is None:
+        acmp_tracks = [2]
+
+    if meta_tracks is None:
+        meta_tracks = [0, 3]
+
     midi_file = MidiFile.open_midi_file(file)
-    sequences = midi_file.to_sequences([[1], [2]], [0, 3])
+    sequences = midi_file.to_sequences([lead_tracks, acmp_tracks], meta_tracks)
 
     assert len(sequences) == 2
 

@@ -10,8 +10,8 @@ class MessageType(enum.Enum):
     key_signature = "key_signature"
     time_signature = "time_signature"
     control_change = "control_change"
-    note_on = "note_on"
     note_off = "note_off"
+    note_on = "note_on"
     wait = "wait"
 
     def __lt__(self, other):
