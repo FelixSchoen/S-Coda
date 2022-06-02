@@ -80,3 +80,14 @@ class Bar:
 
         """
         return self.sequence.transpose(transpose_by)
+
+    @staticmethod
+    def to_sequence(bars: [Bar]):
+        sequence = Sequence()
+        sequences = []
+
+        for bar in bars:
+            sequences.append(bar.sequence)
+        sequence.consolidate(sequences)
+
+        return sequence

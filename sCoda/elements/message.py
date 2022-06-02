@@ -7,12 +7,16 @@ from sCoda.util.music_theory import Key
 
 class MessageType(enum.Enum):
     internal = "internal"
+    key_signature = "key_signature"
+    time_signature = "time_signature"
+    control_change = "control_change"
     note_on = "note_on"
     note_off = "note_off"
     wait = "wait"
-    time_signature = "time_signature"
-    control_change = "control_change"
-    key_signature = "key_signature"
+
+    def __lt__(self, other):
+        values = [e for e in MessageType]
+        return values.index(self) < values.index(other)
 
 
 class Message:

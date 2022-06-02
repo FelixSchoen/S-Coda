@@ -143,6 +143,7 @@ class AbsoluteSequence(AbstractSequence):
         for sequence in sequences:
             for msg in copy.copy(sequence.messages):
                 b_insort(self.messages, msg)
+        self.sort()
 
     def quantise(self, step_sizes: [int] = None) -> None:
         """ Quantises the sequence to a given grid.
@@ -258,7 +259,7 @@ class AbsoluteSequence(AbstractSequence):
         self.messages = quantised_messages
         self.sort()
 
-    def quantise_note_lengths(self, possible_durations=None, standard_length=PPQN) -> None:
+    def quantise_note_lengths(self, possible_durations=None, standard_length=PPQN, do_not_extend=False) -> None:
         """ Quantises the note lengths of this sequence, only affecting the ending of the notes.
 
         Quantises notes to the given values, ensuring that all notes are of one of the sizes defined by the
@@ -272,6 +273,7 @@ class AbsoluteSequence(AbstractSequence):
         Args:
             possible_durations: An array containing exactly the valid note durations in ticks
             standard_length: Note length for notes which are not closed
+            do_not_extend: Determines if notes are only allowed to be shortened, e.g., for bars
 
         """
         # Construct current durations
@@ -298,13 +300,13 @@ class AbsoluteSequence(AbstractSequence):
         # Handle each note, pairing consists of start and stop message
         for i, pairing in enumerate(notes):
             note = pairing[0].note
+            current_duration = pairing[1].time - pairing[0].time
             valid_durations = copy.copy(possible_durations)
 
-            # Check if there exists a clash with the following note
+            # Check if the current note is not the last note, in this case clashes with a next note could exist
             index = note_occurrences[note].index(pairing)
             if index != len(note_occurrences[note]) - 1:
                 possible_next_pairing = note_occurrences[note][index + 1]
-                current_duration = pairing[1].time - pairing[0].time
 
                 # Possible durations contains the same as valid durations at the beginning
                 for possible_duration in possible_durations:
@@ -313,6 +315,13 @@ class AbsoluteSequence(AbstractSequence):
                     # If we cannot extend the note, remove the time from possible times
                     if pairing[1].time + possible_correction > possible_next_pairing[0].time:
                         valid_durations.remove(possible_duration)
+
+            # If we are not allowed to extend note lengths, remove all positive corrections
+            for possible_duration in possible_durations:
+                possible_correction = possible_duration - current_duration
+
+                if possible_correction > 0 and do_not_extend and possible_duration in valid_durations:
+                    valid_durations.remove(possible_duration)
 
             # Check if we have to remove the note
             if len(valid_durations) == 0:
@@ -340,7 +349,7 @@ class AbsoluteSequence(AbstractSequence):
         they will occur in this order after the sort.
 
         """
-        self.messages.sort(key=lambda x: x.time)
+        self.messages.sort(key=lambda x: (x.time, x.message_type))
 
     def to_relative_sequence(self) -> RelativeSequence:
         """ Converts this AbsoluteSequence to a RelativeSequence

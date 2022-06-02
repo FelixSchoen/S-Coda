@@ -318,11 +318,11 @@ class Sequence:
         self.abs.quantise(step_sizes)
         self._rel_stale = True
 
-    def quantise_note_lengths(self, possible_durations=None, standard_length=PPQN) -> None:
+    def quantise_note_lengths(self, possible_durations=None, standard_length=PPQN, do_not_extend=False) -> None:
         """ See `sCoda.sequence.absolute_sequence.AbsoluteSequence.quantise_note_lengths`
 
         """
-        self.abs.quantise_note_lengths(possible_durations, standard_length=standard_length)
+        self.abs.quantise_note_lengths(possible_durations, standard_length=standard_length, do_not_extend=do_not_extend)
         self._rel_stale = True
 
     # === Static Methods ===
@@ -410,13 +410,13 @@ class Sequence:
             key_signature = next((timing for timing in key_signature_timings if timing[0] <= current_point_in_time)
                                  , None)
 
-            # Remove time signature from list, change has occurred
+            # Update time signature
             if time_signature is not None:
                 time_signature_timings.pop(0)
                 current_ts_numerator = time_signature[1].numerator
                 current_ts_denominator = time_signature[1].denominator
 
-            # Remove key signature from list, change has occurred
+            # Update key signature
             if key_signature is not None:
                 key_signature_timings.pop(0)
                 current_key = key_signature[1].key
@@ -445,7 +445,7 @@ class Sequence:
                 # Quantise note lengths again, in case splitting into bars affected them
                 sequence_to_add = split_up[0]
                 if quantise_note_lengths:
-                    sequence_to_add.quantise_note_lengths()
+                    sequence_to_add.quantise_note_lengths(do_not_extend=True)
 
                 # Append split bar to list of bars
                 tracks_bars[i].append(
@@ -473,7 +473,7 @@ class Sequence:
                    x_label: str = None,
                    y_label: str = None,
                    x_scale: [int] = None,
-                   y_scale: [int] = (NOTE_LOWER_BOUND, NOTE_UPPER_BOUND),
+                   y_scale: [int] = (NOTE_LOWER_BOUND, NOTE_UPPER_BOUND + 1),
                    show_velocity: bool = True,
                    x_tick_spacing=PPQN) -> pyplot:
         """ Creates a piano roll from the given sequences.
