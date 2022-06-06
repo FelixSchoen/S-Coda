@@ -37,6 +37,7 @@ class Sequence:
         self._diff_note_amount = None
         self._diff_note_values = None
         self._diff_note_classes = None
+        self._diff_concurrent_notes = None
         self._diff_key = None
         self._diff_distances = None
         self._diff_rhythm = None
@@ -64,6 +65,7 @@ class Sequence:
         cpy._diff_note_amount = self._diff_note_amount
         cpy._diff_note_values = self._diff_note_values
         cpy._diff_note_classes = self._diff_note_classes
+        cpy._diff_concurrent_notes = self._diff_concurrent_notes
         cpy._diff_key = self._diff_key
         cpy._diff_distances = self._diff_distances
         cpy._diff_rhythm = self._diff_rhythm
@@ -139,8 +141,12 @@ class Sequence:
 
         self.adjust_messages()
 
+        # Absolute values
         difficulties_base = [(self.diff_note_values, 100), (self.diff_note_amount, 65), (self.diff_note_classes, 30)]
-        difficulties_increase = [(self.diff_distances, 10), (self.diff_rhythm, 25), (self.diff_key(key_signature), 15)]
+
+        # Percentage increases
+        difficulties_increase = [(self.diff_distances, 10), (self.diff_rhythm, 25), (self.diff_key(key_signature), 15),
+                                 (self.diff_concurrent_notes, 40)]
         difficulties_decrease = [(self.diff_pattern, 40)]
 
         difficulty = 0
@@ -188,6 +194,12 @@ class Sequence:
         if self._diff_note_classes is None:
             self._diff_note_classes = self.rel.diff_note_classes()
         return self._diff_note_classes
+
+    @property
+    def diff_concurrent_notes(self) -> float:
+        if self._diff_concurrent_notes is None:
+            self._diff_concurrent_notes = self.rel.diff_concurrent_notes()
+        return self._diff_concurrent_notes
 
     def diff_key(self, key_signature) -> float:
         if self._diff_key is None:

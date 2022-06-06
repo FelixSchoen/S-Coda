@@ -13,7 +13,8 @@ from sCoda.sequence.abstract_sequence import AbstractSequence
 from sCoda.settings import NOTE_LOWER_BOUND, NOTE_UPPER_BOUND, PPQN, DIFF_DISTANCES_UPPER_BOUND, \
     DIFF_DISTANCES_LOWER_BOUND, DIFF_PATTERN_COVERAGE_UPPER_BOUND, DIFF_PATTERN_COVERAGE_LOWER_BOUND, \
     PATTERN_LENGTH, REGEX_PATTERN, REGEX_SUBPATTERN, DIFF_NOTE_CLASSES_UPPER_BOUND, DIFF_NOTE_CLASSES_LOWER_BOUND, \
-    DIFF_NOTE_AMOUNT_UPPER_BOUND, DIFF_NOTE_AMOUNT_LOWER_BOUND, PATTERN_MAX_SEARCH_DURATION
+    DIFF_NOTE_AMOUNT_UPPER_BOUND, DIFF_NOTE_AMOUNT_LOWER_BOUND, PATTERN_MAX_SEARCH_DURATION, \
+    DIFF_NOTE_CONCURRENT_UPPER_BOUND, DIFF_NOTE_CONCURRENT_LOWER_BOUND
 from sCoda.util.logging import get_logger
 from sCoda.util.midi_wrapper import MidiTrack, MidiMessage
 from sCoda.util.music_theory import KeyNoteMapping, Note, Key, key_transpose_order, key_transpose_mapping
@@ -110,6 +111,45 @@ class RelativeSequence(AbstractSequence):
         """
         for seq in sequences:
             self.messages.extend(seq.messages)
+
+    def diff_concurrent_notes(self) -> float:
+        """ Calculates the difficulty of the sequence based on the amount of concurrent notes.
+
+        Returns: A value from 0 (low difficulty) to 1 (high difficulty)
+
+        """
+        concurrent_notes = []
+        open_notes = set()
+        notes_to_open = set()
+        notes_to_close = set()
+
+        for msg in self.messages:
+            if msg.message_type == MessageType.note_on:
+                notes_to_open.add(msg.note)
+            elif msg.message_type == MessageType.note_off:
+                notes_to_close.add(msg.note)
+            elif msg.message_type == MessageType.wait:
+                if len(open_notes) > 0:
+                    concurrent_notes.append(len(open_notes))
+
+                if len(notes_to_close) > 0:
+                    for note in notes_to_close:
+                        open_notes.remove(note)
+                    notes_to_close = set()
+
+                if len(notes_to_open) > 0:
+                    for note in notes_to_open:
+                        open_notes.add(note)
+                    notes_to_open = set()
+
+        # Handle end of sequence
+        if len(open_notes) > 0:
+            concurrent_notes.append(len(open_notes))
+
+        scaled_difficulty = simple_regression(DIFF_NOTE_CONCURRENT_UPPER_BOUND, 1, DIFF_NOTE_CONCURRENT_LOWER_BOUND, 0,
+                                              mean(concurrent_notes))
+
+        return minmax(0, 1, scaled_difficulty)
 
     def diff_distances(self) -> float:
         """ Calculates the difficulty of the sequence based on the distances between notes.
@@ -320,7 +360,7 @@ class RelativeSequence(AbstractSequence):
 
         """
         amount_bars_completed = 0
-        current_bar_length = 4 * PPQN
+        current_bar_capacity = 4 * PPQN
         current_point_in_time = 0
         current_bar_time = 0
         at_bar_border = True
@@ -339,25 +379,28 @@ class RelativeSequence(AbstractSequence):
                 current_point_in_time += msg.time
                 current_bar_time += msg.time
 
-                if current_bar_time == current_bar_length:
+                if current_bar_time == current_bar_capacity:
                     at_bar_border = True
                     amount_bars_completed += 1
-                    current_bar_time -= current_bar_length
+                    current_bar_time -= current_bar_capacity
 
-                while current_bar_time > current_bar_length:
-                    current_bar_time -= current_bar_length
+                while current_bar_time > current_bar_capacity:
+                    current_bar_time -= current_bar_capacity
                     amount_bars_completed += 1
             elif msg.message_type == MessageType.time_signature:
                 if not at_bar_border:
                     raise SequenceException("Time signature message may only occur at border of a bar")
                 at_bar_border = False
 
-                current_bar_length = PPQN * (msg.numerator / (msg.denominator / 4))
+                current_bar_capacity = PPQN * (msg.numerator / (msg.denominator / 4))
 
         valid_messages = []
 
         if amount_bars_completed < desired_bars and not (at_bar_border and force_time_siganture):
-            valid_messages.append({"message_type": MessageType.wait.value})
+            for wait_time in range(1, PPQN + 1):
+                if current_bar_time + wait_time <= current_bar_capacity or (
+                        current_bar_time + wait_time <= 2 * current_bar_capacity and amount_bars_completed + 1 < desired_bars):
+                    valid_messages.append({"message_type": MessageType.wait.value, "time": wait_time})
 
         for note in range(NOTE_LOWER_BOUND, NOTE_UPPER_BOUND + 1):
             if note not in open_messages and amount_bars_completed < desired_bars and not (
