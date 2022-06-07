@@ -316,18 +316,23 @@ def test_midi_file_to_mido_track():
 # Mido
 
 def test_print_midi_file():
-    midi_file = mido.MidiFile("resources/two_bars_split.mid")
+    midi_file = mido.MidiFile("resources/Zelda_II_The_Adventure_of_Link_Overworld.mid")
+    midi_file = mido.MidiFile("resources/liszt_love_dreams_n3.mid")
 
     for track in midi_file.tracks:
+        print()
+        print("new track")
         for msg in track:
             print(msg)
+
+    print(len(midi_file.tracks))
 
 
 # Misc
 
 def test_message_representation():
-    msg = Message(message_type=MessageType.note_on, note=42, time=10, numerator=4, denominator=4, velocity=127,
-                  control=0, key=Key.c)
+    msg = Message(message_type=MessageType.note_on, note=42, velocity=127, control=0, numerator=4, denominator=4,
+                  key=Key.c, time=10)
 
     representation = msg.__repr__()
 

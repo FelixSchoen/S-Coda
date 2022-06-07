@@ -473,8 +473,8 @@ class Sequence:
         for msg in messages:
             data.append(
                 {"message_type": msg.message_type.value, "time": msg.time, "note": msg.note,
-                 "velocity": msg.velocity,
-                 "control": msg.control, "numerator": msg.numerator, "denominator": msg.denominator,
+                 "velocity": msg.velocity, "control": msg.control, "program": msg.program,
+                 "numerator": msg.numerator, "denominator": msg.denominator,
                  "key": None if msg.key is None else msg.key.value})
 
         return pd.DataFrame(data)

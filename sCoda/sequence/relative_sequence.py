@@ -146,6 +146,10 @@ class RelativeSequence(AbstractSequence):
         if len(open_notes) > 0:
             concurrent_notes.append(len(open_notes))
 
+        # Handle no entries
+        if len(concurrent_notes) == 0:
+            concurrent_notes.append(0)
+
         scaled_difficulty = simple_regression(DIFF_NOTE_CONCURRENT_UPPER_BOUND, 1, DIFF_NOTE_CONCURRENT_LOWER_BOUND, 0,
                                               mean(concurrent_notes))
 

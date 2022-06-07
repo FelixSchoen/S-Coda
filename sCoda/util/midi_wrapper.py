@@ -91,7 +91,12 @@ class MidiFile:
                 # Control change
                 elif msg.message_type == MessageType.control_change:
                     meta_sequence.add_absolute_message(
-                        Message(message_type=MessageType.control_change, control=msg.control, velocity=msg.velocity,
+                        Message(message_type=MessageType.control_change, velocity=msg.velocity, control=msg.control,
+                                time=rounded_point_in_time))
+                # Program change
+                elif msg.message_type == MessageType.program_change:
+                    current_sequence.add_absolute_message(
+                        Message(message_type=MessageType.program_change, program=msg.program,
                                 time=rounded_point_in_time))
                 # Unknown, e.g. MetaMessage (will be ignored)
                 else:
@@ -191,8 +196,7 @@ class MidiTrack:
 class MidiMessage:
 
     def __init__(self, message_type=None, control=None, denominator=None, numerator=None, key=None, note=None,
-                 time=None,
-                 velocity=None) -> None:
+                 time=None, velocity=None, program=None) -> None:
         super().__init__()
         self.message_type = message_type
         self.control = control
@@ -202,6 +206,7 @@ class MidiMessage:
         self.note = note
         self.time = time
         self.velocity = velocity
+        self.program = program
 
     @staticmethod
     def parse_mido_message(mido_message) -> MidiMessage:
@@ -228,11 +233,14 @@ class MidiMessage:
             msg.message_type = MessageType.control_change
             msg.control = mido_message.control
             msg.velocity = mido_message.value
+        elif mido_message.type == "program_change":
+            msg.message_type = MessageType.program_change
+            msg.program = mido_message.program
 
         return msg
 
     @staticmethod
-    def parse_internal_message(message) -> MidiMessage:
+    def parse_internal_message(message: Message) -> MidiMessage:
         return MidiMessage(message_type=message.message_type, time=message.time, note=message.note,
                            velocity=message.velocity, control=message.control, numerator=message.numerator,
-                           denominator=message.denominator, key=message.key)
+                           denominator=message.denominator, key=message.key, program=message.program)

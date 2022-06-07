@@ -1,4 +1,5 @@
 from sCoda.elements.bar import Bar
+from sCoda.elements.message import MessageType
 
 
 class Track:
@@ -10,6 +11,13 @@ class Track:
         super().__init__()
         self.name = name
         self.bars = bars
+        self.program = None
+
+        seq = Bar.to_sequence(bars)
+        program_changes = [msg for msg in seq.rel.messages if msg.message_type == MessageType.program_change]
+        if len(program_changes) > 0:
+            assert all(msg.program == program_changes[0].program for msg in program_changes)
+            self.program = program_changes[0].program
 
     def __copy__(self):
         bars = []
