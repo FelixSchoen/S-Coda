@@ -317,7 +317,7 @@ def test_midi_file_to_mido_track():
 
 def test_print_midi_file():
     midi_file = mido.MidiFile("resources/Zelda_II_The_Adventure_of_Link_Overworld.mid")
-    midi_file = mido.MidiFile("resources/liszt_love_dreams_n3.mid")
+    midi_file = mido.MidiFile("resources/26 Keringo - Walzer.mid")
 
     for track in midi_file.tracks:
         print()
@@ -337,3 +337,11 @@ def test_message_representation():
     representation = msg.__repr__()
 
     assert "42" in representation
+
+
+def test_stuff():
+    composition = Composition.from_file("resources/Nocturne_ Op 32_ No 2 in A-Flat.mid", [[1], [2]], [0, 3])
+
+    assert len(composition.tracks) == 2
+
+    return composition

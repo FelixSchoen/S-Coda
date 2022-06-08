@@ -8,7 +8,7 @@ import sCoda
 from sCoda.elements.message import MessageType, Message
 from sCoda.settings import PPQN
 from sCoda.util.logging import get_logger
-from sCoda.util.music_theory import Key
+from sCoda.util.music_theory import Key, KeyKeyMapping
 
 
 class MidiFile:
@@ -228,7 +228,7 @@ class MidiMessage:
             msg.numerator = mido_message.numerator
         elif mido_message.type == "key_signature":
             msg.message_type = MessageType.key_signature
-            msg.key = Key(mido_message.key)
+            msg.key = KeyKeyMapping[mido_message.key]
         elif mido_message.type == "control_change":
             msg.message_type = MessageType.control_change
             msg.control = mido_message.control

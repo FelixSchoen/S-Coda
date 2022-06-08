@@ -420,6 +420,17 @@ class RelativeSequence(AbstractSequence):
 
         return valid_messages
 
+    def is_empty(self) -> bool:
+        """ Checks if the sequence is empty, i.e., no notes are opened.
+
+        Returns: `True` if the sequence is empty, `False` otherwise.
+
+        """
+        for msg in self.messages:
+            if msg.message_type == MessageType.note_on:
+                return True
+        return False
+
     def pad_sequence(self, padding_length):
         """ Pads the sequence to a minimum fixed length.
 

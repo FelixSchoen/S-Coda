@@ -23,6 +23,9 @@ class Bar:
         self.time_signature_denominator = denominator
         self.key_signature = key
 
+        # Adjust sequence
+        self.sequence.adjust_messages()
+
         # Assert bar has correct capacity
         if self.sequence.sequence_length() > self.time_signature_numerator * PPQN / (
                 self.time_signature_denominator / 4):
@@ -62,6 +65,9 @@ class Bar:
 
     def difficulty(self, key_signature: Key = None) -> float:
         return self.sequence.difficulty(key_signature)
+
+    def is_empty(self) -> bool:
+        return self.sequence.is_empty()
 
     def to_absolute_dataframe(self) -> DataFrame:
         """ See `sCoda.sequence.sequence.Sequence.to_absolute_dataframe`

@@ -230,6 +230,12 @@ class Sequence:
         """
         return self.abs.get_message_timing(message_type)
 
+    def is_empty(self) -> bool:
+        """ See `sCoda.sequence.relative_sequence.RelativeSequence.is_empty`
+
+        """
+        return self.rel.is_empty()
+
     def merge(self, sequences: [Sequence]) -> None:
         """ See `sCoda.sequence.absolute_sequence.AbsoluteSequence.merge`
 

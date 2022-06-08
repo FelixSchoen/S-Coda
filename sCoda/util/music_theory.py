@@ -19,6 +19,12 @@ class Key(enum.Enum):
     c_b = "Cb"
 
 
+KeyKeyMapping = {"C": Key.c, "G": Key.g, "D": Key.d, "A": Key.a, "E": Key.e, "B": Key.b, "F#": Key.f_s, "C#": Key.c_s,
+                 "F": Key.f, "Bb": Key.b_b, "Eb": Key.e_b, "Ab": Key.a_b, "Db": Key.d_b, "Gb": Key.g_b, "Cb": Key.c_b,
+                 "Am": Key.c, "Em": Key.g, "Bm": Key.d, "F#m": Key.a, "C#m": Key.e, "G#m": Key.b, "D#m": Key.f_s,
+                 "Dm": Key.f, "Gm": Key.b_b, "Cm": Key.e_b, "Fm": Key.a_b, "Bbm": Key.d_b, "Ebm": Key.g_b}
+
+
 class Note(enum.Enum):
     c = 0
     c_s = 1
