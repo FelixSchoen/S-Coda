@@ -126,11 +126,11 @@ class Sequence:
         self.rel.adjust_messages()
         self._abs_stale = True
 
-    def consolidate(self, sequences: [Sequence]) -> None:
-        """ See `sCoda.sequence.relative_sequence.RelativeSequence.consolidate`
+    def concatenate(self, sequences: [Sequence]) -> None:
+        """ See `sCoda.sequence.relative_sequence.RelativeSequence.concatenate`
 
         """
-        self.rel.consolidate([seq.rel for seq in sequences])
+        self.rel.concatenate([seq.rel for seq in sequences])
         self._abs_stale = True
 
     def difficulty(self, key_signature: Key = None) -> float:

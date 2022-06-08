@@ -122,7 +122,7 @@ def test_adjust_wait_messages():
 def test_consolidate_sequences():
     sequences = test_midi_to_sequences()
     sequence = Sequence()
-    sequence.consolidate([sequences[0], sequences[1]])
+    sequence.concatenate([sequences[0], sequences[1]])
 
     assert all(msg in sequence.rel.messages for msg in sequences[0].rel.messages)
     assert all(msg in sequence.rel.messages for msg in sequences[1].rel.messages)

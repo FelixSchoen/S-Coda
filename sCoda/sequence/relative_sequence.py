@@ -47,7 +47,7 @@ class RelativeSequence(AbstractSequence):
         self.messages.append(msg)
 
     def adjust_messages(self) -> None:
-        """ Consolidates and then splits up wait messages to a maximum size of `PPQN`.
+        """ Consolidates and then splits up wait messages to a maximum size of `PPQN`. Removes double time signatures.
 
         """
         logger = get_logger(__name__)
@@ -101,8 +101,8 @@ class RelativeSequence(AbstractSequence):
 
         self.messages = messages_normalized
 
-    def consolidate(self, sequences: [RelativeSequence]) -> None:
-        """ Consolidates this one and the given sequence, resulting in the current sequence containing messages from both of the
+    def concatenate(self, sequences: [RelativeSequence]) -> None:
+        """ Concatenates this one and the given sequence, resulting in the current sequence containing messages from both of the
         previous sequences.
 
         Args:
@@ -428,8 +428,8 @@ class RelativeSequence(AbstractSequence):
         """
         for msg in self.messages:
             if msg.message_type == MessageType.note_on:
-                return True
-        return False
+                return False
+        return True
 
     def pad_sequence(self, padding_length):
         """ Pads the sequence to a minimum fixed length.

@@ -94,6 +94,6 @@ class Bar:
 
         for bar in bars:
             sequences.append(bar.sequence)
-        sequence.consolidate(sequences)
+        sequence.concatenate(sequences)
 
         return sequence
