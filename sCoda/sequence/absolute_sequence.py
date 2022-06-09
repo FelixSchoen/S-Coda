@@ -342,6 +342,14 @@ class AbsoluteSequence(AbstractSequence):
         self.messages = quantised_messages
         self.sort()
 
+    def sequence_length(self) -> float:
+        """ Calculates the overall length of this sequence, given in ticks.
+
+        Returns: The length of this sequence
+
+        """
+        return self.messages[-1].time
+
     def sort(self) -> None:
         """ Sorts the sequence according to the timings of the messages.
 
@@ -407,6 +415,6 @@ class AbsoluteSequence(AbstractSequence):
         # Check unclosed notes
         for pairing in notes:
             if len(pairing) == 1:
-                pairing.append(Message(message_type=MessageType.wait, time=pairing[0].time + standard_length))
+                pairing.append(Message(message_type=MessageType.note_off, time=pairing[0].time + standard_length))
 
         return notes

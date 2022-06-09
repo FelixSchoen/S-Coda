@@ -27,13 +27,13 @@ class Bar:
         self.sequence.adjust_messages()
 
         # Assert bar has correct capacity
-        if self.sequence.sequence_length() > self.time_signature_numerator * PPQN / (
+        if self.sequence.sequence_length_relation() > self.time_signature_numerator * PPQN / (
                 self.time_signature_denominator / 4):
             logger.warning("Bar capacity exceeded.")
             assert False
 
         # Pad bar
-        if self.sequence.sequence_length() < self.time_signature_numerator * PPQN / (
+        if self.sequence.sequence_length_relation() < self.time_signature_numerator * PPQN / (
                 self.time_signature_denominator / 4):
             self.sequence.pad_sequence(self.time_signature_numerator * PPQN / (self.time_signature_denominator / 4))
 

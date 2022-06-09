@@ -262,7 +262,13 @@ class Sequence:
         return Sequence.save_sequences([self], file_path)
 
     def sequence_length(self) -> float:
-        """ See `sCoda.sequence.relative_sequence.RelativeSequence.sequence_length`
+        """ See `sCoda.sequence.absolute_sequence.AbsoluteSequence.sequence_length`
+
+        """
+        return self.abs.sequence_length()
+
+    def sequence_length_relation(self) -> float:
+        """ See `sCoda.sequence.relative_sequence.RelativeSequence.sequence_length_relation`
 
         """
         return self.rel.sequence_length_relation()

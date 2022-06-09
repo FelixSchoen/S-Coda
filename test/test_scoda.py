@@ -288,6 +288,12 @@ def test_quantise_note_lengths():
     sequence.quantise_note_lengths()
 
 
+def test_sequence_length():
+    sequences = test_midi_to_sequences()
+
+    assert all(sequence.sequence_length() == sequences[0].sequence_length() for sequence in sequences)
+
+
 # Util
 
 def test_velocity_values_digitised_to_correct_bins():
@@ -317,7 +323,7 @@ def test_midi_file_to_mido_track():
 
 def test_print_midi_file():
     midi_file = mido.MidiFile("resources/Zelda_II_The_Adventure_of_Link_Overworld.mid")
-    midi_file = mido.MidiFile("resources/26 Keringo - Walzer.mid")
+    midi_file = mido.MidiFile("resources/yaleo.mid")
 
     for track in midi_file.tracks:
         print()
@@ -340,7 +346,7 @@ def test_message_representation():
 
 
 def test_stuff():
-    composition = Composition.from_file("resources/Nocturne_ Op 32_ No 2 in A-Flat.mid", [[1], [2]], [0, 3])
+    composition = Composition.from_file("resources/yaleo.mid", [[1], [2]], [0, 3])
 
     assert len(composition.tracks) == 2
 
