@@ -3,6 +3,7 @@ from __future__ import annotations
 from pandas import DataFrame
 
 from sCoda.elements.message import MessageType, Message
+from sCoda.exception.exceptions import BarException
 from sCoda.sequence.sequence import Sequence
 from sCoda.settings import PPQN
 from sCoda.util.logging import get_logger
@@ -27,8 +28,9 @@ class Bar:
         self.sequence.adjust_messages()
 
         # Assert bar has correct capacity
-        assert not self.sequence.sequence_length_relation() > self.time_signature_numerator * PPQN / (
-                self.time_signature_denominator / 4), "Bar capacity exceeded"
+        if self.sequence.sequence_length_relation() > self.time_signature_numerator * PPQN / (
+                self.time_signature_denominator / 4):
+            raise BarException("Bar capacity exceeded")
 
         # Pad bar
         if self.sequence.sequence_length_relation() < self.time_signature_numerator * PPQN / (
@@ -40,10 +42,11 @@ class Bar:
         time_signatures = [msg for msg in relative_sequence.messages if
                            msg.message_type == MessageType.time_signature]
 
-        assert len(time_signatures) <= 1, "Too many time signatures in a bar"
-        assert all(
-            msg.numerator == self.time_signature_numerator and msg.denominator == self.time_signature_denominator for
-            msg in time_signatures), "Time signatures not uniform"
+        if len(time_signatures) > 1:
+            raise BarException("Too many time signatures in a bar")
+        if not all(msg.numerator == self.time_signature_numerator and msg.denominator == self.time_signature_denominator
+                   for msg in time_signatures):
+            raise BarException("Time signatures not uniform")
 
         # Set time signature and remove all other time signature messages
         relative_sequence = self.sequence.rel

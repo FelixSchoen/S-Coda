@@ -561,9 +561,11 @@ class RelativeSequence(AbstractSequence):
 
         """
         if factor > 1:
-            assert (factor * 1.0).is_integer()
+            if not (factor * 1.0).is_integer():
+                raise SequenceException("Factor results in non-integer scaling")
         else:
-            assert (1 / factor).is_integer()
+            if not (1 / factor).is_integer():
+                raise SequenceException("Factor results in non-integer scaling")
 
         # Normal case, simply multiply duration
         if factor >= 1:
