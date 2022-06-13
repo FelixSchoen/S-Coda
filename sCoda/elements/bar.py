@@ -27,10 +27,8 @@ class Bar:
         self.sequence.adjust_messages()
 
         # Assert bar has correct capacity
-        if self.sequence.sequence_length_relation() > self.time_signature_numerator * PPQN / (
-                self.time_signature_denominator / 4):
-            logger.warning("Bar capacity exceeded.")
-            assert False
+        assert not self.sequence.sequence_length_relation() > self.time_signature_numerator * PPQN / (
+                self.time_signature_denominator / 4), "Bar capacity exceeded"
 
         # Pad bar
         if self.sequence.sequence_length_relation() < self.time_signature_numerator * PPQN / (
@@ -42,10 +40,10 @@ class Bar:
         time_signatures = [msg for msg in relative_sequence.messages if
                            msg.message_type == MessageType.time_signature]
 
-        assert len(time_signatures) <= 1
+        assert len(time_signatures) <= 1, "Too many time signatures in a bar"
         assert all(
             msg.numerator == self.time_signature_numerator and msg.denominator == self.time_signature_denominator for
-            msg in time_signatures)
+            msg in time_signatures), "Time signatures not uniform"
 
         # Set time signature and remove all other time signature messages
         relative_sequence = self.sequence.rel
