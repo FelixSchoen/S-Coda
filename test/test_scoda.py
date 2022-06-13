@@ -97,6 +97,16 @@ def test_bars_to_sequence():
     assert time_pre_consolidate == time_post_consolidate
 
 
+# Track
+
+def test_track_to_sequence():
+    composition = test_load_composition()
+    track = composition.tracks[0]
+    seq = track.to_sequence()
+
+    assert isinstance(seq, Sequence)
+
+
 # Relative Sequence
 
 def test_adjust_wait_messages():

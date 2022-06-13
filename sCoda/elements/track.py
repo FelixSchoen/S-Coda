@@ -29,3 +29,6 @@ class Track:
         cpy = Track(bars, self.name)
 
         return cpy
+
+    def to_sequence(self):
+        return Bar.to_sequence(self.bars)
