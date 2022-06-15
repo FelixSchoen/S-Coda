@@ -17,7 +17,6 @@ class Bar:
 
     def __init__(self, sequence: Sequence, numerator: int, denominator: int, key=None) -> None:
         super().__init__()
-        logger = get_logger(__name__)
 
         self.sequence: Sequence = sequence
         self.time_signature_numerator = numerator

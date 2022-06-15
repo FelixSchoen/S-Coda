@@ -136,42 +136,30 @@ class Sequence:
     def difficulty(self, key_signature: Key = None) -> float:
         # If difficulty not stale
         if None not in [self._difficulty, self._diff_note_amount, self._diff_note_values, self._diff_note_classes,
-                        self._diff_key, self._diff_distances, self._diff_rhythm, self._diff_pattern]:
+                        self._diff_key, self._diff_distances, self._diff_rhythm, self._diff_pattern,
+                        self._diff_concurrent_notes]:
             return self._difficulty
 
         self.adjust_messages()
 
-        # Absolute values
-        difficulties_base = [(self.diff_note_values, 100), (self.diff_note_amount, 65), (self.diff_note_classes, 30)]
+        difficulty_weights = [
+            (self.diff_note_values, 0, 0.45),
+            (self.diff_note_amount, 0, 0.45),
+            (self.diff_concurrent_notes, 0, 0.475),
+            (self.diff_distances, 0, 0.15),
+            (self.diff_rhythm, -0.1, 0.2),
+            (self.diff_key(key_signature), 0.05, 0.15),
+            (self.diff_note_classes, -0.15, 0.15),
+            (self.diff_pattern, -0.475, 0),
+        ]
 
-        # Percentage increases
-        difficulties_increase = [(self.diff_distances, 10), (self.diff_rhythm, 25), (self.diff_key(key_signature), 15),
-                                 (self.diff_concurrent_notes, 40)]
-        difficulties_decrease = [(self.diff_pattern, 40)]
+        overall_difficulty = 0
 
-        difficulty = 0
+        for difficulty_weight in difficulty_weights:
+            change = simple_regression(0, difficulty_weight[1], 1, difficulty_weight[2], difficulty_weight[0])
+            print(f"Change: {change}")
+            overall_difficulty += change
 
-        standard_weight_sum = sum(weight for _, weight in difficulties_base)
-
-        # Calculate base difficulty
-        for difficulty_standard, weight in difficulties_base:
-            difficulty += difficulty_standard * weight / standard_weight_sum
-
-        # Calculate increase of difficulty
-        increase_percent_points = 0
-        for difficulty_increase, percentage_point_bound in difficulties_increase:
-            increase_percent_points += minmax(0, percentage_point_bound,
-                                              simple_regression(1, percentage_point_bound, 0, 0, difficulty_increase))
-        change_percent_points = increase_percent_points
-
-        # Calculate decrease of difficulty
-        decrease_percent_points = 0
-        for difficulty_decrease, percentage_point_bound in difficulties_decrease:
-            decrease_percent_points += minmax(0, percentage_point_bound,
-                                              simple_regression(0, percentage_point_bound, 1, 0, difficulty_decrease))
-        change_percent_points -= decrease_percent_points
-
-        overall_difficulty = difficulty + difficulty * change_percent_points / 100
         overall_difficulty = minmax(0, 1, overall_difficulty)
 
         self._difficulty = overall_difficulty
@@ -370,19 +358,14 @@ class Sequence:
         return midi_file
 
     @staticmethod
-    def sequences_from_midi_file(file_path: str, track_indices: [[int]],
-                                 meta_track_indices: [int], meta_track_index: int = 0):
+    def from_midi_file(file_path: str, track_indices: [[int]],
+                       meta_track_indices: [int], meta_track_index: int = 0):
         # Open file
         midi_file = MidiFile.open_midi_file(file_path)
 
         # Get sequences from MIDI file
         merged_sequences = midi_file.to_sequences(track_indices, meta_track_indices,
                                                   meta_track_index=meta_track_index)
-
-        # Quantisation
-        for sequence in merged_sequences:
-            sequence.quantise()
-            sequence.quantise_note_lengths()
 
         return merged_sequences
 

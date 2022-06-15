@@ -24,8 +24,8 @@ class Composition:
         return cpy
 
     @staticmethod
-    def from_file(file_path: str, track_indices: [[int]],
-                  meta_track_indices: [int], meta_track_index: int = 0) -> Composition:
+    def from_midi_file(file_path: str, track_indices: [[int]],
+                       meta_track_indices: [int], meta_track_index: int = 0) -> Composition:
         """ Creates a new composition from the given MIDI file.
 
         Args: file_path: Path to the MIDI file track_indices: Array of arrays of track indices, indices in the same
@@ -36,8 +36,13 @@ class Composition:
 
         """
         # Load sequences from file
-        merged_sequences = Sequence.sequences_from_midi_file(file_path, track_indices, meta_track_indices,
-                                                             meta_track_index)
+        merged_sequences = Sequence.from_midi_file(file_path, track_indices, meta_track_indices,
+                                                   meta_track_index)
+
+        # Quantisation
+        for sequence in merged_sequences:
+            sequence.quantise()
+            sequence.quantise_note_lengths()
 
         # Load composition from sequences
         return Composition.from_sequences(merged_sequences, meta_track_index)

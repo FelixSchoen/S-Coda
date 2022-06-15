@@ -13,7 +13,7 @@ from sCoda.util.util import digitise_velocity, bin_from_velocity
 # General
 
 def test_load_composition():
-    composition = Composition.from_file("resources/beethoven_o27-2_m3.mid", [[1], [2]], [0, 3])
+    composition = Composition.from_midi_file("resources/beethoven_o27-2_m3.mid", [[1], [2]], [0, 3])
 
     assert len(composition.tracks) == 2
 
@@ -356,8 +356,34 @@ def test_message_representation():
 
 
 def test_stuff():
-    composition = Composition.from_file("resources/yaleo.mid", [[1], [2]], [0, 3])
+    composition = Composition.from_midi_file("resources/yaleo.mid", [[1], [2]], [0, 3])
 
     assert len(composition.tracks) == 2
 
     return composition
+
+
+def test_difficulty():
+    sequence = Sequence.from_midi_file("resources/008.mid", [[0]], [0])[0]
+    num = 4
+    den = 4
+
+    for msg in sequence.rel.messages:
+        if msg.message_type == MessageType.time_signature:
+            num = msg.numerator
+            den = msg.denominator
+            break
+
+    print()
+    bar = Bar(sequence, num, den)
+
+    x = bar.sequence
+    print(f"Note Amount: {x.diff_note_amount}")
+    print(f"Note Values: {x.diff_note_values}")
+    print(f"Note Classes: {x.diff_note_classes}")
+    print(f"Concurrent Notes: {x.diff_concurrent_notes}")
+    print(f"Key: {x.diff_key(key_signature=None)}")
+    print(f"Distances: {x.diff_distances}")
+    print(f"Rhythm: {x.diff_rhythm}")
+    print(f"Pattern: {x.diff_pattern}")
+    print(f"Overall Difficulty: {x.difficulty()}")
