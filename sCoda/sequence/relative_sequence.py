@@ -14,7 +14,8 @@ from sCoda.settings import NOTE_LOWER_BOUND, NOTE_UPPER_BOUND, PPQN, DIFF_DISTAN
     DIFF_DISTANCES_LOWER_BOUND, DIFF_PATTERN_COVERAGE_UPPER_BOUND, DIFF_PATTERN_COVERAGE_LOWER_BOUND, \
     PATTERN_LENGTH, REGEX_PATTERN, REGEX_SUBPATTERN, DIFF_NOTE_CLASSES_UPPER_BOUND, DIFF_NOTE_CLASSES_LOWER_BOUND, \
     DIFF_NOTE_AMOUNT_UPPER_BOUND, DIFF_NOTE_AMOUNT_LOWER_BOUND, PATTERN_MAX_SEARCH_DURATION, \
-    DIFF_NOTE_CONCURRENT_UPPER_BOUND, DIFF_NOTE_CONCURRENT_LOWER_BOUND
+    DIFF_NOTE_CONCURRENT_UPPER_BOUND, DIFF_NOTE_CONCURRENT_LOWER_BOUND, DIFF_ACCIDENTALS_UPPER_BOUND, \
+    DIFF_ACCIDENTALS_LOWER_BOUND
 from sCoda.util.logging import get_logger
 from sCoda.util.midi_wrapper import MidiTrack, MidiMessage
 from sCoda.util.music_theory import KeyNoteMapping, Note, Key, key_transpose_order, key_transpose_mapping
@@ -111,6 +112,29 @@ class RelativeSequence(AbstractSequence):
         """
         for seq in sequences:
             self.messages.extend(seq.messages)
+
+    def diff_accidentals(self, key: Key) -> float:
+        """ Calculates the difficulty of the sequence based on the amount of accidentals needed.
+
+        Args:
+            key: A fixed key of the sequence
+
+        Returns: A value from 0 (low difficulty) to 1 (high difficulty)
+
+        """
+        note_mapping = KeyNoteMapping[key]
+        violations = 0
+
+        for msg in self.messages:
+            if msg.message_type == MessageType.note_on:
+                if Note(msg.note % 12) not in note_mapping[0]:
+                    violations += 1
+
+        relation = violations / self.sequence_length_relation()
+        scaled_relation = simple_regression(DIFF_ACCIDENTALS_UPPER_BOUND, 1, DIFF_ACCIDENTALS_LOWER_BOUND, 0,
+                                            relation)
+
+        return minmax(0, 1, scaled_relation)
 
     def diff_concurrent_notes(self) -> float:
         """ Calculates the difficulty of the sequence based on the amount of concurrent notes.
@@ -220,30 +244,7 @@ class RelativeSequence(AbstractSequence):
 
         # Have to guess key signature based on induced accidentals
         if key_signature is None:
-            key_candidates = []
-            for _ in KeyNoteMapping:
-                key_candidates.append(0)
-
-            for msg in self.messages:
-                if msg.message_type == MessageType.note_on:
-                    for i, (_, key_notes) in enumerate(KeyNoteMapping.items()):
-                        if Note(msg.note % 12) not in key_notes[0]:
-                            key_candidates[i] += 1
-
-            best_index = 0
-            best_solution = math.inf
-            best_solution_accidentals = math.inf
-            key_note_mapping = list(KeyNoteMapping.items())
-
-            for i in range(0, len(key_candidates)):
-                if key_candidates[i] <= best_solution:
-                    if key_candidates[i] < best_solution or key_note_mapping[i][1][1] < best_solution_accidentals:
-                        best_index = i
-                        best_solution = key_candidates[i]
-                        best_solution_accidentals = key_note_mapping[i][1][1]
-
-            guessed_key = [key for key in KeyNoteMapping][best_index]
-            key_signature = guessed_key
+            key_signature = self.guess_key_signature()
 
         # Check how many accidentals this key uses
         _, accidentals = KeyNoteMapping[key_signature]
@@ -419,6 +420,37 @@ class RelativeSequence(AbstractSequence):
             valid_messages.append({"message_type": MessageType.time_signature.value})
 
         return valid_messages
+
+    def guess_key_signature(self) -> Key:
+        """ Determines the best key based on which key induces the minimum amount of additional accidentals.
+
+        Returns: The best-fitting key for this bar
+
+        """
+        key_candidates = []
+        for _ in KeyNoteMapping:
+            key_candidates.append(0)
+
+        for msg in self.messages:
+            if msg.message_type == MessageType.note_on:
+                for i, (_, key_notes) in enumerate(KeyNoteMapping.items()):
+                    if Note(msg.note % 12) not in key_notes[0]:
+                        key_candidates[i] += 1
+
+        best_index = 0
+        best_solution = math.inf
+        best_solution_accidentals = math.inf
+        key_note_mapping = list(KeyNoteMapping.items())
+
+        for i in range(0, len(key_candidates)):
+            if key_candidates[i] <= best_solution:
+                if key_candidates[i] < best_solution or key_note_mapping[i][1][1] < best_solution_accidentals:
+                    best_index = i
+                    best_solution = key_candidates[i]
+                    best_solution_accidentals = key_note_mapping[i][1][1]
+
+        guessed_key = [key for key in KeyNoteMapping][best_index]
+        return guessed_key
 
     def is_empty(self) -> bool:
         """ Checks if the sequence is empty, i.e., no notes are opened.

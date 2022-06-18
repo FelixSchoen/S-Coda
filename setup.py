@@ -5,9 +5,9 @@ from os import path
 from setuptools import find_packages, setup
 
 NAME = "sCoda"
-DESCRIPTION = "A music library for judging difficulty of pieces"
+DESCRIPTION = "A library for handling and modifying MIDI files"
 AUTHOR = "Felix Schön"
-VERSION = "0.9"
+VERSION = "0.9.1"
 
 # Load long description
 LOCATION = path.abspath(path.dirname(__file__))

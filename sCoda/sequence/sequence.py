@@ -39,6 +39,7 @@ class Sequence:
         self._diff_note_classes = None
         self._diff_concurrent_notes = None
         self._diff_key = None
+        self._diff_accidentals = None
         self._diff_distances = None
         self._diff_rhythm = None
         self._diff_pattern = None
@@ -67,6 +68,7 @@ class Sequence:
         cpy._diff_note_classes = self._diff_note_classes
         cpy._diff_concurrent_notes = self._diff_concurrent_notes
         cpy._diff_key = self._diff_key
+        cpy._diff_accidentals = self._diff_accidentals
         cpy._diff_distances = self._diff_distances
         cpy._diff_rhythm = self._diff_rhythm
         cpy._diff_pattern = self._diff_pattern
@@ -136,28 +138,31 @@ class Sequence:
     def difficulty(self, key_signature: Key = None) -> float:
         # If difficulty not stale
         if None not in [self._difficulty, self._diff_note_amount, self._diff_note_values, self._diff_note_classes,
-                        self._diff_key, self._diff_distances, self._diff_rhythm, self._diff_pattern,
-                        self._diff_concurrent_notes]:
+                        self._diff_key, self._diff_accidentals, self._diff_distances, self._diff_rhythm,
+                        self._diff_pattern, self._diff_concurrent_notes]:
             return self._difficulty
 
         self.adjust_messages()
 
+        if key_signature is None:
+            key_signature = self.rel.guess_key_signature()
+
         difficulty_weights = [
             (self.diff_note_values, 0, 0.45),
-            (self.diff_note_amount, 0, 0.45),
+            (self.diff_note_amount, 0, 0.5),
             (self.diff_concurrent_notes, 0, 0.475),
             (self.diff_distances, 0, 0.15),
             (self.diff_rhythm, -0.1, 0.2),
-            (self.diff_key(key_signature), 0.05, 0.15),
-            (self.diff_note_classes, -0.15, 0.15),
-            (self.diff_pattern, -0.475, 0),
+            (self.diff_key(key_signature), -0.05, 0.15),
+            (self.diff_accidentals(key_signature), -0.05, 0.1),
+            (self.diff_note_classes, -0.1, 0.15),
+            (self.diff_pattern, -0.4, 0),
         ]
 
         overall_difficulty = 0
 
         for difficulty_weight in difficulty_weights:
             change = simple_regression(0, difficulty_weight[1], 1, difficulty_weight[2], difficulty_weight[0])
-            print(f"Change: {change}")
             overall_difficulty += change
 
         overall_difficulty = minmax(0, 1, overall_difficulty)
@@ -193,6 +198,11 @@ class Sequence:
         if self._diff_key is None:
             self._diff_key = self.rel.diff_key(key=key_signature)
         return self._diff_key
+
+    def diff_accidentals(self, key_signature) -> float:
+        if self._diff_accidentals is None:
+            self._diff_accidentals = self.rel.diff_accidentals(key=key_signature)
+        return self._diff_accidentals
 
     @property
     def diff_distances(self) -> float:
@@ -320,6 +330,7 @@ class Sequence:
 
         if transpose_by % 12 != 0:
             self._diff_key = None
+            self._diff_accidentals = None
 
         return shifted
 

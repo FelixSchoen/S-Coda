@@ -210,7 +210,7 @@ def test_scale():
 
 
 def test_scale_then_create_composition():
-    sequences = test_midi_to_sequences(file="resources/albeniz_op165_caprichocatalan.mid")
+    sequences = test_midi_to_sequences(file="resources/beethoven_o27-2_m3.mid")
 
     assert all(msg.message_type != MessageType.time_signature for msg in sequences[1].rel.messages)
 
@@ -332,8 +332,7 @@ def test_midi_file_to_mido_track():
 # Mido
 
 def test_print_midi_file():
-    midi_file = mido.MidiFile("resources/Zelda_II_The_Adventure_of_Link_Overworld.mid")
-    midi_file = mido.MidiFile("resources/yaleo.mid")
+    midi_file = mido.MidiFile("resources/beethoven_o27-2_m3.mid")
 
     for track in midi_file.tracks:
         print()
@@ -342,48 +341,3 @@ def test_print_midi_file():
             print(msg)
 
     print(len(midi_file.tracks))
-
-
-# Misc
-
-def test_message_representation():
-    msg = Message(message_type=MessageType.note_on, note=42, velocity=127, control=0, numerator=4, denominator=4,
-                  key=Key.c, time=10)
-
-    representation = msg.__repr__()
-
-    assert "42" in representation
-
-
-def test_stuff():
-    composition = Composition.from_midi_file("resources/yaleo.mid", [[1], [2]], [0, 3])
-
-    assert len(composition.tracks) == 2
-
-    return composition
-
-
-def test_difficulty():
-    sequence = Sequence.from_midi_file("resources/008.mid", [[0]], [0])[0]
-    num = 4
-    den = 4
-
-    for msg in sequence.rel.messages:
-        if msg.message_type == MessageType.time_signature:
-            num = msg.numerator
-            den = msg.denominator
-            break
-
-    print()
-    bar = Bar(sequence, num, den)
-
-    x = bar.sequence
-    print(f"Note Amount: {x.diff_note_amount}")
-    print(f"Note Values: {x.diff_note_values}")
-    print(f"Note Classes: {x.diff_note_classes}")
-    print(f"Concurrent Notes: {x.diff_concurrent_notes}")
-    print(f"Key: {x.diff_key(key_signature=None)}")
-    print(f"Distances: {x.diff_distances}")
-    print(f"Rhythm: {x.diff_rhythm}")
-    print(f"Pattern: {x.diff_pattern}")
-    print(f"Overall Difficulty: {x.difficulty()}")

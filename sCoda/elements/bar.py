@@ -64,6 +64,8 @@ class Bar:
         return bar
 
     def difficulty(self, key_signature: Key = None) -> float:
+        if key_signature is None:
+            key_signature = self.key_signature
         return self.sequence.difficulty(key_signature)
 
     def is_empty(self) -> bool:
