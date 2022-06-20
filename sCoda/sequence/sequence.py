@@ -156,6 +156,9 @@ class Sequence:
             (self.diff_key(key_signature), -0.05, 0.15),
             (self.diff_accidentals(key_signature), -0.05, 0.1),
             (self.diff_note_classes, -0.1, 0.15),
+        ]
+
+        difficulty_percentages = [
             (self.diff_pattern, -0.4, 0),
         ]
 
@@ -164,6 +167,12 @@ class Sequence:
         for difficulty_weight in difficulty_weights:
             change = simple_regression(0, difficulty_weight[1], 1, difficulty_weight[2], difficulty_weight[0])
             overall_difficulty += change
+
+        percentage_change = 0
+        for percentage_weight in difficulty_percentages:
+            change = simple_regression(0, percentage_weight[1], 1, percentage_weight[2], percentage_weight[0])
+            percentage_change += change
+        overall_difficulty *= (1 + percentage_change)
 
         overall_difficulty = minmax(0, 1, overall_difficulty)
 

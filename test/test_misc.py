@@ -23,7 +23,7 @@ def test_stuff():
 
 
 def test_difficulty():
-    sequence = Sequence.from_midi_file("resources/0001_14Petite Etude.zip_4.mid", [[0]], [0])[0]
+    sequence = Sequence.from_midi_file("resources/0022_6 Partitas, Clavierubung part I, no 2.zip_1.mid", [[0]], [0])[0]
     num = 4
     den = 4
 
