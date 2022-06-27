@@ -138,6 +138,12 @@ def test_consolidate_sequences():
     assert all(msg in sequence.rel.messages for msg in sequences[1].rel.messages)
 
 
+def test_cutoff():
+    sequence = test_midi_to_sequences()[0]
+    print(sequence)
+    sequence.abs.cutoff(24)
+
+
 def test_get_valid_next_messages():
     sequences = test_midi_to_sequences()
     bars = Sequence.split_into_bars(sequences)

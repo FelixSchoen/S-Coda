@@ -5,6 +5,7 @@ from statistics import geometric_mean
 from typing import TYPE_CHECKING
 
 from sCoda.elements.message import Message, MessageType
+from sCoda.exception.exceptions import SequenceException
 from sCoda.sequence.abstract_sequence import AbstractSequence
 from sCoda.settings import PPQN, DIFF_NOTE_VALUES_UPPER_BOUND, \
     DIFF_NOTE_VALUES_LOWER_BOUND, NOTE_VALUE_UPPER_BOUND, NOTE_VALUE_LOWER_BOUND, VALID_TUPLETS, DOTTED_ITERATIONS, \
@@ -38,6 +39,27 @@ class AbsoluteSequence(AbstractSequence):
 
     def add_message(self, msg: Message) -> None:
         b_insort(self.messages, msg)
+
+    def cutoff(self, maximum_length) -> None:
+        """ Reduces the length of all notes longer than the maximum length to this value.
+
+        Args:
+            maximum_length: Maximum note length allowed in this sequence.
+
+        """
+        note_array = self._get_absolute_note_array()
+
+        for entry in note_array:
+            if len(entry) == 1:
+                if not entry[0].message_type == MessageType.note_on:
+                    raise SequenceException("Note was closed without having been opened.")
+                self.add_message(
+                    Message(message_type=MessageType.note_off, note=entry[0].note, time=entry[0].time + maximum_length))
+            else:
+                if entry[1].time - entry[0].time > maximum_length:
+                    entry[1].time = entry[0].time + maximum_length
+
+        self.sort()
 
     def diff_note_values(self) -> float:
         """ Calculates complexity of the piece regarding the geometric mean of the note values.

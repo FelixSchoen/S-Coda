@@ -358,7 +358,7 @@ class RelativeSequence(AbstractSequence):
         else:
             return 1
 
-    def get_valid_next_messages(self, desired_bars, force_time_siganture=True):
+    def get_valid_next_messages(self, desired_bars, force_time_siganture=True, maximum_note_length=-1):
         """ Determines, which messages are valid messages to be inserted into this sequence.
 
         Returns:
@@ -403,8 +403,11 @@ class RelativeSequence(AbstractSequence):
 
         if amount_bars_completed < desired_bars and not (at_bar_border and force_time_siganture):
             for wait_time in range(1, PPQN + 1):
-                if current_bar_time + wait_time <= current_bar_capacity or (
-                        current_bar_time + wait_time <= 2 * current_bar_capacity and amount_bars_completed + 1 < desired_bars):
+                if (current_bar_time + wait_time <= current_bar_capacity
+                    or current_bar_time + wait_time <= 2 * current_bar_capacity and amount_bars_completed + 1 < desired_bars) \
+                        and (maximum_note_length == -1 or all(
+                    current_point_in_time + wait_time - value <= maximum_note_length for
+                    value in open_messages.values())):
                     valid_messages.append({"message_type": MessageType.wait.value, "time": wait_time})
 
         for note in range(NOTE_LOWER_BOUND, NOTE_UPPER_BOUND + 1):
