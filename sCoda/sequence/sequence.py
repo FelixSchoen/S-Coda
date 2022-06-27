@@ -135,6 +135,13 @@ class Sequence:
         self.rel.concatenate([seq.rel for seq in sequences])
         self._abs_stale = True
 
+    def cutoff(self, maximum_length, reduced_length) -> None:
+        """ See `sCoda.sequence.relative_sequence.AbsoluteSequence.cutoff`
+
+        """
+        self.abs.cutoff(maximum_length=maximum_length, reduced_length=reduced_length)
+        self._rel_stale = True
+
     def difficulty(self, key_signature: Key = None) -> float:
         # If difficulty not stale
         if None not in [self._difficulty, self._diff_note_amount, self._diff_note_values, self._diff_note_classes,

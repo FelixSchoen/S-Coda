@@ -139,9 +139,10 @@ def test_consolidate_sequences():
 
 
 def test_cutoff():
-    sequence = test_midi_to_sequences()[0]
-    print(sequence)
-    sequence.abs.cutoff(24)
+    sequence = Sequence.from_midi_file("resources/long.mid", [[0]], [0])[0]
+    Sequence.pianorolls([sequence]).show()
+    sequence.cutoff(48, 24)
+    Sequence.pianorolls([sequence]).show()
 
 
 def test_get_valid_next_messages():

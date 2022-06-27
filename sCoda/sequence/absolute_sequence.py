@@ -40,11 +40,12 @@ class AbsoluteSequence(AbstractSequence):
     def add_message(self, msg: Message) -> None:
         b_insort(self.messages, msg)
 
-    def cutoff(self, maximum_length) -> None:
+    def cutoff(self, maximum_length, reduced_length) -> None:
         """ Reduces the length of all notes longer than the maximum length to this value.
 
         Args:
             maximum_length: Maximum note length allowed in this sequence.
+            reduced_length: The length violating notes are assigned
 
         """
         note_array = self._get_absolute_note_array()
@@ -57,7 +58,7 @@ class AbsoluteSequence(AbstractSequence):
                     Message(message_type=MessageType.note_off, note=entry[0].note, time=entry[0].time + maximum_length))
             else:
                 if entry[1].time - entry[0].time > maximum_length:
-                    entry[1].time = entry[0].time + maximum_length
+                    entry[1].time = entry[0].time + reduced_length
 
         self.sort()
 
