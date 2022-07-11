@@ -385,10 +385,15 @@ class Sequence:
         return midi_file
 
     @staticmethod
-    def from_midi_file(file_path: str, track_indices: [[int]],
-                       meta_track_indices: [int], meta_track_index: int = 0):
+    def from_midi_file(file_path: str, track_indices: [[int]] = None,
+                       meta_track_indices: [int] = None, meta_track_index: int = 0):
         # Open file
         midi_file = MidiFile.open_midi_file(file_path)
+
+        if track_indices is None:
+            track_indices = [[i] for i, _ in enumerate(midi_file.tracks)]
+        if meta_track_indices is None:
+            meta_track_indices = [i for i, _ in enumerate(midi_file.tracks)]
 
         # Get sequences from MIDI file
         merged_sequences = midi_file.to_sequences(track_indices, meta_track_indices,

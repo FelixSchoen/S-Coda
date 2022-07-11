@@ -59,6 +59,12 @@ def test_pianorolls():
     Sequence.pianorolls([bars[0][0].sequence, bars[1][0].sequence])
 
 
+def test_sequence_from_file_without_parameters():
+    sequences = Sequence.from_midi_file("resources/chopin_o66_fantaisie_impromptu.mid")
+
+    assert sequences is not None
+
+
 # Bar
 
 def test_copy_bar():
@@ -139,10 +145,8 @@ def test_consolidate_sequences():
 
 
 def test_cutoff():
-    sequence = Sequence.from_midi_file("resources/long.mid", [[0]], [0])[0]
-    Sequence.pianorolls([sequence]).show()
+    sequence = Sequence.from_midi_file("resources/chopin_o66_fantaisie_impromptu.mid", [[0]], [0])[0]
     sequence.cutoff(48, 24)
-    Sequence.pianorolls([sequence]).show()
 
 
 def test_get_valid_next_messages():
