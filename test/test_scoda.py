@@ -4,6 +4,7 @@ import mido
 
 from sCoda import Sequence, Composition, Bar
 from sCoda.elements.message import MessageType, Message
+from sCoda.sequence.sequence import NoteRepresentationType, TemporalRepresentationType
 from sCoda.settings import PPQN
 from sCoda.util.midi_wrapper import MidiFile
 from sCoda.util.music_theory import Key
@@ -63,6 +64,24 @@ def test_sequence_from_file_without_parameters():
     sequences = Sequence.from_midi_file("resources/chopin_o66_fantaisie_impromptu.mid")
 
     assert sequences is not None
+
+
+def test_sequence_to_external_representation():
+    sequences = test_midi_to_sequences()
+    sequence = sequences[0]
+
+    print()
+    df_1 = sequence.to_external_representation(NoteRepresentationType.absolute_values,
+                                               TemporalRepresentationType.relative_ticks)
+    print(df_1)
+
+    df_2 = sequence.to_external_representation(NoteRepresentationType.relative_distances,
+                                               TemporalRepresentationType.relative_ticks)
+    print(df_2)
+
+    df_3 = sequence.to_external_representation(NoteRepresentationType.circle_of_fifths,
+                                               TemporalRepresentationType.relative_ticks)
+    print(df_3)
 
 
 # Bar

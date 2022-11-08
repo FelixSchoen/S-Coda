@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import copy
+import enum
 
 import numpy as np
 import pandas as pd
@@ -14,8 +15,20 @@ from sCoda.sequence.absolute_sequence import AbsoluteSequence
 from sCoda.sequence.relative_sequence import RelativeSequence
 from sCoda.settings import PPQN, NOTE_LOWER_BOUND, NOTE_UPPER_BOUND, MAX_VELOCITY
 from sCoda.util.midi_wrapper import MidiTrack, MidiFile
-from sCoda.util.music_theory import Key
+from sCoda.util.music_theory import Key, Note, CircleOfFifths
 from sCoda.util.util import minmax, simple_regression
+
+
+class NoteRepresentationType(enum.Enum):
+    absolute_values = 0
+    relative_distances = 1
+    circle_of_fifths = 2
+    scale = 3
+
+
+class TemporalRepresentationType(enum.Enum):
+    relative_ticks = 0
+    notelike_representation = 1
 
 
 class Sequence:
@@ -308,6 +321,83 @@ class Sequence:
         """
         return self.rel.to_midi_track()
 
+    def to_external_representation(self, note_representation_type: NoteRepresentationType,
+                                   temporal_representation_type: TemporalRepresentationType,
+                                   adjust_wait_messages=True) -> DataFrame:
+        data = []
+
+        absolute_sequence = copy.copy(self.abs)
+        relative_sequence = copy.copy(self.rel)
+        if adjust_wait_messages:
+            relative_sequence.adjust_messages()
+
+        if temporal_representation_type == TemporalRepresentationType.relative_ticks:
+            base_note = 69  # A4, 440 Hz
+
+            for msg in relative_sequence.messages:
+                entry = dict()
+
+                if note_representation_type == NoteRepresentationType.absolute_values:
+                    Sequence._fill_dictionary_entry(entry,
+                                                    message_type=msg.message_type.value,
+                                                    time=msg.time,
+                                                    note=msg.note,
+                                                    velocity=msg.velocity,
+                                                    control=msg.control,
+                                                    program=msg.program,
+                                                    numerator=msg.numerator,
+                                                    denominator=msg.denominator,
+                                                    key=None if msg.key is None else msg.key.value)
+                elif note_representation_type == NoteRepresentationType.relative_distances:
+                    Sequence._fill_dictionary_entry(entry,
+                                                    message_type=msg.message_type.value,
+                                                    time=msg.time,
+                                                    note=msg.note,
+                                                    velocity=msg.velocity,
+                                                    control=msg.control,
+                                                    program=msg.program,
+                                                    numerator=msg.numerator,
+                                                    denominator=msg.denominator,
+                                                    key=None if msg.key is None else msg.key.value,
+                                                    rel_distance=None if msg.note is None else (
+                                                                                                       msg.note - base_note) % 12,
+                                                    rel_octave=None if msg.note is None else (
+                                                                                                     msg.note - base_note) // 12)
+                elif note_representation_type == NoteRepresentationType.circle_of_fifths:
+                    if msg.note is not None:
+                        current_note = Note(msg.note % 12)
+                        previous_note = Note(base_note % 12)
+
+                        cof_current_index = CircleOfFifths.index(current_note)
+                        cof_previous_index = CircleOfFifths.index(previous_note)
+
+                        distance_left = cof_previous_index - cof_current_index
+                        distance_right = np.sign(distance_left) * -1 * 12 + distance_left
+
+                        # Get smaller distance
+                        distance = distance_left if abs(distance_left) < abs(distance_right) else distance_right
+                        if abs(distance_left) == abs(distance_right):
+                            distance = distance_left if distance_left > distance_right else distance_right
+
+                        Sequence._fill_dictionary_entry(entry,
+                                                        message_type=msg.message_type.value,
+                                                        time=msg.time,
+                                                        note=msg.note,
+                                                        velocity=msg.velocity,
+                                                        control=msg.control,
+                                                        program=msg.program,
+                                                        numerator=msg.numerator,
+                                                        denominator=msg.denominator,
+                                                        key=None if msg.key is None else msg.key.value,
+                                                        rel_distance=None if msg.note is None else distance,
+                                                        rel_octave=None if msg.note is None else (msg.note - base_note) // 12)
+
+                if msg.note is not None:
+                    base_note = msg.note
+                data.append(entry)
+
+        return pd.DataFrame(data)
+
     def to_absolute_dataframe(self) -> DataFrame:
         """ Creates a `DataFrame` from the messages in this sequence.
 
@@ -386,7 +476,19 @@ class Sequence:
 
     @staticmethod
     def from_midi_file(file_path: str, track_indices: [[int]] = None,
-                       meta_track_indices: [int] = None, meta_track_index: int = 0):
+                       meta_track_indices: [int] = None, meta_track_index: int = 0) -> [sCoda.Sequence]:
+        """ Creates `sCoda.Sequence` objects from the provided MIDI file.
+
+        Args:
+            file_path: The file path of the MIDI file
+            track_indices: A list of lists indicating which tracks of the MIDI file should be merged into which tracks
+                of the resulting sequence.
+            meta_track_indices: A list of indices of tracks of the MIDI file to consider for meta messages
+            meta_track_index: The index of the track of the final sequence that should contain meta messages
+
+        Returns: An array of `sCoda.Sequence` objects
+
+        """
         # Open file
         midi_file = MidiFile.open_midi_file(file_path)
 
@@ -614,3 +716,21 @@ class Sequence:
         plt.ylim(y_scale)
 
         return plt
+
+    # === Helper Methods ===
+
+    @staticmethod
+    def _fill_dictionary_entry(entry, message_type=None, time=None, note=None, velocity=None, control=None,
+                               program=None, numerator=None, denominator=None, key=None, rel_distance=None,
+                               rel_octave=None):
+        entry["type"] = message_type
+        entry["time"] = time
+        entry["note"] = note
+        entry["velocity"] = velocity
+        entry["control"] = control
+        entry["program"] = program
+        entry["numerator"] = numerator
+        entry["denominator"] = denominator
+        entry["key"] = key
+        entry["rel_distance"] = rel_distance
+        entry["rel_octave"] = rel_octave

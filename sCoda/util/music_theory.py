@@ -40,7 +40,12 @@ class Note(enum.Enum):
     b = 11
 
 
+# Represents knowledge about the circle of fifths, note that some pitches are doubly assigned which can lead to ambiguity.
+CircleOfFifths = [Note.c, Note.g, Note.d, Note.a, Note.e, Note.b,
+                  Note.f_s, Note.c_s, Note.g_s, Note.d_s, Note.a_s, Note.f]
+
 KeyNoteMapping = {
+    # Notes belonging to scale, accidentals
     Key.c: ([Note.c, Note.d, Note.e, Note.f, Note.g, Note.a, Note.b], 0),
     Key.g: ([Note.g, Note.a, Note.b, Note.c, Note.d, Note.e, Note.f_s], 1),
     Key.d: ([Note.d, Note.e, Note.f_s, Note.g, Note.a, Note.b, Note.c_s], 2),
