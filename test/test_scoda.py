@@ -69,19 +69,26 @@ def test_sequence_from_file_without_parameters():
 def test_sequence_to_external_representation():
     sequences = test_midi_to_sequences()
     sequence = sequences[0]
+    sequence.quantise()
 
     print()
     df_1 = sequence.to_external_representation(NoteRepresentationType.absolute_values,
                                                TemporalRepresentationType.relative_ticks)
-    print(df_1)
 
     df_2 = sequence.to_external_representation(NoteRepresentationType.relative_distances,
                                                TemporalRepresentationType.relative_ticks)
-    print(df_2)
 
     df_3 = sequence.to_external_representation(NoteRepresentationType.circle_of_fifths,
                                                TemporalRepresentationType.relative_ticks)
-    print(df_3)
+
+    df_4 = sequence.to_external_representation(NoteRepresentationType.absolute_values,
+                                               TemporalRepresentationType.notelike_representation)
+
+    df_5 = sequence.to_external_representation(NoteRepresentationType.relative_distances,
+                                               TemporalRepresentationType.notelike_representation)
+
+    df_6 = sequence.to_external_representation(NoteRepresentationType.circle_of_fifths,
+                                               TemporalRepresentationType.notelike_representation)
 
 
 # Bar
