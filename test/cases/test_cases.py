@@ -2,8 +2,8 @@ import copy
 
 import mido
 
-from cases.fixtures import RESOURCE_BEETHOVEN, RESOURCE_CHOPIN
-from cases.test_util import util_midi_to_sequences, util_load_composition, util_split_into_bars
+from util import *
+from fixtures import RESOURCE_BEETHOVEN, RESOURCE_CHOPIN
 from s_coda import Sequence, Composition, Bar
 from s_coda.elements.message import MessageType
 from s_coda.sequence.sequence import NoteRepresentationType, TemporalRepresentationType
@@ -343,3 +343,8 @@ def test_print_midi_file():
             print(msg)
 
     print(len(midi_file.tracks))
+
+
+# Utils
+
+

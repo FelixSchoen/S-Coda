@@ -1,6 +1,6 @@
 from fixtures import RESOURCE_BEETHOVEN
 from s_coda import Composition, Sequence
-from util.midi_wrapper import MidiFile
+from s_coda.util.midi_wrapper import MidiFile
 
 
 def util_midi_to_sequences(file=None, lead_tracks=None, acmp_tracks=None,
