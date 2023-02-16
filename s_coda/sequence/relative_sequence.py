@@ -7,19 +7,19 @@ import time
 from statistics import mean
 from typing import TYPE_CHECKING
 
-from sCoda.elements.message import Message, MessageType
-from sCoda.exception.exceptions import SequenceException
-from sCoda.sequence.abstract_sequence import AbstractSequence
-from sCoda.settings import NOTE_LOWER_BOUND, NOTE_UPPER_BOUND, PPQN, DIFF_DISTANCES_UPPER_BOUND, \
+from s_coda.elements.message import Message, MessageType
+from s_coda.exception.exceptions import SequenceException
+from s_coda.sequence.abstract_sequence import AbstractSequence
+from s_coda.settings import NOTE_LOWER_BOUND, NOTE_UPPER_BOUND, PPQN, DIFF_DISTANCES_UPPER_BOUND, \
     DIFF_DISTANCES_LOWER_BOUND, DIFF_PATTERN_COVERAGE_UPPER_BOUND, DIFF_PATTERN_COVERAGE_LOWER_BOUND, \
     PATTERN_LENGTH, REGEX_PATTERN, REGEX_SUBPATTERN, DIFF_NOTE_CLASSES_UPPER_BOUND, DIFF_NOTE_CLASSES_LOWER_BOUND, \
     DIFF_NOTE_AMOUNT_UPPER_BOUND, DIFF_NOTE_AMOUNT_LOWER_BOUND, PATTERN_MAX_SEARCH_DURATION, \
     DIFF_NOTE_CONCURRENT_UPPER_BOUND, DIFF_NOTE_CONCURRENT_LOWER_BOUND, DIFF_ACCIDENTALS_UPPER_BOUND, \
     DIFF_ACCIDENTALS_LOWER_BOUND
-from sCoda.util.logging import get_logger
-from sCoda.util.midi_wrapper import MidiTrack, MidiMessage
-from sCoda.util.music_theory import KeyNoteMapping, Note, Key, key_transpose_order, key_transpose_mapping
-from sCoda.util.util import minmax, simple_regression
+from s_coda.util.logging import get_logger
+from s_coda.util.midi_wrapper import MidiTrack, MidiMessage
+from s_coda.util.music_theory import KeyNoteMapping, Note, Key, key_transpose_order, key_transpose_mapping
+from s_coda.util.util import minmax, simple_regression
 
 if TYPE_CHECKING:
     from sCoda.sequence.absolute_sequence import AbsoluteSequence
@@ -609,7 +609,7 @@ class RelativeSequence(AbstractSequence):
                     msg.time = msg.time * factor
         # Handle special case, have to consider time signatures
         else:
-            from sCoda import Sequence
+            from s_coda import Sequence
 
             modified_messages = []
             sequence = Sequence(relative_sequence=self)
@@ -668,7 +668,7 @@ class RelativeSequence(AbstractSequence):
         Returns: The absolute representation of this sequence
 
         """
-        from sCoda.sequence.absolute_sequence import AbsoluteSequence
+        from s_coda.sequence.absolute_sequence import AbsoluteSequence
         absolute_sequence = AbsoluteSequence()
         current_point_in_time = 0
         cap_message_exists = True

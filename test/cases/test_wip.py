@@ -1,9 +1,10 @@
 import copy
 
-from sCoda import Message, Composition, Sequence, Bar
-from sCoda.elements.message import MessageType
-from sCoda.util.music_theory import Key
+from s_coda import Message, Composition, Sequence, Bar
+from s_coda.elements.message import MessageType
+from s_coda.util.music_theory import Key
 
+# This file only contains tests for the purpose of developing S-Coda
 
 def test_message_representation():
     msg = Message(message_type=MessageType.note_on, note=42, velocity=127, control=0, numerator=4, denominator=4,
@@ -22,33 +23,33 @@ def test_stuff():
     return composition
 
 
-def test_difficulty():
-    sequence = Sequence.from_midi_file("resources/0022_6 Partitas, Clavierubung part I, no 2.zip_1.mid", [[0]], [0])[0]
-    num = 4
-    den = 4
-
-    for msg in sequence.rel.messages:
-        if msg.message_type == MessageType.time_signature:
-            num = msg.numerator
-            den = msg.denominator
-            break
-
-    print()
-    bar = Bar(sequence, num, den)
-
-    x = bar.sequence
-    bar.difficulty()
-
-    print(f"Note Amount: {x._diff_note_amount}")
-    print(f"Note Values: {x._diff_note_values}")
-    print(f"Note Classes: {x._diff_note_classes}")
-    print(f"Concurrent Notes: {x._diff_concurrent_notes}")
-    print(f"Key: {x._diff_key}")
-    print(f"Accidentals: {x._diff_accidentals}")
-    print(f"Distances: {x._diff_distances}")
-    print(f"Rhythm: {x._diff_rhythm}")
-    print(f"Pattern: {x._diff_pattern}")
-    print(f"Overall Difficulty: {bar.difficulty()}")
+# def test_difficulty():
+#     sequence = Sequence.from_midi_file("resources/beethoven_o27-2_m3.mid", [[0]], [0])[0]
+#     num = 4
+#     den = 4
+#
+#     for msg in sequence.rel.messages:
+#         if msg.message_type == MessageType.time_signature:
+#             num = msg.numerator
+#             den = msg.denominator
+#             break
+#
+#     print()
+#     bar = Bar(sequence, num, den)
+#
+#     x = bar.sequence
+#     bar.difficulty()
+#
+#     print(f"Note Amount: {x._diff_note_amount}")
+#     print(f"Note Values: {x._diff_note_values}")
+#     print(f"Note Classes: {x._diff_note_classes}")
+#     print(f"Concurrent Notes: {x._diff_concurrent_notes}")
+#     print(f"Key: {x._diff_key}")
+#     print(f"Accidentals: {x._diff_accidentals}")
+#     print(f"Distances: {x._diff_distances}")
+#     print(f"Rhythm: {x._diff_rhythm}")
+#     print(f"Pattern: {x._diff_pattern}")
+#     print(f"Overall Difficulty: {bar.difficulty()}")
 
 
 def test_concurrent():

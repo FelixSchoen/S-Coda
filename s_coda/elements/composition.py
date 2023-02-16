@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-from sCoda.elements.track import Track
-from sCoda.sequence.sequence import Sequence
+from s_coda.elements.track import Track
+from s_coda.sequence.sequence import Sequence
 
 
 class Composition:

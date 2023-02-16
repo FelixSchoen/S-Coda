@@ -4,11 +4,11 @@ import copy
 
 import mido
 
-import sCoda
-from sCoda.elements.message import MessageType, Message
-from sCoda.settings import PPQN
-from sCoda.util.logging import get_logger
-from sCoda.util.music_theory import Key, KeyKeyMapping
+import s_coda
+from s_coda.elements.message import MessageType, Message
+from s_coda.settings import PPQN
+from s_coda.util.logging import get_logger
+from s_coda.util.music_theory import Key, KeyKeyMapping
 
 
 class MidiFile:
@@ -19,8 +19,8 @@ class MidiFile:
         self.PPQN = PPQN
 
     def to_sequences(self, track_indices: [[int]], meta_track_indices: [int], meta_track_index: int = 0) -> [
-        sCoda.Sequence]:
-        """ Parses this `MidiFile` and returns a list of `sCoda.Sequence`.
+        s_coda.Sequence]:
+        """ Parses this `MidiFile` and returns a list of `s_coda.Sequence`.
 
         Args:
             track_indices: A list of grouped indices of tracks. Tracks in the same group will be merged to a single sequence.
@@ -30,7 +30,7 @@ class MidiFile:
         Returns: A list of parsed sequences.
 
         """
-        from sCoda import Sequence
+        from s_coda import Sequence
 
         logger = get_logger(__name__)
 

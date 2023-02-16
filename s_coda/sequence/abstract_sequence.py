@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 
-from sCoda.elements.message import Message
+from s_coda.elements.message import Message
 
 
 class AbstractSequence(ABC):

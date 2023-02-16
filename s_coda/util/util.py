@@ -3,7 +3,7 @@ from pathlib import Path
 
 import numpy as np
 
-from sCoda.settings import MAX_VELOCITY, VELOCITY_BINS, PPQN
+from s_coda.settings import MAX_VELOCITY, VELOCITY_BINS, PPQN
 
 
 def bin_from_velocity(velocity: int) -> int:
@@ -48,7 +48,7 @@ def b_insort(collection: list, message) -> None:
 def digitise_velocity(velocity_unquantised: int) -> int:
     """ Digitises velocity to bins.
 
-    Digitises the given velocity based on the settings of sCoda. Returns a value that corresponds to one of the bins,
+    Digitises the given velocity based on the settings of s_coda. Returns a value that corresponds to one of the bins,
     but not the index of the bin itself. E.g., the value of 33 could be quantised to 32 with bins of size 16.
     In this case, the value of 32 would be returned, rather than the index 2 (of the second bin).
 

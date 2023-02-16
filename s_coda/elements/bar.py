@@ -2,12 +2,12 @@ from __future__ import annotations
 
 from pandas import DataFrame
 
-from sCoda.elements.message import MessageType, Message
-from sCoda.exception.exceptions import BarException
-from sCoda.sequence.sequence import Sequence
-from sCoda.settings import PPQN
-from sCoda.util.logging import get_logger
-from sCoda.util.music_theory import Key
+from s_coda.elements.message import MessageType, Message
+from s_coda.exception.exceptions import BarException
+from s_coda.sequence.sequence import Sequence
+from s_coda.settings import PPQN
+from s_coda.util.logging import get_logger
+from s_coda.util.music_theory import Key
 
 
 class Bar:
@@ -72,19 +72,19 @@ class Bar:
         return self.sequence.is_empty()
 
     def to_absolute_dataframe(self) -> DataFrame:
-        """ See `sCoda.sequence.sequence.Sequence.to_absolute_dataframe`
+        """ See `s_coda.sequence.sequence.Sequence.to_absolute_dataframe`
 
         """
         return self.sequence.to_absolute_dataframe()
 
     def to_relative_dataframe(self) -> DataFrame:
-        """ See `sCoda.sequence.sequence.Sequence.to_relative_dataframe`
+        """ See `s_coda.sequence.sequence.Sequence.to_relative_dataframe`
 
         """
         return self.sequence.to_relative_dataframe()
 
     def transpose(self, transpose_by: int) -> bool:
-        """ See `sCoda.sequence.relative_sequence.RelativeSequence.transpose`
+        """ See `s_coda.sequence.relative_sequence.RelativeSequence.transpose`
 
         """
         return self.sequence.transpose(transpose_by)

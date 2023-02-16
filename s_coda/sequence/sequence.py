@@ -9,14 +9,14 @@ from matplotlib import pyplot as plt, pyplot
 from matplotlib.patches import Rectangle
 from pandas import DataFrame
 
-import sCoda
-from sCoda.elements.message import MessageType, Message
-from sCoda.sequence.absolute_sequence import AbsoluteSequence
-from sCoda.sequence.relative_sequence import RelativeSequence
-from sCoda.settings import PPQN, NOTE_LOWER_BOUND, NOTE_UPPER_BOUND, MAX_VELOCITY
-from sCoda.util.midi_wrapper import MidiTrack, MidiFile
-from sCoda.util.music_theory import Key, Note, CircleOfFifths
-from sCoda.util.util import minmax, simple_regression
+import s_coda
+from s_coda.elements.message import MessageType, Message
+from s_coda.sequence.absolute_sequence import AbsoluteSequence
+from s_coda.sequence.relative_sequence import RelativeSequence
+from s_coda.settings import PPQN, NOTE_LOWER_BOUND, NOTE_UPPER_BOUND, MAX_VELOCITY
+from s_coda.util.midi_wrapper import MidiTrack, MidiFile
+from s_coda.util.music_theory import Key, Note, CircleOfFifths
+from s_coda.util.util import minmax, simple_regression
 
 
 class NoteRepresentationType(enum.Enum):
@@ -32,8 +32,8 @@ class TemporalRepresentationType(enum.Enum):
 
 
 class Sequence:
-    """ Wrapper for `sCoda.sequence.absolute_sequence.AbsoluteSequence` and
-    `sCoda.sequence.relative_sequence.RelativeSequence`.
+    """ Wrapper for `s_coda.sequence.absolute_sequence.AbsoluteSequence` and
+    `s_coda.sequence.relative_sequence.RelativeSequence`.
 
     This class serves as a wrapper for the two above-mentioned classes. This abstraction provides an easier
     understanding for the end-user, who does not have to concern themselves with implementational details.
@@ -121,35 +121,35 @@ class Sequence:
     # === Methods ===
 
     def add_absolute_message(self, msg) -> None:
-        """ See `sCoda.sequence.absolute_sequence.AbsoluteSequence.add_message`
+        """ See `s_coda.sequence.absolute_sequence.AbsoluteSequence.add_message`
 
         """
         self.abs.add_message(msg)
         self._rel_stale = True
 
     def add_relative_message(self, msg) -> None:
-        """ See `sCoda.sequence.relative_sequence.RelativeSequence.add_message`
+        """ See `s_coda.sequence.relative_sequence.RelativeSequence.add_message`
 
         """
         self.rel.add_message(msg)
         self._abs_stale = True
 
     def adjust_messages(self) -> None:
-        """ See `sCoda.sequence.relative_sequence.RelativeSequence.adjust_messages`
+        """ See `s_coda.sequence.relative_sequence.RelativeSequence.adjust_messages`
 
         """
         self.rel.adjust_messages()
         self._abs_stale = True
 
     def concatenate(self, sequences: [Sequence]) -> None:
-        """ See `sCoda.sequence.relative_sequence.RelativeSequence.concatenate`
+        """ See `s_coda.sequence.relative_sequence.RelativeSequence.concatenate`
 
         """
         self.rel.concatenate([seq.rel for seq in sequences])
         self._abs_stale = True
 
     def cutoff(self, maximum_length, reduced_length) -> None:
-        """ See `sCoda.sequence.relative_sequence.AbsoluteSequence.cutoff`
+        """ See `s_coda.sequence.relative_sequence.AbsoluteSequence.cutoff`
 
         """
         self.abs.cutoff(maximum_length=maximum_length, reduced_length=reduced_length)
@@ -252,26 +252,26 @@ class Sequence:
         return self._diff_pattern
 
     def get_message_timing(self, message_type: MessageType) -> [(int, Message)]:
-        """ See `sCoda.sequence.absolute_sequence.AbsoluteSequence.get_message_timing`
+        """ See `s_coda.sequence.absolute_sequence.AbsoluteSequence.get_message_timing`
 
         """
         return self.abs.get_message_timing(message_type)
 
     def is_empty(self) -> bool:
-        """ See `sCoda.sequence.relative_sequence.RelativeSequence.is_empty`
+        """ See `s_coda.sequence.relative_sequence.RelativeSequence.is_empty`
 
         """
         return self.rel.is_empty()
 
     def merge(self, sequences: [Sequence]) -> None:
-        """ See `sCoda.sequence.absolute_sequence.AbsoluteSequence.merge`
+        """ See `s_coda.sequence.absolute_sequence.AbsoluteSequence.merge`
 
         """
         self.abs.merge([seq.abs for seq in sequences])
         self._rel_stale = True
 
     def pad_sequence(self, padding_length):
-        """ See `sCoda.sequence.relative_sequence.RelativeSequence.pad_sequence`
+        """ See `s_coda.sequence.relative_sequence.RelativeSequence.pad_sequence`
 
         """
         self.rel.pad_sequence(padding_length)
@@ -289,19 +289,19 @@ class Sequence:
         return Sequence.save_sequences([self], file_path)
 
     def sequence_length(self) -> float:
-        """ See `sCoda.sequence.absolute_sequence.AbsoluteSequence.sequence_length`
+        """ See `s_coda.sequence.absolute_sequence.AbsoluteSequence.sequence_length`
 
         """
         return self.abs.sequence_length()
 
     def sequence_length_relation(self) -> float:
-        """ See `sCoda.sequence.relative_sequence.RelativeSequence.sequence_length_relation`
+        """ See `s_coda.sequence.relative_sequence.RelativeSequence.sequence_length_relation`
 
         """
         return self.rel.sequence_length_relation()
 
     def split(self, capacities: [int]) -> [Sequence]:
-        """ See `sCoda.sequence.relative_sequence.RelativeSequence.split`
+        """ See `s_coda.sequence.relative_sequence.RelativeSequence.split`
 
         """
         relative_sequences = self.rel.split(capacities)
@@ -309,14 +309,14 @@ class Sequence:
         return sequences
 
     def scale(self, factor, meta_sequence=None) -> None:
-        """ See `sCoda.sequence.relative_sequence.RelativeSequence.scale`
+        """ See `s_coda.sequence.relative_sequence.RelativeSequence.scale`
 
         """
         self.rel.scale(factor, meta_sequence)
         self._abs_stale = True
 
     def to_midi_track(self) -> MidiTrack:
-        """ See `sCoda.sequence.relative_sequence.RelativeSequence.to_midi_track`
+        """ See `s_coda.sequence.relative_sequence.RelativeSequence.to_midi_track`
 
         """
         return self.rel.to_midi_track()
@@ -455,7 +455,7 @@ class Sequence:
         return Sequence.to_dataframe(relative_sequence.messages)
 
     def transpose(self, transpose_by: int) -> bool:
-        """ See `sCoda.sequence.relative_sequence.RelativeSequence.transpose`
+        """ See `s_coda.sequence.relative_sequence.RelativeSequence.transpose`
 
         """
         self._abs_stale = True
@@ -473,14 +473,14 @@ class Sequence:
         return shifted
 
     def quantise(self, step_sizes: [int] = None) -> None:
-        """ See `sCoda.sequence.absolute_sequence.AbsoluteSequence.quantise`
+        """ See `s_coda.sequence.absolute_sequence.AbsoluteSequence.quantise`
 
         """
         self.abs.quantise(step_sizes)
         self._rel_stale = True
 
     def quantise_note_lengths(self, possible_durations=None, standard_length=PPQN, do_not_extend=False) -> None:
-        """ See `sCoda.sequence.absolute_sequence.AbsoluteSequence.quantise_note_lengths`
+        """ See `s_coda.sequence.absolute_sequence.AbsoluteSequence.quantise_note_lengths`
 
         """
         self.abs.quantise_note_lengths(possible_durations, standard_length=standard_length, do_not_extend=do_not_extend)
@@ -508,8 +508,8 @@ class Sequence:
 
     @staticmethod
     def from_midi_file(file_path: str, track_indices: [[int]] = None,
-                       meta_track_indices: [int] = None, meta_track_index: int = 0) -> [sCoda.Sequence]:
-        """ Creates `sCoda.Sequence` objects from the provided MIDI file.
+                       meta_track_indices: [int] = None, meta_track_index: int = 0) -> [s_coda.Sequence]:
+        """ Creates `s_coda.Sequence` objects from the provided MIDI file.
 
         Args:
             file_path: The file path of the MIDI file
@@ -518,7 +518,7 @@ class Sequence:
             meta_track_indices: A list of indices of tracks of the MIDI file to consider for meta messages
             meta_track_index: The index of the track of the final sequence that should contain meta messages
 
-        Returns: An array of `sCoda.Sequence` objects
+        Returns: An array of `s_coda.Sequence` objects
 
         """
         # Open file
@@ -536,8 +536,8 @@ class Sequence:
         return merged_sequences
 
     @staticmethod
-    def split_into_bars(sequences_input: [Sequence], meta_track_index=0, quantise_note_lengths=True) -> [[sCoda.Bar]]:
-        """ Splits the sequences into a lists of `sCoda.Bar`, conforming to the contained time signatures.
+    def split_into_bars(sequences_input: [Sequence], meta_track_index=0, quantise_note_lengths=True) -> [[s_coda.Bar]]:
+        """ Splits the sequences into a lists of `s_coda.Bar`, conforming to the contained time signatures.
 
         Each list of bars will correspond to one of the given sequences.
 
@@ -550,7 +550,7 @@ class Sequence:
 
         """
 
-        from sCoda import Bar
+        from s_coda import Bar
 
         sequences = copy.copy(sequences_input)
 

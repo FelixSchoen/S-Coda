@@ -2,13 +2,13 @@ import copy
 
 import mido
 
-from sCoda import Sequence, Composition, Bar
-from sCoda.elements.message import MessageType, Message
-from sCoda.sequence.sequence import NoteRepresentationType, TemporalRepresentationType
-from sCoda.settings import PPQN
-from sCoda.util.midi_wrapper import MidiFile
-from sCoda.util.music_theory import Key
-from sCoda.util.util import digitise_velocity, bin_from_velocity
+from s_coda import Sequence, Composition, Bar
+from s_coda.elements.message import MessageType, Message
+from s_coda.sequence.sequence import NoteRepresentationType, TemporalRepresentationType
+from s_coda.settings import PPQN
+from s_coda.util.midi_wrapper import MidiFile
+from s_coda.util.music_theory import Key
+from s_coda.util.util import digitise_velocity, bin_from_velocity
 
 
 # General

@@ -4,18 +4,18 @@ import copy
 from statistics import geometric_mean
 from typing import TYPE_CHECKING
 
-from sCoda.elements.message import Message, MessageType
-from sCoda.exception.exceptions import SequenceException
-from sCoda.sequence.abstract_sequence import AbstractSequence
-from sCoda.settings import PPQN, DIFF_NOTE_VALUES_UPPER_BOUND, \
+from s_coda.elements.message import Message, MessageType
+from s_coda.exception.exceptions import SequenceException
+from s_coda.sequence.abstract_sequence import AbstractSequence
+from s_coda.settings import PPQN, DIFF_NOTE_VALUES_UPPER_BOUND, \
     DIFF_NOTE_VALUES_LOWER_BOUND, NOTE_VALUE_UPPER_BOUND, NOTE_VALUE_LOWER_BOUND, VALID_TUPLETS, DOTTED_ITERATIONS, \
     SCALE_LOGLIKE
-from sCoda.util.logging import get_logger
-from sCoda.util.util import b_insort, find_minimal_distance, regress, minmax, simple_regression, get_note_durations, \
+from s_coda.util.logging import get_logger
+from s_coda.util.util import b_insort, find_minimal_distance, regress, minmax, simple_regression, get_note_durations, \
     get_tuplet_durations, get_dotted_note_durations
 
 if TYPE_CHECKING:
-    from sCoda.sequence.relative_sequence import RelativeSequence
+    from s_coda.sequence.relative_sequence import RelativeSequence
 
 
 class AbsoluteSequence(AbstractSequence):
@@ -178,8 +178,8 @@ class AbsoluteSequence(AbstractSequence):
         two grid boundaries, these are first resolved by whether the quantisation would prevent a note-length of 0,
         then by the order of the `step_sizes` array. The result of this operation is that all messages of this
         sequence have a time divisible by one of the values in `step_sizes`. If the quantisation resulted in two
-        notes overlapping, the second note will be removed. See `sCoda.util.util.get_note_durations`,
-        `sCoda.util.util.get_tuplet_durations` and `sCoda.util.util.get_dotted_note_durations` for generating the
+        notes overlapping, the second note will be removed. See `s_coda.util.util.get_note_durations`,
+        `s_coda.util.util.get_tuplet_durations` and `s_coda.util.util.get_dotted_note_durations` for generating the
         `step_sizes` array.
 
         Args:
@@ -286,8 +286,8 @@ class AbsoluteSequence(AbstractSequence):
         """ Quantises the note lengths of this sequence, only affecting the ending of the notes.
 
         Quantises notes to the given values, ensuring that all notes are of one of the sizes defined by the
-        parameters. See `sCoda.util.util.get_note_durations`, `sCoda.util.util.get_tuplet_durations` and
-        `sCoda.util.util.get_dotted_note_durations` for generating the `possible_durations` array. Tries to shorten
+        parameters. See `s_coda.util.util.get_note_durations`, `s_coda.util.util.get_tuplet_durations` and
+        `s_coda.util.util.get_dotted_note_durations` for generating the `possible_durations` array. Tries to shorten
         or extend the end of each note in such a way that the note duration is exactly one of the values given in
         `possible_durations`. If this is not possible (e.g., due to an overlap with another note that would occur),
         the note that can neither be shortened nor lengthened will be removed from the sequence. Note that this is
@@ -388,7 +388,7 @@ class AbsoluteSequence(AbstractSequence):
         Returns: The relative representation of this sequence
 
         """
-        from sCoda.sequence.relative_sequence import RelativeSequence
+        from s_coda.sequence.relative_sequence import RelativeSequence
         relative_sequence = RelativeSequence()
         current_point_in_time = 0
 

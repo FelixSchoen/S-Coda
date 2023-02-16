@@ -24,7 +24,7 @@ REGEX_SUBPATTERN = r"^(?P<pattern>(?:[+-]\d+)+)(?P=pattern)+$"
 # Amount of seconds after which greedy pattern matching is applied
 PATTERN_MAX_SEARCH_DURATION = 5
 
-ROOT_LOGGER = "scoda"
+ROOT_LOGGER = "s_coda"
 
 # Polynomials, generated using http://arachnoid.com
 SCALE_X3 = [
@@ -59,7 +59,7 @@ DIFF_ACCIDENTALS_LOWER_BOUND: float
 
 def set_ppqn(ppqn: int) -> None:
     """
-    Sets the parts per quarter note value used by sCoda
+    Sets the parts per quarter note value used by s_coda
 
     :param ppqn: Parts per quarter note value in ticks
     """
@@ -74,7 +74,7 @@ def set_ppqn(ppqn: int) -> None:
 
 def set_velocity_bins(velocity_bins: int) -> None:
     """
-    Sets the amount of velocity bins used by sCoda
+    Sets the amount of velocity bins used by s_coda
 
     :param velocity_bins: Amount of velocity bins to use
     """

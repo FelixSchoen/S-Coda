@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import enum
 
-from sCoda.util.music_theory import Key
+from s_coda.util.music_theory import Key
 
 
 class MessageType(enum.Enum):
