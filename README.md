@@ -1,7 +1,7 @@
 # S-Coda
 
 [![Python](https://img.shields.io/badge/Python-3.10-blue)](
-https://doi.org/10.34726/hss.2023.103585)
+https://pypi.org/project/s-coda)
 [![DOI](https://img.shields.io/badge/DOI-10.34726%2Fhss.2023.103585-blue)](
 https://doi.org/10.34726/hss.2023.103585)
 
@@ -9,7 +9,7 @@ S-Coda is a Python library for handling MIDI files.
 S-Coda supports a plethora of different MIDI manipulation operations, such as:
 
 - quantisation of notes
-- quantisation of notelengths
+- quantisation of note lengths
 - splitting sequences into bars
 - transposing of sequences
 - creating piano-roll visualisations of pieces
