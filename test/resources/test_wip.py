@@ -1,6 +1,7 @@
 import copy
 
-from s_coda import Message, Composition, Sequence, Bar
+from util.fixtures import RESOURCE_BEETHOVEN
+from s_coda import Message, Composition, Sequence
 from s_coda.elements.message import MessageType
 from s_coda.util.music_theory import Key
 
@@ -16,7 +17,7 @@ def test_message_representation():
 
 
 def test_stuff():
-    composition = Composition.from_midi_file("resources/beethoven_o27-2_m3.mid", [[1], [2]], [0, 3])
+    composition = Composition.from_midi_file(RESOURCE_BEETHOVEN, [[1], [2]], [0, 3])
 
     assert len(composition.tracks) == 2
 
@@ -53,7 +54,7 @@ def test_stuff():
 
 
 def test_concurrent():
-    sequence = Sequence.from_midi_file("resources/beethoven_o27-2_m3.mid", [[0]], [0])[0]
+    sequence = Sequence.from_midi_file(RESOURCE_BEETHOVEN, [[0]], [0])[0]
 
     seq_lead = sequence
     seq_acmp = copy.copy(sequence)

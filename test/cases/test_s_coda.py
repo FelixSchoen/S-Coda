@@ -2,72 +2,37 @@ import copy
 
 import mido
 
+from cases.fixtures import RESOURCE_BEETHOVEN, RESOURCE_CHOPIN
+from cases.test_util import util_midi_to_sequences, util_load_composition, util_split_into_bars
 from s_coda import Sequence, Composition, Bar
-from s_coda.elements.message import MessageType, Message
+from s_coda.elements.message import MessageType
 from s_coda.sequence.sequence import NoteRepresentationType, TemporalRepresentationType
 from s_coda.settings import PPQN
 from s_coda.util.midi_wrapper import MidiFile
-from s_coda.util.music_theory import Key
 from s_coda.util.util import digitise_velocity, bin_from_velocity
 
 
 # General
 
-def test_load_composition():
-    composition = Composition.from_midi_file("resources/beethoven_o27-2_m3.mid", [[1], [2]], [0, 3])
-
-    assert len(composition.tracks) == 2
-
-    return composition
-
-
-def test_midi_to_sequences(file="resources/beethoven_o27-2_m3.mid", lead_tracks=None, acmp_tracks=None,
-                           meta_tracks=None):
-    if lead_tracks is None:
-        lead_tracks = [1]
-
-    if acmp_tracks is None:
-        acmp_tracks = [2]
-
-    if meta_tracks is None:
-        meta_tracks = [0, 3]
-
-    midi_file = MidiFile.open_midi_file(file)
-    sequences = midi_file.to_sequences([lead_tracks, acmp_tracks], meta_tracks)
-
-    assert len(sequences) == 2
-
-    return sequences
-
 
 # Sequence
 
 
-def test_split_into_bars():
-    sequences = test_midi_to_sequences()
-    bars = Sequence.split_into_bars(sequences)
-
-    assert len(bars) == 2
-    assert len(bars[0]) == len(bars[1])
-
-    return bars
-
-
 def test_pianorolls():
-    sequences = test_midi_to_sequences()
+    sequences = util_midi_to_sequences()
     bars = Sequence.split_into_bars(sequences)
 
     Sequence.pianorolls([bars[0][0].sequence, bars[1][0].sequence])
 
 
 def test_sequence_from_file_without_parameters():
-    sequences = Sequence.from_midi_file("resources/chopin_o66_fantaisie_impromptu.mid")
+    sequences = Sequence.from_midi_file(RESOURCE_BEETHOVEN)
 
     assert sequences is not None
 
 
 def test_sequence_to_external_representation():
-    sequences = test_midi_to_sequences()
+    sequences = util_midi_to_sequences()
     sequence = sequences[0]
     sequence.quantise()
 
@@ -94,7 +59,7 @@ def test_sequence_to_external_representation():
 # Bar
 
 def test_copy_bar():
-    sequences = test_midi_to_sequences()
+    sequences = util_midi_to_sequences()
     bars = Sequence.split_into_bars(sequences)
     bar = bars[0][0]
 
@@ -104,7 +69,7 @@ def test_copy_bar():
 
 
 def test_bars_to_sequence():
-    sequence = test_midi_to_sequences()[0]
+    sequence = util_midi_to_sequences()[0]
     sequence.quantise()
     sequence.quantise_note_lengths()
 
@@ -132,7 +97,7 @@ def test_bars_to_sequence():
 # Track
 
 def test_track_to_sequence():
-    composition = test_load_composition()
+    composition = util_load_composition()
     track = composition.tracks[0]
     seq = track.to_sequence()
 
@@ -142,7 +107,7 @@ def test_track_to_sequence():
 # Relative Sequence
 
 def test_adjust_wait_messages():
-    sequences = test_midi_to_sequences()
+    sequences = util_midi_to_sequences()
     sequence = sequences[0]
 
     duration_pre = 0
@@ -162,7 +127,7 @@ def test_adjust_wait_messages():
 
 
 def test_consolidate_sequences():
-    sequences = test_midi_to_sequences()
+    sequences = util_midi_to_sequences()
     sequence = Sequence()
     sequence.concatenate([sequences[0], sequences[1]])
 
@@ -171,12 +136,12 @@ def test_consolidate_sequences():
 
 
 def test_cutoff():
-    sequence = Sequence.from_midi_file("resources/chopin_o66_fantaisie_impromptu.mid", [[0]], [0])[0]
+    sequence = Sequence.from_midi_file(RESOURCE_CHOPIN, [[0]], [0])[0]
     sequence.cutoff(48, 24)
 
 
 def test_get_valid_next_messages():
-    sequences = test_midi_to_sequences()
+    sequences = util_midi_to_sequences()
     bars = Sequence.split_into_bars(sequences)
     sequence = bars[0][0].sequence
 
@@ -184,7 +149,7 @@ def test_get_valid_next_messages():
 
 
 def test_difficulty_assessment():
-    bars = test_split_into_bars()
+    bars = util_split_into_bars()
     bar = bars[0][0]
     for msg in bar.sequence.rel.messages:
         if msg.message_type == MessageType.key_signature:
@@ -198,7 +163,7 @@ def test_difficulty_assessment():
 
 
 def test_pad_sequence():
-    sequences = test_midi_to_sequences()
+    sequences = util_midi_to_sequences()
     sequence = sequences[0]
 
     assert sum(
@@ -211,7 +176,7 @@ def test_pad_sequence():
 
 
 def test_split():
-    sequences = test_midi_to_sequences()
+    sequences = util_midi_to_sequences()
     sequence = sequences[0]
 
     split_up = sequence.split([4 * PPQN])
@@ -221,7 +186,7 @@ def test_split():
 
 
 def test_scale():
-    sequences = test_midi_to_sequences()
+    sequences = util_midi_to_sequences()
 
     original_sequence = sequences[0]
     original_bars = Sequence.split_into_bars([original_sequence], quantise_note_lengths=False)[0]
@@ -247,7 +212,7 @@ def test_scale():
 
 
 def test_scale_then_create_composition():
-    sequences = test_midi_to_sequences(file="resources/beethoven_o27-2_m3.mid")
+    sequences = util_midi_to_sequences()
 
     assert all(msg.message_type != MessageType.time_signature for msg in sequences[1].rel.messages)
 
@@ -276,7 +241,7 @@ def test_scale_then_create_composition():
 
 
 def test_transpose():
-    sequences = test_midi_to_sequences()
+    sequences = util_midi_to_sequences()
     sequence = sequences[0]
 
     note_heights = [msg.note for msg in sequence.rel.messages if
@@ -297,7 +262,7 @@ def test_transpose():
 # Absolute Sequence
 
 def test_get_timing_of_message_type():
-    sequences = test_midi_to_sequences()
+    sequences = util_midi_to_sequences()
     sequence = sequences[0]
 
     timings = sequence.get_message_timing(MessageType.time_signature)
@@ -309,7 +274,7 @@ def test_get_timing_of_message_type():
 
 
 def test_merge_sequences():
-    sequences = test_midi_to_sequences()
+    sequences = util_midi_to_sequences()
     sequence = Sequence()
 
     sequence.merge(sequences)
@@ -319,7 +284,7 @@ def test_merge_sequences():
 
 
 def test_quantise():
-    sequences = test_midi_to_sequences()
+    sequences = util_midi_to_sequences()
     sequence = sequences[0]
 
     sequence.quantise([PPQN])
@@ -328,7 +293,7 @@ def test_quantise():
 
 
 def test_quantise_note_lengths():
-    sequences = test_midi_to_sequences()
+    sequences = util_midi_to_sequences()
     sequence = sequences[0]
 
     sequence.quantise([PPQN])
@@ -336,7 +301,7 @@ def test_quantise_note_lengths():
 
 
 def test_sequence_length():
-    sequences = test_midi_to_sequences()
+    sequences = util_midi_to_sequences()
 
     assert all(sequence.sequence_length() == sequences[0].sequence_length() for sequence in sequences)
 
@@ -360,7 +325,7 @@ def test_velocity_digitised_to_correct_bin_indices():
 # MidiFile
 
 def test_midi_file_to_mido_track():
-    midi_file = MidiFile.open_midi_file("resources/beethoven_o27-2_m3.mid")
+    midi_file = MidiFile.open_midi_file(RESOURCE_BEETHOVEN)
     mido_track = midi_file.tracks[0].to_mido_track()
 
     assert isinstance(mido_track, mido.MidiTrack)
@@ -369,7 +334,7 @@ def test_midi_file_to_mido_track():
 # Mido
 
 def test_print_midi_file():
-    midi_file = mido.MidiFile("resources/beethoven_o27-2_m3.mid")
+    midi_file = mido.MidiFile()
 
     for track in midi_file.tracks:
         print()
