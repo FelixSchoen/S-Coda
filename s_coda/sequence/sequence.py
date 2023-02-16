@@ -308,12 +308,19 @@ class Sequence:
         sequences = [Sequence(relative_sequence=seq) for seq in relative_sequences]
         return sequences
 
-    def scale(self, factor, meta_sequence=None) -> None:
+    def scale(self, factor, meta_sequence=None, quantise_afterwards=True) -> None:
         """ See `s_coda.sequence.relative_sequence.RelativeSequence.scale`
+
+        Args:
+            quantise_afterwards: Whether to apply quantisation to the sequence after the scaling operation
 
         """
         self.rel.scale(factor, meta_sequence)
         self._abs_stale = True
+
+        if quantise_afterwards:
+            self.quantise()
+            self.quantise_note_lengths()
 
     def to_midi_track(self) -> MidiTrack:
         """ See `s_coda.sequence.relative_sequence.RelativeSequence.to_midi_track`
