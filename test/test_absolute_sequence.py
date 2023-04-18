@@ -1,7 +1,4 @@
-from s_coda.elements.message import MessageType
-from s_coda.settings import PPQN, VALID_TUPLETS, DOTTED_ITERATIONS, NOTE_VALUE_UPPER_BOUND, NOTE_VALUE_LOWER_BOUND
-from util import *
-from s_coda.util.util import get_note_durations, get_tuplet_durations, get_dotted_note_durations
+from base import *
 
 
 def test_get_timing_of_message_type():

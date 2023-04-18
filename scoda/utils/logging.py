@@ -1,7 +1,7 @@
 import logging
 import logging.config
 
-from s_coda.settings import ROOT_LOGGER
+from scoda.settings import ROOT_LOGGER
 
 initial_call = True
 

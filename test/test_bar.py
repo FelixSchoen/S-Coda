@@ -1,8 +1,4 @@
-import copy
-
-from s_coda import Bar
-from s_coda.elements.message import MessageType
-from util import *
+from base import *
 
 
 def test_split_into_bars():

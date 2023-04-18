@@ -1,4 +1,4 @@
-from util import *
+from base import *
 
 
 def test_track_to_sequence():
@@ -6,4 +6,4 @@ def test_track_to_sequence():
     track = composition.tracks[0]
     seq = track.to_sequence()
 
-    assert isinstance(seq, Sequence)
+    assert isinstance(seq, sc.sequences.sequence.Sequence)

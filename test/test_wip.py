@@ -1,5 +1,4 @@
-# Mido
-import mido
+from base import *
 
 
 def test_wip_print_midi_file():
@@ -12,7 +11,3 @@ def test_wip_print_midi_file():
             print(msg)
 
     print(len(midi_file.tracks))
-
-
-def test_valid_test():
-    assert True

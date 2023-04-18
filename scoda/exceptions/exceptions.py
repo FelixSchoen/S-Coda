@@ -1,16 +1,16 @@
 class SequenceException(Exception):
-    """ Represents an exception regarding a sequence
+    """ Represents an exceptions regarding a sequence
     """
     pass
 
 
 class BarException(Exception):
-    """ Represents an exception regarding a bar
+    """ Represents an exceptions regarding a bar
     """
     pass
 
 
 class TrackException(Exception):
-    """ Represents an exception regarding a track
+    """ Represents an exceptions regarding a track
     """
     pass

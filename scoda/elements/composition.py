@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-from s_coda.elements.track import Track
-from s_coda.sequence.sequence import Sequence
+from scoda.elements.track import Track
+from scoda.sequences.sequence import Sequence
 
 
 class Composition:
@@ -35,7 +35,7 @@ class Composition:
         Returns: The created composition
 
         """
-        # Load sequences from file
+        # Load sequence from file
         merged_sequences = Sequence.from_midi_file(file_path, track_indices, meta_track_indices,
                                                    meta_track_index)
 
@@ -44,12 +44,12 @@ class Composition:
             sequence.quantise()
             sequence.quantise_note_lengths()
 
-        # Load composition from sequences
+        # Load composition from sequence
         return Composition.from_sequences(merged_sequences, meta_track_index)
 
     @staticmethod
     def from_sequences(sequences, meta_track_index: int = 0):
-        # Split sequences into bars
+        # Split sequence into bars
         tracks_bars = Sequence.split_into_bars(sequences, meta_track_index=meta_track_index)
 
         # Create tracks from bars

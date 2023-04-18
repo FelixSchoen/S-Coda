@@ -4,6 +4,7 @@
 https://pypi.org/project/s-coda)
 [![DOI](https://img.shields.io/badge/DOI-10.34726%2Fhss.2023.103585-blue)](
 https://doi.org/10.34726/hss.2023.103585)
+[![Test Suite](https://github.com/FelixSchoen/S-Coda/actions/workflows/main.yml/badge.svg?event=push)](https://github.com/FelixSchoen/S-Coda/actions/workflows/main.yml)
 
 S-Coda is a Python library for handling MIDI files.
 S-Coda supports a plethora of different MIDI manipulation operations, such as:

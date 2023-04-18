@@ -1,7 +1,4 @@
-import mido
-
-from s_coda.util.util import digitise_velocity, bin_from_velocity
-from util import *
+from base import *
 
 
 # Util
@@ -27,4 +24,3 @@ def test_midi_file_to_mido_track():
     mido_track = midi_file.tracks[0].to_mido_track()
 
     assert isinstance(mido_track, mido.MidiTrack)
-

@@ -4,11 +4,11 @@ import copy
 
 import mido
 
-import s_coda
-from s_coda.elements.message import MessageType, Message
-from s_coda.settings import PPQN
-from s_coda.util.logging import get_logger
-from s_coda.util.music_theory import Key, KeyKeyMapping
+import scoda
+from scoda.elements.message import MessageType, Message
+from scoda.settings import PPQN
+from scoda.utils.logging import get_logger
+from scoda.utils.music_theory import Key, KeyKeyMapping
 
 
 class MidiFile:
@@ -19,22 +19,22 @@ class MidiFile:
         self.PPQN = PPQN
 
     def to_sequences(self, track_indices: [[int]], meta_track_indices: [int], meta_track_index: int = 0) -> [
-        s_coda.Sequence]:
-        """ Parses this `MidiFile` and returns a list of `s_coda.Sequence`.
+        scoda.Sequence]:
+        """ Parses this `MidiFile` and returns a list of `scoda.Sequence`.
 
         Args:
             track_indices: A list of grouped indices of tracks. Tracks in the same group will be merged to a single sequence.
             meta_track_indices: A list of indices of tracks, which can contain meta messages to consider.
             meta_track_index: The index of the final sequence that should contain meta messages.
 
-        Returns: A list of parsed sequences.
+        Returns: A list of parsed sequence.
 
         """
-        from s_coda import Sequence
+        from scoda.sequences.sequence import Sequence
 
         logger = get_logger(__name__)
 
-        # Create sequences to fill
+        # Create sequence to fill
         sequences = [[Sequence() for _ in indices] for indices in track_indices]
         meta_sequence = Sequence()
 
@@ -104,7 +104,7 @@ class MidiFile:
 
         merged_sequences = []
 
-        # Merge sequences according to groups
+        # Merge sequence according to groups
         for sequences_to_merge in sequences:
             track = copy.copy(sequences_to_merge[0])
             track.merge(sequences_to_merge[1:])

@@ -1,6 +1,6 @@
-from s_coda.elements.bar import Bar
-from s_coda.elements.message import MessageType
-from s_coda.exception.exceptions import TrackException
+from scoda.elements.bar import Bar
+from scoda.elements.message import MessageType
+from scoda.exceptions.exceptions import TrackException
 
 
 class Track:

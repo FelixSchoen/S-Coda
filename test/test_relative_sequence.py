@@ -1,9 +1,4 @@
-import copy
-
-from fixtures import RESOURCE_CHOPIN
-from s_coda.elements.message import MessageType
-from s_coda.settings import PPQN
-from util import *
+from base import *
 
 
 def test_adjust_wait_messages():
@@ -122,7 +117,7 @@ def test_scale_then_create_composition():
     compositions = []
     scale_factors = [0.5, 2]
 
-    # Scale sequences by given factors
+    # Scale sequence by given factors
     for scale_factor in scale_factors:
         scaled_sequences = []
 
@@ -140,7 +135,7 @@ def test_scale_then_create_composition():
             new_time = scaled_sequence.abs.messages[-1].time
             assert abs(new_time - original_time * scale_factor) <= 0.01 * new_time
 
-        # Create composition from scaled sequences
+        # Create composition from scaled sequence
         compositions.append(Composition.from_sequences(scaled_sequences))
 
 

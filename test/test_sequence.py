@@ -1,5 +1,4 @@
-from s_coda.sequence.sequence import NoteRepresentationType, TemporalRepresentationType
-from util import *
+from base import *
 
 
 def test_midi_to_sequences():

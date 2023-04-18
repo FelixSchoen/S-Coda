@@ -1,6 +1,24 @@
-from fixtures import RESOURCE_BEETHOVEN
-from s_coda import Composition, Sequence
-from s_coda.util.midi_wrapper import MidiFile
+# noinspection PyUnresolvedReferences
+import scoda as sc
+# noinspection PyUnresolvedReferences
+from scoda import *
+# noinspection PyUnresolvedReferences
+from scoda.elements.composition import *
+# noinspection PyUnresolvedReferences
+from scoda.elements.bar import *
+from sequences.sequence import *
+# noinspection PyUnresolvedReferences
+from settings import *
+# noinspection PyUnresolvedReferences
+from utils.util import *
+# noinspection PyUnresolvedReferences
+import mido
+
+from pathlib import Path
+
+RESOURCES_ROOT = Path(__file__).parent / "resources"
+RESOURCE_BEETHOVEN = str(RESOURCES_ROOT / "beethoven_o27-2_m3.mid")
+RESOURCE_CHOPIN = str(RESOURCES_ROOT / "chopin_o66_fantaisie_impromptu.mid")
 
 
 def util_midi_to_sequences(file=None, lead_tracks=None, acmp_tracks=None, meta_tracks=None):
