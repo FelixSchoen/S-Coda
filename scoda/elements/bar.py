@@ -6,13 +6,11 @@ from scoda.elements.message import MessageType, Message
 from scoda.exceptions.exceptions import BarException
 from scoda.sequences.sequence import Sequence
 from scoda.settings import PPQN
-from scoda.utils.logging import get_logger
 from scoda.utils.music_theory import Key
 
 
 class Bar:
-    """
-    Class representing a single bar, its length defined by a time signature.
+    """Class representing a single bar, its length defined by a time signature.
     """
 
     def __init__(self, sequence: Sequence, numerator: int, denominator: int, key=None) -> None:
@@ -57,7 +55,7 @@ class Bar:
 
         self.sequence._abs_stale = True
 
-    def __copy__(self):
+    def __copy__(self) -> Bar:
         bar = Bar(self.sequence.__copy__(), self.time_signature_numerator, self.time_signature_denominator,
                   self.key_signature)
 
@@ -72,25 +70,22 @@ class Bar:
         return self.sequence.is_empty()
 
     def to_absolute_dataframe(self) -> DataFrame:
-        """ See `scoda.sequence.sequence.Sequence.to_absolute_dataframe`
-
+        """See `scoda.sequence.sequence.Sequence.to_absolute_dataframe`.
         """
         return self.sequence.to_absolute_dataframe()
 
     def to_relative_dataframe(self) -> DataFrame:
-        """ See `scoda.sequence.sequence.Sequence.to_relative_dataframe`
-
+        """See `scoda.sequence.sequence.Sequence.to_relative_dataframe`.
         """
         return self.sequence.to_relative_dataframe()
 
     def transpose(self, transpose_by: int) -> bool:
-        """ See `scoda.sequence.relative_sequence.RelativeSequence.transpose`
-
+        """See `scoda.sequence.relative_sequence.RelativeSequence.transpose`.
         """
         return self.sequence.transpose(transpose_by)
 
     @staticmethod
-    def to_sequence(bars: [Bar]):
+    def to_sequence(bars: [Bar]) -> Sequence:
         sequence = Sequence()
         sequences = []
 

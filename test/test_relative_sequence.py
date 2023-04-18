@@ -34,7 +34,7 @@ def test_cutoff():
     sequence = Sequence.from_midi_file(RESOURCE_CHOPIN, [[0]], [0])[0]
     sequence.cutoff(48, 24)
 
-    for note_pair in sequence.abs._get_absolute_note_array():
+    for note_pair in sequence.abs.absolute_note_array():
         assert note_pair[1].time - note_pair[0].time <= 48
 
 

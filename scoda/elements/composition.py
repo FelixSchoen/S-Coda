@@ -5,15 +5,14 @@ from scoda.sequences.sequence import Sequence
 
 
 class Composition:
-    """ Class representing a composition that contains (multiple) tracks.
-
+    """Class representing a composition that contains (multiple) tracks.
     """
 
     def __init__(self, tracks: [Track]) -> None:
         super().__init__()
         self.tracks = tracks
 
-    def __copy__(self):
+    def __copy__(self) -> Composition:
         tracks = []
 
         for track in self.tracks:
@@ -26,14 +25,16 @@ class Composition:
     @staticmethod
     def from_midi_file(file_path: str, track_indices: [[int]],
                        meta_track_indices: [int], meta_track_index: int = 0) -> Composition:
-        """ Creates a new composition from the given MIDI file.
+        """Creates a new composition from the given MIDI file.
 
-        Args: file_path: Path to the MIDI file track_indices: Array of arrays of track indices, indices in the same
-        sub-array will be merged to a single track meta_track_indices: Indices of tracks to consider for meta
-        messages meta_track_index: Which final track to merge the meta messages into
+        Args:
+            file_path: Path to the MIDI file
+            track_indices: Array of arrays of track indices, indices in the same
+                sub-array will be merged to a single track
+            meta_track_indices: Indices of tracks to consider for meta messages
+            meta_track_index: Which final track to merge the meta messages into
 
         Returns: The created composition
-
         """
         # Load sequence from file
         merged_sequences = Sequence.from_midi_file(file_path, track_indices, meta_track_indices,
@@ -48,7 +49,7 @@ class Composition:
         return Composition.from_sequences(merged_sequences, meta_track_index)
 
     @staticmethod
-    def from_sequences(sequences, meta_track_index: int = 0):
+    def from_sequences(sequences, meta_track_index: int = 0) -> Composition:
         # Split sequence into bars
         tracks_bars = Sequence.split_into_bars(sequences, meta_track_index=meta_track_index)
 

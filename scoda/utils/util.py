@@ -3,11 +3,12 @@ from pathlib import Path
 
 import numpy as np
 
+from elements.message import Message
 from scoda.settings import MAX_VELOCITY, VELOCITY_BINS, PPQN
 
 
 def bin_from_velocity(velocity: int) -> int:
-    """ Returns the bin defined by the velocity.
+    """Returns the bin defined by the velocity.
 
     Args:
         velocity: The velocity to sort into a bin
@@ -24,11 +25,11 @@ def bin_from_velocity(velocity: int) -> int:
     return np.digitize(velocity, bins, right=True).item(-1)
 
 
-def b_insort(collection: list, message) -> None:
-    """ Sorts the given message into the correct position in the already sorted list.
+def b_insort(collection: list, message: Message) -> None:
+    """Sorts the given message into the correct position in the already sorted list.
 
     Args:
-        collection: A sorted list of messages
+        collection: A list of messages that is already sorted
         message: The message to insert
 
     """
@@ -46,7 +47,7 @@ def b_insort(collection: list, message) -> None:
 
 
 def digitise_velocity(velocity_unquantised: int) -> int:
-    """ Digitises velocity to bins.
+    """Digitises velocity to bins.
 
     Digitises the given velocity based on the settings of scoda. Returns a value that corresponds to one of the bins,
     but not the index of the bin itself. E.g., the value of 33 could be quantised to 32 with bins of size 16.
@@ -65,7 +66,7 @@ def digitise_velocity(velocity_unquantised: int) -> int:
 
 
 def find_minimal_distance(element, collection) -> int:
-    """ Finds the element in the collection with the minimal distance to the given element.
+    """Finds the element in the collection with the minimal distance to the given element.
 
     Ties are broken using the indices of the collection, earlier elements will be preferred.
 
@@ -91,7 +92,7 @@ def find_minimal_distance(element, collection) -> int:
 
 
 def get_note_durations(upper_bound_multiplier: int, lower_bound_divisor: int, base_value: int = PPQN) -> [int]:
-    """ Generates an array of valid note durations in ticks with regard to the PPQN.
+    """Generates an array of valid note durations in ticks with regard to the PPQN.
 
     Automatically generates the duration of notes in ticks using the given parameters, by multiplying or dividing the
     given base value with the upper and lower bounds. In order to generate note values up to half notes with the
@@ -128,7 +129,7 @@ def get_project_root() -> str:
 
 
 def get_tuplet_durations(note_durations, ratio_numerator, ratio_denominator) -> [int]:
-    """ Generates tuplet durations from a ratio and given note durations.
+    """Generates tuplet durations from a ratio and given note durations.
 
     Generates tuplet values for each duration in the given array, by dividing by the denominator and multiplying with
     the numerator.
@@ -150,7 +151,7 @@ def get_tuplet_durations(note_durations, ratio_numerator, ratio_denominator) -> 
 
 
 def get_dotted_note_durations(note_durations, dotted_iterations) -> [int]:
-    """ Generates dotted note durations from an initial array of note durations.
+    """Generates dotted note durations from an initial array of note durations.
 
     For each duration in the given array, creates up to the specified amount of iterations dotted values. E.g.,
     if `dotted_iterations` were set to 2, durations for single and twice dotted notes would be generated from the
@@ -187,7 +188,7 @@ def minmax(minimum, maximum, value):
 
 # From http://arachnoid.com
 def regress(x, terms):
-    """ Calculates f(x) based on x and the coefficients given by `terms`.
+    """Calculates f(x) based on x and the coefficients given by `terms`.
 
     Args:
         x: Input value
@@ -211,7 +212,7 @@ def simple_regression(x1, y1, x2, y2, value):
 
 
 def velocity_from_bin(bin_index: int) -> int:
-    """ Returns the velocity defined by the bin.
+    """Returns the velocity defined by the bin.
 
     Args:
         bin_index: Index of the bin to get the velocity for

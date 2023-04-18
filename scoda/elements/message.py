@@ -21,8 +21,7 @@ class MessageType(enum.Enum):
 
 
 class Message:
-    """
-    Class representing a musical message.
+    """Class representing a musical message.
     """
 
     def __init__(self, message_type: MessageType = None, note: int = None, velocity: int = None, control: int = None,

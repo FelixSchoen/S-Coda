@@ -16,18 +16,17 @@ from scoda.settings import NOTE_LOWER_BOUND, NOTE_UPPER_BOUND, PPQN, DIFF_DISTAN
     DIFF_NOTE_AMOUNT_UPPER_BOUND, DIFF_NOTE_AMOUNT_LOWER_BOUND, PATTERN_MAX_SEARCH_DURATION, \
     DIFF_NOTE_CONCURRENT_UPPER_BOUND, DIFF_NOTE_CONCURRENT_LOWER_BOUND, DIFF_ACCIDENTALS_UPPER_BOUND, \
     DIFF_ACCIDENTALS_LOWER_BOUND
-from scoda.utils.logging import get_logger
+from scoda.utils.scoda_logging import get_logger
 from scoda.utils.midi_wrapper import MidiTrack, MidiMessage
 from scoda.utils.music_theory import KeyNoteMapping, Note, Key, key_transpose_order, key_transpose_mapping
 from scoda.utils.util import minmax, simple_regression
 
 if TYPE_CHECKING:
-    from sCoda.sequence.absolute_sequence import AbsoluteSequence
+    from scoda.sequences.absolute_sequence import AbsoluteSequence
 
 
 class RelativeSequence(AbstractSequence):
-    """ Class representing a sequence with relative message timings.
-
+    """Class representing a sequence with relative message timings.
     """
 
     def __init__(self) -> None:
@@ -48,7 +47,7 @@ class RelativeSequence(AbstractSequence):
         self.messages.append(msg)
 
     def adjust_messages(self) -> None:
-        """ Consolidates and then splits up wait messages to a maximum size of `PPQN`. Removes double time signatures.
+        """Consolidates and then splits up wait messages to a maximum size of `PPQN`. Removes double time signatures.
 
         """
         logger = get_logger(__name__)
@@ -103,8 +102,8 @@ class RelativeSequence(AbstractSequence):
         self.messages = messages_normalized
 
     def concatenate(self, sequences: [RelativeSequence]) -> None:
-        """ Concatenates this one and the given sequence, resulting in the current sequence containing messages from both of the
-        previous sequence.
+        """Concatenates this one and the given sequence, resulting in the current sequence containing messages from
+        both of the previous sequence.
 
         Args:
             sequences: A sequence which should be appended to this sequence
@@ -114,7 +113,7 @@ class RelativeSequence(AbstractSequence):
             self.messages.extend(seq.messages)
 
     def diff_accidentals(self, key: Key) -> float:
-        """ Calculates the difficulty of the sequence based on the amount of accidentals needed.
+        """Calculates the difficulty of the sequence based on the amount of accidentals needed.
 
         Args:
             key: A fixed key of the sequence
@@ -137,7 +136,7 @@ class RelativeSequence(AbstractSequence):
         return minmax(0, 1, scaled_relation)
 
     def diff_concurrent_notes(self) -> float:
-        """ Calculates the difficulty of the sequence based on the amount of concurrent notes.
+        """Calculates the difficulty of the sequence based on the amount of concurrent notes.
 
         Returns: A value from 0 (low difficulty) to 1 (high difficulty)
 
@@ -180,7 +179,7 @@ class RelativeSequence(AbstractSequence):
         return minmax(0, 1, scaled_difficulty)
 
     def diff_distances(self) -> float:
-        """ Calculates the difficulty of the sequence based on the distances between notes.
+        """Calculates the difficulty of the sequence based on the distances between notes.
 
         Here, only the top 15% of distances are considered, in order not to disregard notes due to dilution.
 
@@ -216,7 +215,7 @@ class RelativeSequence(AbstractSequence):
         return minmax(0, 1, scaled_difficulty)
 
     def diff_key(self, key: Key = None) -> float:
-        """ Calculates the difficulty of the sequence based on the key it is in.
+        """Calculates the difficulty of the sequence based on the key it is in.
 
         Here, a key that is further from C is considered more difficult to play, since the performer has to consider
         more accidentals. Furthermore, if no key is specified, a key is guessed based on the amount of the induced
@@ -253,7 +252,7 @@ class RelativeSequence(AbstractSequence):
         return minmax(0, 1, scaled_difficulty)
 
     def diff_note_amount(self) -> float:
-        """ Calculates difficulty of the sequence based on the amount of notes played.
+        """Calculates difficulty of the sequence based on the amount of notes played.
 
         Returns: A value from 0 (low difficulty) to 1 (high difficulty)
 
@@ -275,7 +274,7 @@ class RelativeSequence(AbstractSequence):
         return minmax(0, 1, scaled_difficulty)
 
     def diff_note_classes(self) -> float:
-        """ Calculates difficulty of the sequence based on the amount of note classes (different notes played) in
+        """Calculates difficulty of the sequence based on the amount of note classes (different notes played) in
         relation to the overall amount of messages.
 
         Returns: A value from 0 (low difficulty) to 1 (high difficulty)
@@ -298,7 +297,7 @@ class RelativeSequence(AbstractSequence):
         return minmax(0, 1, scaled_relation)
 
     def diff_pattern(self) -> float:
-        """ Calculates the difficulty of the sequence based on the patterns of the start messages.
+        """Calculates the difficulty of the sequence based on the patterns of the start messages.
 
         If a sequence contains patterns, i.e., if a building block is reused several times, the sequence is easier to
         play, since the player has to read fewer notes.
@@ -358,8 +357,8 @@ class RelativeSequence(AbstractSequence):
         else:
             return 1
 
-    def get_valid_next_messages(self, desired_bars, force_time_siganture=True, maximum_note_length=-1):
-        """ Determines, which messages are valid messages to be inserted into this sequence.
+    def get_valid_next_messages(self, desired_bars, force_time_signature=True, maximum_note_length=-1):
+        """Determines, which messages are valid messages to be inserted into this sequence.
 
         Returns:
 
@@ -401,18 +400,21 @@ class RelativeSequence(AbstractSequence):
 
         valid_messages = []
 
-        if amount_bars_completed < desired_bars and not (at_bar_border and force_time_siganture):
+        if amount_bars_completed < desired_bars and not (at_bar_border and force_time_signature):
             for wait_time in range(1, PPQN + 1):
-                if (current_bar_time + wait_time <= current_bar_capacity
-                    or current_bar_time + wait_time <= 2 * current_bar_capacity and amount_bars_completed + 1 < desired_bars) \
+                if (
+                        current_bar_time + wait_time <= current_bar_capacity or
+                        current_bar_time + wait_time <= 2 * current_bar_capacity and
+                        amount_bars_completed + 1 < desired_bars) \
                         and (maximum_note_length == -1 or all(
-                    current_point_in_time + wait_time - value <= maximum_note_length for
-                    value in open_messages.values())):
+                    current_point_in_time + wait_time - value <= maximum_note_length for value in
+                    open_messages.values())
+                ):
                     valid_messages.append({"message_type": MessageType.wait.value, "time": wait_time})
 
         for note in range(NOTE_LOWER_BOUND, NOTE_UPPER_BOUND + 1):
             if note not in open_messages and amount_bars_completed < desired_bars and not (
-                    at_bar_border and force_time_siganture):
+                    at_bar_border and force_time_signature):
                 valid_messages.append({"message_type": MessageType.note_on.value, "note": note})
 
         for note in range(NOTE_LOWER_BOUND, NOTE_UPPER_BOUND + 1):
@@ -425,7 +427,7 @@ class RelativeSequence(AbstractSequence):
         return valid_messages
 
     def guess_key_signature(self) -> Key:
-        """ Determines the best key based on which key induces the minimum amount of additional accidentals.
+        """Determines the best key based on which key induces the minimum amount of additional accidentals.
 
         Returns: The best-fitting key for this bar
 
@@ -456,7 +458,7 @@ class RelativeSequence(AbstractSequence):
         return guessed_key
 
     def is_empty(self) -> bool:
-        """ Checks if the sequence is empty, i.e., no notes are opened.
+        """Checks if the sequence is empty, i.e., no notes are opened.
 
         Returns: `True` if the sequence is empty, `False` otherwise.
 
@@ -467,7 +469,7 @@ class RelativeSequence(AbstractSequence):
         return True
 
     def pad_sequence(self, padding_length):
-        """ Pads the sequence to a minimum fixed length.
+        """Pads the sequence to a minimum fixed length.
 
         Args:
             padding_length: The minimum length this sequence should have after this operation
@@ -486,7 +488,7 @@ class RelativeSequence(AbstractSequence):
             self.messages.append(Message(message_type=MessageType.wait, time=padding_length - current_length))
 
     def sequence_length_relation(self) -> float:
-        """ Calculates the length of the sequence in multiples of the `PPQN`.
+        """Calculates the length of the sequence in multiples of the `PPQN`.
 
         Returns: The length of the sequence as a multiple of the `PPQN`
 
@@ -500,7 +502,7 @@ class RelativeSequence(AbstractSequence):
         return length / PPQN
 
     def split(self, capacities: [int]) -> [RelativeSequence]:
-        """ Splits the sequence into parts of the given capacity.
+        """Splits the sequence into parts of the given capacity.
 
         Creates up to `len(capacities) + 1` new `RelativeSequence`s, where the first `len(capacities)` entries contain
         sequence of the given capacities, while the last one contains any remaining notes. Messages at the boundaries
@@ -588,7 +590,7 @@ class RelativeSequence(AbstractSequence):
         return split_sequences
 
     def scale(self, factor, meta_sequence=None):
-        """ Stretches the sequence by the given factor.
+        """Stretches the sequence by the given factor.
 
         Args:
             factor: Factor to stretch by
@@ -634,7 +636,7 @@ class RelativeSequence(AbstractSequence):
                         consecutive_bars.append(bars[bar_index + i])
 
                 # Check if all have same time signature
-                if all(cbar.time_signature_numerator == current_bar.time_signature_numerator and \
+                if all(cbar.time_signature_numerator == current_bar.time_signature_numerator and
                        cbar.time_signature_denominator == current_bar.time_signature_denominator
                        for cbar in consecutive_bars):
                     for msg in [msg for cbar in consecutive_bars for msg in cbar.sequence.rel.messages]:
@@ -663,7 +665,7 @@ class RelativeSequence(AbstractSequence):
             self.adjust_messages()
 
     def to_absolute_sequence(self) -> AbsoluteSequence:
-        """ Converts this `RelativeSequence` to an `AbsoluteSequence`
+        """Converts this `RelativeSequence` to an `AbsoluteSequence`
 
         Returns: The absolute representation of this sequence
 
@@ -689,7 +691,7 @@ class RelativeSequence(AbstractSequence):
         return absolute_sequence
 
     def to_midi_track(self) -> MidiTrack:
-        """ Converts the sequence to a `MidiTrack`
+        """Converts the sequence to a `MidiTrack`
 
         Returns: The corresponding `MidiTrack`
 
@@ -702,7 +704,7 @@ class RelativeSequence(AbstractSequence):
         return track
 
     def transpose(self, transpose_by: int) -> bool:
-        """ Transposes the sequence by the given amount.
+        """Transposes the sequence by the given amount.
 
         If the lower or upper bound is undercut over exceeded, these notes are transposed by an octave each.
 
@@ -736,7 +738,7 @@ class RelativeSequence(AbstractSequence):
 
     @staticmethod
     def _match_pattern(current_representation, start_time, max_duration=10) -> [[str]]:
-        """ Finds all possible combinations of patterns for input string.
+        """Finds all possible combinations of patterns for input string.
 
         Recursively finds patterns that fit the input ```current_representation```, removes these patterns from the
         input and tries to match the resulting string. Returns all possible combinations of such matches.
@@ -793,7 +795,7 @@ class RelativeSequence(AbstractSequence):
 
     @staticmethod
     def _greedy_match_pattern(current_representation):
-        """ Finds possible combinations of patterns for input string, fixing patterns greedily.
+        """Finds possible combinations of patterns for input string, fixing patterns greedily.
 
         Only considers the first found pattern for further matching, reducing the time needed to pattern match greatly.
 

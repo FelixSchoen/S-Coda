@@ -6,7 +6,7 @@ from scoda.elements.message import Message
 
 
 class AbstractSequence(ABC):
-    """ Class representing an abstract musical sequence.
+    """Class representing an abstract musical sequence.
 
     """
 

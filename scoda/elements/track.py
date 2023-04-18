@@ -1,11 +1,13 @@
+from __future__ import annotations
+
 from scoda.elements.bar import Bar
 from scoda.elements.message import MessageType
 from scoda.exceptions.exceptions import TrackException
+from sequences.sequence import Sequence
 
 
 class Track:
-    """
-    Class representing a track, which is made of (multiple) bars.
+    """Class representing a track, which is made of (multiple) bars.
     """
 
     def __init__(self, bars: [Bar], name: str = None) -> None:
@@ -21,7 +23,7 @@ class Track:
                 raise TrackException("Type of instrument inconsistent")
             self.program = program_changes[0].program
 
-    def __copy__(self):
+    def __copy__(self) -> Track:
         bars = []
         for bar in self.bars:
             bars.append(bar.__copy__())
@@ -30,5 +32,5 @@ class Track:
 
         return cpy
 
-    def to_sequence(self):
+    def to_sequence(self) -> Sequence:
         return Bar.to_sequence(self.bars)

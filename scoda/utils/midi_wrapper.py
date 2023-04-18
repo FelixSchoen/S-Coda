@@ -1,14 +1,17 @@
 from __future__ import annotations
 
 import copy
+from typing import TYPE_CHECKING
 
 import mido
 
-import scoda
 from scoda.elements.message import MessageType, Message
 from scoda.settings import PPQN
-from scoda.utils.logging import get_logger
-from scoda.utils.music_theory import Key, KeyKeyMapping
+from scoda.utils.music_theory import KeyKeyMapping
+from scoda.utils.scoda_logging import get_logger
+
+if TYPE_CHECKING:
+    from scoda.sequences.sequence import Sequence
 
 
 class MidiFile:
@@ -18,12 +21,12 @@ class MidiFile:
         self.tracks: [MidiTrack] = []
         self.PPQN = PPQN
 
-    def to_sequences(self, track_indices: [[int]], meta_track_indices: [int], meta_track_index: int = 0) -> [
-        scoda.Sequence]:
+    def to_sequences(self, track_indices: [[int]], meta_track_indices: [int], meta_track_index: int = 0) -> [Sequence]:
         """ Parses this `MidiFile` and returns a list of `scoda.Sequence`.
 
         Args:
-            track_indices: A list of grouped indices of tracks. Tracks in the same group will be merged to a single sequence.
+            track_indices: A list of grouped indices of tracks. Tracks in the same group will be merged to a single
+                sequence.
             meta_track_indices: A list of indices of tracks, which can contain meta messages to consider.
             meta_track_index: The index of the final sequence that should contain meta messages.
 

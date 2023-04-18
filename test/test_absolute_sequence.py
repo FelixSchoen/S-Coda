@@ -46,7 +46,7 @@ def test_quantise_note_lengths():
     dotted_durations = get_dotted_note_durations(normal_durations, DOTTED_ITERATIONS)
     possible_durations = normal_durations + triplet_durations + dotted_durations
 
-    for note_pair in sequence.abs._get_absolute_note_array():
+    for note_pair in sequence.abs.absolute_note_array():
         assert note_pair[1].time - note_pair[0].time in possible_durations
 
 
