@@ -10,16 +10,17 @@ from typing import TYPE_CHECKING
 from scoda.elements.message import Message, MessageType
 from scoda.exceptions.exceptions import SequenceException
 from scoda.sequences.abstract_sequence import AbstractSequence
+from scoda.utils.midi_wrapper import MidiTrack, MidiMessage
+from scoda.utils.music_theory import Note, Key, MusicMapping
+from scoda.utils.scoda_logging import get_logger
+from scoda.utils.util import minmax, simple_regression
 from settings.settings import NOTE_LOWER_BOUND, NOTE_UPPER_BOUND, PPQN, DIFF_DUAL_DISTANCES_UPPER_BOUND, \
     DIFF_DUAL_DISTANCES_LOWER_BOUND, DIFF_DUAL_PATTERN_COVERAGE_UPPER_BOUND, DIFF_DUAL_PATTERN_COVERAGE_LOWER_BOUND, \
-    PATTERN_LENGTH_MIN, REGEX_PATTERN, REGEX_SUBPATTERN, DIFF_DUAL_NOTE_CLASSES_UPPER_BOUND, DIFF_DUAL_NOTE_CLASSES_LOWER_BOUND, \
+    PATTERN_LENGTH_MIN, REGEX_PATTERN, REGEX_SUBPATTERN, DIFF_DUAL_NOTE_CLASSES_UPPER_BOUND, \
+    DIFF_DUAL_NOTE_CLASSES_LOWER_BOUND, \
     DIFF_DUAL_NOTE_AMOUNT_UPPER_BOUND, DIFF_DUAL_NOTE_AMOUNT_LOWER_BOUND, PATTERN_SECONDS_SEARCH_DURATION, \
     DIFF_DUAL_NOTE_CONCURRENT_UPPER_BOUND, DIFF_DUAL_NOTE_CONCURRENT_LOWER_BOUND, DIFF_DUAL_ACCIDENTALS_UPPER_BOUND, \
     DIFF_DUAL_ACCIDENTALS_LOWER_BOUND
-from scoda.utils.scoda_logging import get_logger
-from scoda.utils.midi_wrapper import MidiTrack, MidiMessage
-from scoda.utils.music_theory import KeyNoteMapping, Note, Key, key_transpose_order, key_transpose_mapping
-from scoda.utils.util import minmax, simple_regression
 
 if TYPE_CHECKING:
     from scoda.sequences.absolute_sequence import AbsoluteSequence
@@ -121,7 +122,7 @@ class RelativeSequence(AbstractSequence):
         Returns: A value from 0 (low difficulty) to 1 (high difficulty)
 
         """
-        note_mapping = KeyNoteMapping[key]
+        note_mapping = MusicMapping.KeyNoteMapping[key]
         violations = 0
 
         for msg in self.messages:
@@ -246,7 +247,7 @@ class RelativeSequence(AbstractSequence):
             key_signature = self.guess_key_signature()
 
         # Check how many accidentals this key uses
-        _, accidentals = KeyNoteMapping[key_signature]
+        _, accidentals = MusicMapping.KeyNoteMapping[key_signature]
 
         scaled_difficulty = simple_regression(7, 1, 0, 0, accidentals)
         return minmax(0, 1, scaled_difficulty)
@@ -433,19 +434,19 @@ class RelativeSequence(AbstractSequence):
 
         """
         key_candidates = []
-        for _ in KeyNoteMapping:
+        for _ in MusicMapping.KeyNoteMapping:
             key_candidates.append(0)
 
         for msg in self.messages:
             if msg.message_type == MessageType.note_on:
-                for i, (_, key_notes) in enumerate(KeyNoteMapping.items()):
+                for i, (_, key_notes) in enumerate(MusicMapping.KeyNoteMapping.items()):
                     if Note(msg.note % 12) not in key_notes[0]:
                         key_candidates[i] += 1
 
         best_index = 0
         best_solution = math.inf
         best_solution_accidentals = math.inf
-        key_note_mapping = list(KeyNoteMapping.items())
+        key_note_mapping = list(MusicMapping.KeyNoteMapping.items())
 
         for i in range(0, len(key_candidates)):
             if key_candidates[i] <= best_solution:
@@ -454,7 +455,7 @@ class RelativeSequence(AbstractSequence):
                     best_solution = key_candidates[i]
                     best_solution_accidentals = key_note_mapping[i][1][1]
 
-        guessed_key = [key for key in KeyNoteMapping][best_index]
+        guessed_key = [key for key in MusicMapping.KeyNoteMapping][best_index]
         return guessed_key
 
     def is_empty(self) -> bool:
@@ -727,12 +728,12 @@ class RelativeSequence(AbstractSequence):
                     msg.note -= 12
             elif msg.message_type == MessageType.key_signature:
                 if transpose_by % 12 != 0:
-                    if msg.key in key_transpose_mapping:
-                        msg.key = key_transpose_mapping[msg.key]
+                    if msg.key in MusicMapping.key_transpose_mapping:
+                        msg.key = MusicMapping.key_transpose_mapping[msg.key]
 
-                    index = key_transpose_order.index(msg.key)
+                    index = MusicMapping.key_transpose_order.index(msg.key)
                     index = (index + transpose_by) % 12
-                    msg.key = key_transpose_order[index]
+                    msg.key = MusicMapping.key_transpose_order[index]
 
         return had_to_shift
 

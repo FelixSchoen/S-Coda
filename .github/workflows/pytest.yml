@@ -2,7 +2,7 @@ name: pytest
 
 on:
   push:
-    branches: [dev, main]
+    branches: [ dev, main ]
 
 jobs:
   test:
@@ -11,6 +11,10 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v2
+        with:
+          submodules: 'recursive'
+          ref: ${{ github.head_ref }}
+          fetch-depth: 0
 
       - name: Set up Python
         uses: actions/setup-python@v2

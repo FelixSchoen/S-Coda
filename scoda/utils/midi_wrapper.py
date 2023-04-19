@@ -6,9 +6,9 @@ from typing import TYPE_CHECKING
 import mido
 
 from scoda.elements.message import MessageType, Message
-from settings.settings import PPQN
-from scoda.utils.music_theory import KeyKeyMapping
+from scoda.utils.music_theory import MusicMapping
 from scoda.utils.scoda_logging import get_logger
+from settings.settings import PPQN
 
 if TYPE_CHECKING:
     from scoda.sequences.sequence import Sequence
@@ -231,7 +231,7 @@ class MidiMessage:
             msg.numerator = mido_message.numerator
         elif mido_message.type == "key_signature":
             msg.message_type = MessageType.key_signature
-            msg.key = KeyKeyMapping[mido_message.key]
+            msg.key = MusicMapping.KeyKeyMapping[mido_message.key]
         elif mido_message.type == "control_change":
             msg.message_type = MessageType.control_change
             msg.control = mido_message.control

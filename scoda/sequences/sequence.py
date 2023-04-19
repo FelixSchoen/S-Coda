@@ -335,16 +335,21 @@ class Sequence:
 
     def to_external_representation(self, note_representation_type: NoteRepresentationType,
                                    temporal_representation_type: TemporalRepresentationType,
+                                   running_temporal_representation: bool = False,
                                    adjust_wait_messages=True) -> DataFrame:
         data = []
 
         absolute_sequence = copy.copy(self.abs)
         relative_sequence = copy.copy(self.rel)
+
         if adjust_wait_messages:
             relative_sequence.adjust_messages()
 
+        base_note = 69  # A4, 440 Hz
+        base_note_value = PPQN  # Quarter note
+
         if temporal_representation_type == TemporalRepresentationType.relative_ticks:
-            base_note = 69  # A4, 440 Hz
+            current_note = base_note
 
             for msg in relative_sequence.messages:
                 entry = dict()
@@ -361,43 +366,49 @@ class Sequence:
                                                     denominator=msg.denominator,
                                                     key=None if msg.key is None else msg.key.value)
                 elif note_representation_type == NoteRepresentationType.relative_distances:
-                    Sequence._fill_dictionary_entry(entry,
-                                                    message_type=msg.message_type.value,
-                                                    time=msg.time,
-                                                    note=msg.note,
-                                                    velocity=msg.velocity,
-                                                    control=msg.control,
-                                                    program=msg.program,
-                                                    numerator=msg.numerator,
-                                                    denominator=msg.denominator,
-                                                    key=None if msg.key is None else msg.key.value,
-                                                    rel_distance=None if msg.note is None else (
-                                                                                                       msg.note - base_note) % 12,
-                                                    rel_octave=None if msg.note is None else (
-                                                                                                     msg.note - base_note) // 12)
+                    Sequence._fill_dictionary_entry(
+                        entry,
+                        message_type=msg.message_type.value,
+                        time=msg.time,
+                        note=msg.note,
+                        velocity=msg.velocity,
+                        control=msg.control,
+                        program=msg.program,
+                        numerator=msg.numerator,
+                        denominator=msg.denominator,
+                        key=None if msg.key is None else msg.key.value,
+                        rel_note_dist=None if msg.note is None else (
+                                msg.note - current_note),
+                        rel_note_pair_dist=None if msg.note is None else ((
+                                                                                  msg.note - current_note) % 12),
+                        rel_note_pair_oct=None if msg.note is None else ((
+                                                                                 msg.note - current_note) // 12)
+                    )
                 elif note_representation_type == NoteRepresentationType.circle_of_fifths:
                     if msg.note is not None:
-                        distance = Sequence._circle_of_fifths(base_note, msg.note)
+                        distance = Sequence._circle_of_fifths(current_note, msg.note)
 
-                        Sequence._fill_dictionary_entry(entry,
-                                                        message_type=msg.message_type.value,
-                                                        time=msg.time,
-                                                        note=msg.note,
-                                                        velocity=msg.velocity,
-                                                        control=msg.control,
-                                                        program=msg.program,
-                                                        numerator=msg.numerator,
-                                                        denominator=msg.denominator,
-                                                        key=None if msg.key is None else msg.key.value,
-                                                        rel_distance=None if msg.note is None else distance,
-                                                        rel_octave=None if msg.note is None else (
-                                                                                                         msg.note - base_note) // 12)
+                        Sequence._fill_dictionary_entry(
+                            entry,
+                            message_type=msg.message_type.value,
+                            time=msg.time,
+                            note=msg.note,
+                            velocity=msg.velocity,
+                            control=msg.control,
+                            program=msg.program,
+                            numerator=msg.numerator,
+                            denominator=msg.denominator,
+                            key=None if msg.key is None else msg.key.value,
+                            rel_note_pair_dist=None if msg.note is None else distance,
+                            rel_note_pair_oct=None if msg.note is None else ((
+                                                                                     msg.note - current_note) // 12)
+                        )
 
                 if msg.note is not None:
-                    base_note = msg.note
+                    current_note = msg.note
                 data.append(entry)
         elif temporal_representation_type == TemporalRepresentationType.notelike_representation:
-            base_note = 69  # A4, 440 Hz
+            current_note = base_note
             note_array = absolute_sequence.absolute_note_array()
             current_point_in_time = 0
 
@@ -424,20 +435,20 @@ class Sequence:
                                                     time=note_pairing[1].time - note_pairing[0].time,
                                                     note=note_pairing[0].note,
                                                     velocity=note_pairing[0].velocity,
-                                                    rel_distance=(note_pairing[0].note - base_note) % 12,
-                                                    rel_octave=(note_pairing[0].note - base_note) // 12)
+                                                    rel_note_pair_dist=(note_pairing[0].note - current_note) % 12,
+                                                    rel_note_pair_oct=(note_pairing[0].note - current_note) // 12)
                 elif note_representation_type == NoteRepresentationType.circle_of_fifths:
-                    distance = Sequence._circle_of_fifths(base_note, note_pairing[0].note)
+                    distance = Sequence._circle_of_fifths(current_note, note_pairing[0].note)
 
                     Sequence._fill_dictionary_entry(entry,
                                                     message_type=MessageType.note_on,
                                                     time=note_pairing[1].time - note_pairing[0].time,
                                                     note=note_pairing[0].note,
                                                     velocity=note_pairing[0].velocity,
-                                                    rel_distance=distance,
-                                                    rel_octave=(note_pairing[0].note - base_note) // 12)
+                                                    rel_note_pair_dist=distance,
+                                                    rel_note_pair_oct=(note_pairing[0].note - current_note) // 12)
 
-                base_note = note_pairing[0].note
+                current_note = note_pairing[0].note
                 data.append(entry)
 
         return pd.DataFrame(data)
@@ -643,12 +654,19 @@ class Sequence:
     def to_dataframe(messages) -> DataFrame:
         data = []
 
+        entry = dict()
+
         for msg in messages:
-            data.append(
-                {"message_type": msg.message_type.value, "time": msg.time, "note": msg.note,
-                 "velocity": msg.velocity, "control": msg.control, "program": msg.program,
-                 "numerator": msg.numerator, "denominator": msg.denominator,
-                 "key": None if msg.key is None else msg.key.value})
+            data.append(Sequence._fill_dictionary_entry(entry,
+                                                        message_type=msg.message_type.value,
+                                                        time=msg.time,
+                                                        note=msg.note,
+                                                        velocity=msg.velocity,
+                                                        control=msg.control,
+                                                        program=msg.program,
+                                                        numerator=msg.numerator,
+                                                        denominator=msg.denominator,
+                                                        key=None if msg.key is None else msg.key.value))
 
         return pd.DataFrame(data)
 
@@ -765,8 +783,8 @@ class Sequence:
 
     @staticmethod
     def _fill_dictionary_entry(entry, message_type=None, time=None, note=None, velocity=None, control=None,
-                               program=None, numerator=None, denominator=None, key=None, rel_distance=None,
-                               rel_octave=None):
+                               program=None, numerator=None, denominator=None, key=None, rel_note_dist=None,
+                               rel_note_pair_dist=None, rel_note_pair_oct=None):
         entry["type"] = message_type
         entry["time"] = time
         entry["note"] = note
@@ -776,16 +794,17 @@ class Sequence:
         entry["numerator"] = numerator
         entry["denominator"] = denominator
         entry["key"] = key
-        entry["rel_distance"] = rel_distance
-        entry["rel_octave"] = rel_octave
+        entry["rel_distance"] = rel_note_dist
+        entry["rel_note_pair_dist"] = rel_note_pair_dist
+        entry["rel_note_pair_oct"] = rel_note_pair_oct
 
     @staticmethod
     def _circle_of_fifths(base_note, note):
         current_note = Note(note % 12)
         previous_note = Note(base_note % 12)
 
-        cof_current_index = CircleOfFifths.index(current_note)
-        cof_previous_index = CircleOfFifths.index(previous_note)
+        cof_current_index = CircleOfFifths.circle_of_fifths_order.index(current_note)
+        cof_previous_index = CircleOfFifths.circle_of_fifths_order.index(previous_note)
 
         distance_left = cof_previous_index - cof_current_index
         distance_right = np.sign(distance_left) * -1 * 12 + distance_left

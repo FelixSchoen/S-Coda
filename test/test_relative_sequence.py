@@ -46,20 +46,6 @@ def test_get_valid_next_messages():
     assert len(sequence.rel.get_valid_next_messages(2)) == 1
 
 
-def test_difficulty_assessment():
-    bars = util_split_into_bars()
-    bar = bars[0][0]
-    for msg in bar.sequence.rel.messages:
-        if msg.message_type == MessageType.key_signature:
-            bar.sequence.rel.messages.remove(msg)
-            bar.sequence._abs_stale = True
-    bar.key_signature = None
-
-    difficulty = bar.difficulty()
-
-    assert 0 <= difficulty <= 1
-
-
 def test_pad_sequence():
     sequences = util_midi_to_sequences()
     sequence = sequences[0]

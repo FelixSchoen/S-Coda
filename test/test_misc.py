@@ -1,4 +1,3 @@
-import settings.settings
 from base import *
 
 
