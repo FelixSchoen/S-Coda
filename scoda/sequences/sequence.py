@@ -12,7 +12,7 @@ from pandas import DataFrame
 from scoda.elements.message import MessageType, Message
 from scoda.sequences.absolute_sequence import AbsoluteSequence
 from scoda.sequences.relative_sequence import RelativeSequence
-from scoda.settings import PPQN, NOTE_LOWER_BOUND, NOTE_UPPER_BOUND, MAX_VELOCITY
+from settings.settings import PPQN, NOTE_LOWER_BOUND, NOTE_UPPER_BOUND, VELOCITY_MAX
 from scoda.utils.midi_wrapper import MidiTrack, MidiFile
 from scoda.utils.music_theory import Key, Note, CircleOfFifths
 from scoda.utils.util import minmax, simple_regression
@@ -711,7 +711,7 @@ class Sequence:
                     y_scale_max = pitch
 
                 # Calculate opacity based on velocity
-                opacity = simple_regression(1, 1, 0, 0.5, note[0].velocity / MAX_VELOCITY)
+                opacity = simple_regression(1, 1, 0, 0.5, note[0].velocity / VELOCITY_MAX)
 
                 # Draw rectangle
                 axs[i].add_patch(

@@ -8,13 +8,17 @@ from scoda.elements.composition import *
 from scoda.elements.bar import *
 from sequences.sequence import *
 # noinspection PyUnresolvedReferences
-from settings import *
+from settings.settings import *
 # noinspection PyUnresolvedReferences
 from utils.util import *
 # noinspection PyUnresolvedReferences
 import mido
 
 from pathlib import Path
+
+import sys
+
+sys.path.append('.')
 
 RESOURCES_ROOT = Path(__file__).parent / "resources"
 RESOURCE_BEETHOVEN = str(RESOURCES_ROOT / "beethoven_o27-2_m3.mid")

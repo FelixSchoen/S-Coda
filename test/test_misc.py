@@ -1,4 +1,11 @@
+import settings.settings
 from base import *
+
+
+# Settings
+
+def test_load_settings_from_file():
+    load_from_file()
 
 
 # Util

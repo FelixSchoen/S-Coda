@@ -1,7 +1,7 @@
 import logging
 import logging.config
 
-from scoda.settings import ROOT_LOGGER
+from settings.settings import LOGGER_ROOT_NAME
 
 initial_call = True
 
@@ -14,13 +14,13 @@ def get_logger(name):
         setup_root_logger()
         initial_call = False
 
-    logger = logging.getLogger(ROOT_LOGGER + "." + name)
+    logger = logging.getLogger(LOGGER_ROOT_NAME + "." + name)
 
     return logger
 
 
 def setup_root_logger():
-    root_logger = logging.getLogger(ROOT_LOGGER)
+    root_logger = logging.getLogger(LOGGER_ROOT_NAME)
     root_logger.setLevel(logging.WARNING)
     root_logger.propagate = False
 

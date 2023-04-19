@@ -10,12 +10,12 @@ from typing import TYPE_CHECKING
 from scoda.elements.message import Message, MessageType
 from scoda.exceptions.exceptions import SequenceException
 from scoda.sequences.abstract_sequence import AbstractSequence
-from scoda.settings import NOTE_LOWER_BOUND, NOTE_UPPER_BOUND, PPQN, DIFF_DISTANCES_UPPER_BOUND, \
-    DIFF_DISTANCES_LOWER_BOUND, DIFF_PATTERN_COVERAGE_UPPER_BOUND, DIFF_PATTERN_COVERAGE_LOWER_BOUND, \
-    PATTERN_LENGTH, REGEX_PATTERN, REGEX_SUBPATTERN, DIFF_NOTE_CLASSES_UPPER_BOUND, DIFF_NOTE_CLASSES_LOWER_BOUND, \
-    DIFF_NOTE_AMOUNT_UPPER_BOUND, DIFF_NOTE_AMOUNT_LOWER_BOUND, PATTERN_MAX_SEARCH_DURATION, \
-    DIFF_NOTE_CONCURRENT_UPPER_BOUND, DIFF_NOTE_CONCURRENT_LOWER_BOUND, DIFF_ACCIDENTALS_UPPER_BOUND, \
-    DIFF_ACCIDENTALS_LOWER_BOUND
+from settings.settings import NOTE_LOWER_BOUND, NOTE_UPPER_BOUND, PPQN, DIFF_DUAL_DISTANCES_UPPER_BOUND, \
+    DIFF_DUAL_DISTANCES_LOWER_BOUND, DIFF_DUAL_PATTERN_COVERAGE_UPPER_BOUND, DIFF_DUAL_PATTERN_COVERAGE_LOWER_BOUND, \
+    PATTERN_LENGTH_MIN, REGEX_PATTERN, REGEX_SUBPATTERN, DIFF_DUAL_NOTE_CLASSES_UPPER_BOUND, DIFF_DUAL_NOTE_CLASSES_LOWER_BOUND, \
+    DIFF_DUAL_NOTE_AMOUNT_UPPER_BOUND, DIFF_DUAL_NOTE_AMOUNT_LOWER_BOUND, PATTERN_SECONDS_SEARCH_DURATION, \
+    DIFF_DUAL_NOTE_CONCURRENT_UPPER_BOUND, DIFF_DUAL_NOTE_CONCURRENT_LOWER_BOUND, DIFF_DUAL_ACCIDENTALS_UPPER_BOUND, \
+    DIFF_DUAL_ACCIDENTALS_LOWER_BOUND
 from scoda.utils.scoda_logging import get_logger
 from scoda.utils.midi_wrapper import MidiTrack, MidiMessage
 from scoda.utils.music_theory import KeyNoteMapping, Note, Key, key_transpose_order, key_transpose_mapping
@@ -130,7 +130,7 @@ class RelativeSequence(AbstractSequence):
                     violations += 1
 
         relation = violations / self.sequence_length_relation()
-        scaled_relation = simple_regression(DIFF_ACCIDENTALS_UPPER_BOUND, 1, DIFF_ACCIDENTALS_LOWER_BOUND, 0,
+        scaled_relation = simple_regression(DIFF_DUAL_ACCIDENTALS_UPPER_BOUND, 1, DIFF_DUAL_ACCIDENTALS_LOWER_BOUND, 0,
                                             relation)
 
         return minmax(0, 1, scaled_relation)
@@ -173,7 +173,7 @@ class RelativeSequence(AbstractSequence):
         if len(concurrent_notes) == 0:
             concurrent_notes.append(0)
 
-        scaled_difficulty = simple_regression(DIFF_NOTE_CONCURRENT_UPPER_BOUND, 1, DIFF_NOTE_CONCURRENT_LOWER_BOUND, 0,
+        scaled_difficulty = simple_regression(DIFF_DUAL_NOTE_CONCURRENT_UPPER_BOUND, 1, DIFF_DUAL_NOTE_CONCURRENT_LOWER_BOUND, 0,
                                               mean(concurrent_notes))
 
         return minmax(0, 1, scaled_difficulty)
@@ -209,7 +209,7 @@ class RelativeSequence(AbstractSequence):
 
         high_distances_mean = mean(sorted(distances, reverse=True)[0: max(1, math.ceil((len(distances) * 0.15)))])
 
-        scaled_difficulty = simple_regression(DIFF_DISTANCES_UPPER_BOUND, 1, DIFF_DISTANCES_LOWER_BOUND, 0,
+        scaled_difficulty = simple_regression(DIFF_DUAL_DISTANCES_UPPER_BOUND, 1, DIFF_DUAL_DISTANCES_LOWER_BOUND, 0,
                                               high_distances_mean)
 
         return minmax(0, 1, scaled_difficulty)
@@ -268,7 +268,7 @@ class RelativeSequence(AbstractSequence):
 
         relation = amount_notes_played / self.sequence_length_relation()
 
-        scaled_difficulty = simple_regression(DIFF_NOTE_AMOUNT_UPPER_BOUND, 1, DIFF_NOTE_AMOUNT_LOWER_BOUND, 0,
+        scaled_difficulty = simple_regression(DIFF_DUAL_NOTE_AMOUNT_UPPER_BOUND, 1, DIFF_DUAL_NOTE_AMOUNT_LOWER_BOUND, 0,
                                               relation)
 
         return minmax(0, 1, scaled_difficulty)
@@ -291,7 +291,7 @@ class RelativeSequence(AbstractSequence):
             return 0
 
         relation = len(note_classes) / self.sequence_length_relation()
-        scaled_relation = simple_regression(DIFF_NOTE_CLASSES_UPPER_BOUND, 1, DIFF_NOTE_CLASSES_LOWER_BOUND, 0,
+        scaled_relation = simple_regression(DIFF_DUAL_NOTE_CLASSES_UPPER_BOUND, 1, DIFF_DUAL_NOTE_CLASSES_LOWER_BOUND, 0,
                                             relation)
 
         return minmax(0, 1, scaled_relation)
@@ -329,7 +329,7 @@ class RelativeSequence(AbstractSequence):
         # Obtain patterns, switch to greedy method if pattern matching takes too long
         try:
             results = RelativeSequence._match_pattern(string_representation, start_time=time.time(),
-                                                      max_duration=PATTERN_MAX_SEARCH_DURATION)
+                                                      max_duration=PATTERN_SECONDS_SEARCH_DURATION)
         except TimeoutError:
             results = RelativeSequence._greedy_match_pattern(string_representation)
 
@@ -349,8 +349,8 @@ class RelativeSequence(AbstractSequence):
         if len(results_with_coverage) > 0:
             best_fit = max(results_with_coverage, key=lambda x: x[0] / x[1])
 
-            bound_difficulty = simple_regression(DIFF_PATTERN_COVERAGE_UPPER_BOUND, 1,
-                                                 DIFF_PATTERN_COVERAGE_LOWER_BOUND, 0,
+            bound_difficulty = simple_regression(DIFF_DUAL_PATTERN_COVERAGE_UPPER_BOUND, 1,
+                                                 DIFF_DUAL_PATTERN_COVERAGE_LOWER_BOUND, 0,
                                                  best_fit[0] / best_fit[1])
 
             return minmax(0, 1, bound_difficulty)
@@ -754,7 +754,7 @@ class RelativeSequence(AbstractSequence):
 
             # Store matches found in this iteration
         local_matches = []
-        current_pattern_length = PATTERN_LENGTH
+        current_pattern_length = PATTERN_LENGTH_MIN
 
         # Increase length of pattern each step
         while True:
@@ -807,7 +807,7 @@ class RelativeSequence(AbstractSequence):
         """
         # Store matches found in this iteration
         local_match = None
-        current_pattern_length = PATTERN_LENGTH
+        current_pattern_length = PATTERN_LENGTH_MIN
 
         # Increase length of pattern each step
         while True:

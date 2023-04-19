@@ -1,0 +1,57 @@
+{
+  "general_settings": {
+    "logger_root_name": "S-Coda",
+    "ppqn": 24,
+    "velocity_max": 127,
+    "velocity_bins": 8,
+    "note_lower_bound": 21,
+    "note_upper_bound": 108,
+    "note_value_lower_bound": 8,
+    "note_value_upper_bound": 8,
+    "dotted_iterations": 1,
+    "tuplets_valid": [
+      [
+        3,
+        2
+      ]
+    ]
+  },
+  "difficulty_parameters": {
+    "dual_track_difficulty_parameters": {
+      "diff_dual_note_amount_upper_bound": 3.25,
+      "diff_dual_note_amount_lower_bound": 0.75,
+      "diff_dual_note_classes_upper_bound": 2.5,
+      "diff_dual_note_classes_lower_bound": 1,
+      "diff_dual_note_concurrent_upper_bound": 3,
+      "diff_dual_note_concurrent_lower_bound": 1,
+      "diff_dual_note_values_upper_bound": 4,
+      "diff_dual_note_values_lower_bound": 1.3333333333333333,
+      "diff_dual_distances_upper_bound": 30,
+      "diff_dual_distances_lower_bound": 12,
+      "diff_dual_pattern_coverage_upper_bound": 0,
+      "diff_dual_pattern_coverage_lower_bound": 0.5,
+      "diff_dual_accidentals_upper_bound": 2,
+      "diff_dual_accidentals_lower_bound": 0
+    },
+    "polynomials": {
+      "scale_cubic": [
+        -7.7160500211448380e-015,
+        2.6000000000002825e+000,
+        -4.8000000000008844e+000,
+        3.2000000000006108e+000
+      ],
+      "scale_loglike": [
+        1.1211198309988962e-001,
+        2.8168998527053071e+000,
+        -3.0339213824085780e+000,
+        1.1087028091894717e+000
+      ]
+    }
+  },
+  "pattern_recognition": {
+    "pattern_length_min": 2,
+    "pattern_seconds_search_duration": 5,
+    "regex_pattern": "(?=(?P<pattern>(?:[+-]\\d+){{{p_len}}})(?:[+-]\\d+)*(?P<end>(?P=pattern)(?:[+-]\\d+)*?)+)",
+    "regex_subpattern": "^(?P<pattern>(?:[+-]\\d+)+)(?P=pattern)+$"
+  }
+}

@@ -4,7 +4,7 @@ from pathlib import Path
 import numpy as np
 
 from elements.message import Message
-from scoda.settings import MAX_VELOCITY, VELOCITY_BINS, PPQN
+from settings.settings import VELOCITY_MAX, VELOCITY_BINS, PPQN
 
 
 def bin_from_velocity(velocity: int) -> int:
@@ -16,11 +16,11 @@ def bin_from_velocity(velocity: int) -> int:
     Returns: The corresponding bin
 
     """
-    if velocity <= 0 or velocity > MAX_VELOCITY:
+    if velocity <= 0 or velocity > VELOCITY_MAX:
         raise ValueError("Velocity not contained in any bag")
 
-    bin_size = round(MAX_VELOCITY / VELOCITY_BINS)
-    bins = [min(MAX_VELOCITY, ((i + 1) * bin_size) + bin_size / 2) for i in range(0, VELOCITY_BINS)]
+    bin_size = round(VELOCITY_MAX / VELOCITY_BINS)
+    bins = [min(VELOCITY_MAX, ((i + 1) * bin_size) + bin_size / 2) for i in range(0, VELOCITY_BINS)]
 
     return np.digitize(velocity, bins, right=True).item(-1)
 
@@ -123,11 +123,6 @@ def get_note_durations(upper_bound_multiplier: int, lower_bound_divisor: int, ba
     return durations
 
 
-def get_project_root() -> str:
-    root_path = Path(__file__).parent.parent
-    return str(root_path)
-
-
 def get_tuplet_durations(note_durations, ratio_numerator, ratio_denominator) -> [int]:
     """Generates tuplet durations from a ratio and given note durations.
 
@@ -220,5 +215,5 @@ def velocity_from_bin(bin_index: int) -> int:
     Returns: The corresponding velocity
 
     """
-    bin_size = round(MAX_VELOCITY / VELOCITY_BINS)
-    return int(min(MAX_VELOCITY, (bin_index + 1) * bin_size))
+    bin_size = round(VELOCITY_MAX / VELOCITY_BINS)
+    return int(min(VELOCITY_MAX, (bin_index + 1) * bin_size))

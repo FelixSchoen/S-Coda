@@ -6,7 +6,7 @@ from typing import TYPE_CHECKING
 import mido
 
 from scoda.elements.message import MessageType, Message
-from scoda.settings import PPQN
+from settings.settings import PPQN
 from scoda.utils.music_theory import KeyKeyMapping
 from scoda.utils.scoda_logging import get_logger
 
