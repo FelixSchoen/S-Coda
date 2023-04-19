@@ -1,24 +1,23 @@
+import sys
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent / 'scoda'))
+
 # noinspection PyUnresolvedReferences
 import scoda as sc
 # noinspection PyUnresolvedReferences
-from scoda import *
+from scoda.elements.bar import *
 # noinspection PyUnresolvedReferences
 from scoda.elements.composition import *
 # noinspection PyUnresolvedReferences
-from scoda.elements.bar import *
-from sequences.sequence import *
+from scoda.sequences.sequence import *
 # noinspection PyUnresolvedReferences
-from settings.settings import *
+from scoda.settings.settings import *
 # noinspection PyUnresolvedReferences
-from utils.util import *
+from scoda.utils.util import *
 # noinspection PyUnresolvedReferences
 import mido
-
-from pathlib import Path
-
-import sys
-
-sys.path.append('.')
 
 RESOURCES_ROOT = Path(__file__).parent / "resources"
 RESOURCE_BEETHOVEN = str(RESOURCES_ROOT / "beethoven_o27-2_m3.mid")
