@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import copy
 import enum
+from typing import TYPE_CHECKING
 
 import numpy as np
 import pandas as pd
@@ -12,12 +13,10 @@ from pandas import DataFrame
 from scoda.elements.message import MessageType, Message
 from scoda.sequences.absolute_sequence import AbsoluteSequence
 from scoda.sequences.relative_sequence import RelativeSequence
-from settings.settings import PPQN, NOTE_LOWER_BOUND, NOTE_UPPER_BOUND, VELOCITY_MAX
 from scoda.utils.midi_wrapper import MidiTrack, MidiFile
-from scoda.utils.music_theory import Key, Note, CircleOfFifths
+from scoda.utils.music_theory import Key, CircleOfFifths
 from scoda.utils.util import minmax, simple_regression
-
-from typing import TYPE_CHECKING
+from settings.settings import PPQN, NOTE_LOWER_BOUND, NOTE_UPPER_BOUND, VELOCITY_MAX
 
 if TYPE_CHECKING:
     from scoda.elements.bar import Bar
@@ -335,7 +334,6 @@ class Sequence:
 
     def to_external_representation(self, note_representation_type: NoteRepresentationType,
                                    temporal_representation_type: TemporalRepresentationType,
-                                   running_temporal_representation: bool = False,
                                    adjust_wait_messages=True) -> DataFrame:
         data = []
 
@@ -346,7 +344,6 @@ class Sequence:
             relative_sequence.adjust_messages()
 
         base_note = 69  # A4, 440 Hz
-        base_note_value = PPQN  # Quarter note
 
         if temporal_representation_type == TemporalRepresentationType.relative_ticks:
             current_note = base_note
@@ -386,7 +383,7 @@ class Sequence:
                     )
                 elif note_representation_type == NoteRepresentationType.circle_of_fifths:
                     if msg.note is not None:
-                        distance = Sequence._circle_of_fifths(current_note, msg.note)
+                        distance = CircleOfFifths.get_distance(current_note, msg.note)
 
                         Sequence._fill_dictionary_entry(
                             entry,
@@ -410,18 +407,28 @@ class Sequence:
         elif temporal_representation_type == TemporalRepresentationType.notelike_representation:
             current_note = base_note
             note_array = absolute_sequence.absolute_note_array()
-            current_point_in_time = 0
+            current_time = 0
 
             for note_pairing in note_array:
                 entry = dict()
 
-                if current_point_in_time != note_pairing[0].time:
+                note_time = note_pairing[0].time
+                time_dif = note_time - current_time
+
+                # Insert wait messages to catch up with current note
+                while time_dif != 0:
+                    time_to_wait = PPQN
+                    if time_dif <= PPQN:
+                        time_to_wait = time_dif
+
                     Sequence._fill_dictionary_entry(entry,
                                                     message_type=MessageType.wait,
-                                                    time=note_pairing[0].time - current_point_in_time)
-                    current_point_in_time = note_pairing[0].time
+                                                    time=time_to_wait)
+                    time_dif -= time_to_wait
                     data.append(entry)
                     entry = dict()
+
+                current_time = note_time
 
                 if note_representation_type == NoteRepresentationType.absolute_values:
                     Sequence._fill_dictionary_entry(entry,
@@ -435,10 +442,11 @@ class Sequence:
                                                     time=note_pairing[1].time - note_pairing[0].time,
                                                     note=note_pairing[0].note,
                                                     velocity=note_pairing[0].velocity,
-                                                    rel_note_pair_dist=(note_pairing[0].note - current_note) % 12,
-                                                    rel_note_pair_oct=(note_pairing[0].note - current_note) // 12)
+                                                    rel_note_dist=(note_pairing[0].note - current_note),
+                                                    rel_note_pair_dist=((note_pairing[0].note - current_note) % 12),
+                                                    rel_note_pair_oct=((note_pairing[0].note - current_note) // 12))
                 elif note_representation_type == NoteRepresentationType.circle_of_fifths:
-                    distance = Sequence._circle_of_fifths(current_note, note_pairing[0].note)
+                    distance = CircleOfFifths.get_distance(current_note, note_pairing[0].note)
 
                     Sequence._fill_dictionary_entry(entry,
                                                     message_type=MessageType.note_on,
@@ -797,21 +805,3 @@ class Sequence:
         entry["rel_distance"] = rel_note_dist
         entry["rel_note_pair_dist"] = rel_note_pair_dist
         entry["rel_note_pair_oct"] = rel_note_pair_oct
-
-    @staticmethod
-    def _circle_of_fifths(base_note, note):
-        current_note = Note(note % 12)
-        previous_note = Note(base_note % 12)
-
-        cof_current_index = CircleOfFifths.circle_of_fifths_order.index(current_note)
-        cof_previous_index = CircleOfFifths.circle_of_fifths_order.index(previous_note)
-
-        distance_left = cof_previous_index - cof_current_index
-        distance_right = np.sign(distance_left) * -1 * 12 + distance_left
-
-        # Get smaller distance
-        distance = distance_left if abs(distance_left) < abs(distance_right) else distance_right
-        if abs(distance_left) == abs(distance_right):
-            distance = distance_left if distance_left > distance_right else distance_right
-
-        return distance
