@@ -2,7 +2,7 @@ import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
-sys.path.insert(0, str(Path(__file__).resolve().parent.parent / 'scoda'))
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent.joinpath("scoda")))
 
 # noinspection PyUnresolvedReferences
 import scoda as sc

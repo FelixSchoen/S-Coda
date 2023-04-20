@@ -1,15 +1,17 @@
 # Guide
 
-To freeze the requirements run:
+In order to build S-Coda using its `pyproject.toml` file run the following command:
 
-- `pip freeze > requirements.txt`
+`python -m build`
 
-Execute the following commands to bundle S-Coda:
+This will create a `scoda.whl` file, which can be used to install S-Coda locally or upload it to PyPI.
+S-Coda can be installed locally by running the following command:
 
-- `python setup.py sdist bdist_wheel`
-- `twine check dist/*`
-- `twine upload dist/*`
+`pip install path/to/S-Coda.whl`
 
-To install the package locally, run
+In order to upload S-Coda to PyPI run the following commands:
 
-- `pip install path/to/S-Coda.whl`
+```
+twine check dist/*
+twine upload dist/*
+```
