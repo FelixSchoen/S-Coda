@@ -130,13 +130,12 @@ class MidiFile:
     @staticmethod
     def open_midi_file(filename) -> MidiFile:
         midi_file = MidiFile()
-        midi_file._parse_mido_file(filename)
+        mido_midi_file = mido.MidiFile(filename)
+        midi_file.parse_mido_file(mido_midi_file)
         return midi_file
 
-    def _parse_mido_file(self, filename):
-        mido_midi_file = mido.MidiFile(filename)
+    def parse_mido_file(self, mido_midi_file):
         self.PPQN = mido_midi_file.ticks_per_beat
-
         for mido_track in mido_midi_file.tracks:
             self.tracks.append(MidiTrack.parse_mido_track(mido_track))
 

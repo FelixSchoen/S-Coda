@@ -538,11 +538,12 @@ class Sequence:
         return midi_file
 
     @staticmethod
-    def from_midi_file(file_path: str, track_indices: [[int]] = None,
+    def from_midi_file(file_path: str = None, midi_file: MidiFile = None, track_indices: [[int]] = None,
                        meta_track_indices: [int] = None, meta_track_index: int = 0) -> [Sequence]:
         """Creates `scoda.Sequence` objects from the provided MIDI file.
 
         Args:
+            midi_file: If provided, this file is used instead of trying to load from a file
             file_path: The file path of the MIDI file
             track_indices: A list of lists indicating which tracks of the MIDI file should be merged into which tracks
                 of the resulting sequence.
@@ -552,8 +553,8 @@ class Sequence:
         Returns: An array of `scoda.Sequence` objects
 
         """
-        # Open file
-        midi_file = MidiFile.open_midi_file(file_path)
+        if midi_file is None:
+            midi_file = MidiFile.open_midi_file(file_path)
 
         if track_indices is None:
             track_indices = [[i] for i, _ in enumerate(midi_file.tracks)]
