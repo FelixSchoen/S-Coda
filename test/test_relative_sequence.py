@@ -31,7 +31,7 @@ def test_consolidate_sequences():
 
 
 def test_cutoff():
-    sequence = Sequence.from_midi_file(RESOURCE_CHOPIN, [[0]], [0])[0]
+    sequence = Sequence.from_midi_file(file_path=RESOURCE_CHOPIN, track_indices=[[0]], meta_track_indices=[0])[0]
     sequence.cutoff(48, 24)
 
     for note_pair in sequence.abs.absolute_note_array():

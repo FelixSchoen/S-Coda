@@ -37,8 +37,10 @@ class Composition:
         Returns: The created composition
         """
         # Load sequence from file
-        merged_sequences = Sequence.from_midi_file(file_path, track_indices, meta_track_indices,
-                                                   meta_track_index)
+        merged_sequences = Sequence.from_midi_file(file_path=file_path,
+                                                   track_indices=track_indices,
+                                                   meta_track_indices=meta_track_indices,
+                                                   meta_track_index=meta_track_index)
 
         # Quantisation
         for sequence in merged_sequences:

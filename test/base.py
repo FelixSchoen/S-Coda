@@ -52,7 +52,8 @@ def util_load_composition(file=None, lead_tracks=None, acmp_tracks=None, meta_tr
     if meta_tracks is None:
         meta_tracks = [0, 3]
 
-    composition = Composition.from_midi_file(file, [lead_tracks, acmp_tracks], meta_tracks)
+    composition = Composition.from_midi_file(file_path=file, track_indices=[lead_tracks, acmp_tracks],
+                                             meta_track_indices=meta_tracks)
 
     return composition
 

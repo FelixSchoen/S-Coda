@@ -22,7 +22,7 @@ def test_midi_to_sequences():
 
 
 def test_sequence_from_file_without_parameters():
-    sequences = Sequence.from_midi_file(RESOURCE_BEETHOVEN)
+    sequences = Sequence.from_midi_file(file_path=RESOURCE_BEETHOVEN)
 
     assert sequences is not None
     for sequence in sequences[:2]:
