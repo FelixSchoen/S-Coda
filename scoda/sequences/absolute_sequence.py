@@ -7,7 +7,7 @@ from typing import TYPE_CHECKING
 from scoda.elements.message import Message, MessageType
 from scoda.exceptions.exceptions import SequenceException
 from scoda.sequences.abstract_sequence import AbstractSequence
-from settings.settings import PPQN, DIFF_DUAL_NOTE_VALUES_UPPER_BOUND, \
+from scoda.settings.settings import PPQN, DIFF_DUAL_NOTE_VALUES_UPPER_BOUND, \
     DIFF_DUAL_NOTE_VALUES_LOWER_BOUND, NOTE_VALUE_UPPER_BOUND, NOTE_VALUE_LOWER_BOUND, VALID_TUPLETS, DOTTED_ITERATIONS, \
     SCALE_LOGLIKE
 from scoda.utils.scoda_logging import get_logger
@@ -125,7 +125,8 @@ class AbsoluteSequence(AbstractSequence):
 
         mean = geometric_mean(durations)
         bound_mean = minmax(0, 1,
-                            simple_regression(DIFF_DUAL_NOTE_VALUES_UPPER_BOUND, 1, DIFF_DUAL_NOTE_VALUES_LOWER_BOUND, 0, mean))
+                            simple_regression(DIFF_DUAL_NOTE_VALUES_UPPER_BOUND, 1, DIFF_DUAL_NOTE_VALUES_LOWER_BOUND,
+                                              0, mean))
 
         return minmax(0, 1, bound_mean)
 

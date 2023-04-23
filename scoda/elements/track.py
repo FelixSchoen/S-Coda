@@ -3,7 +3,7 @@ from __future__ import annotations
 from scoda.elements.bar import Bar
 from scoda.elements.message import MessageType
 from scoda.exceptions.exceptions import TrackException
-from sequences.sequence import Sequence
+from scoda.sequences.sequence import Sequence
 
 
 class Track:

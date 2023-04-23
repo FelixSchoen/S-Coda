@@ -5,7 +5,7 @@ from pandas import DataFrame
 from scoda.elements.message import MessageType, Message
 from scoda.exceptions.exceptions import BarException
 from scoda.sequences.sequence import Sequence
-from settings.settings import PPQN
+from scoda.settings.settings import PPQN
 from scoda.utils.music_theory import Key
 
 

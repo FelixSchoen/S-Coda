@@ -13,10 +13,10 @@ from pandas import DataFrame
 from scoda.elements.message import MessageType, Message
 from scoda.sequences.absolute_sequence import AbsoluteSequence
 from scoda.sequences.relative_sequence import RelativeSequence
+from scoda.settings.settings import PPQN, NOTE_LOWER_BOUND, NOTE_UPPER_BOUND, VELOCITY_MAX
 from scoda.utils.midi_wrapper import MidiTrack, MidiFile
 from scoda.utils.music_theory import Key, CircleOfFifths
 from scoda.utils.util import minmax, simple_regression
-from settings.settings import PPQN, NOTE_LOWER_BOUND, NOTE_UPPER_BOUND, VELOCITY_MAX
 
 if TYPE_CHECKING:
     from scoda.elements.bar import Bar

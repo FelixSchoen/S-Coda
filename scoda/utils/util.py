@@ -1,10 +1,9 @@
 import math
-from pathlib import Path
 
 import numpy as np
 
-from elements.message import Message
-from settings.settings import VELOCITY_MAX, VELOCITY_BINS, PPQN
+from scoda.elements.message import Message
+from scoda.settings.settings import VELOCITY_MAX, VELOCITY_BINS, PPQN
 
 
 def bin_from_velocity(velocity: int) -> int:

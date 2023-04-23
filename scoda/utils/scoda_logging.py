@@ -1,7 +1,7 @@
 import logging
 import logging.config
 
-from settings.settings import LOGGER_ROOT_NAME
+from scoda.settings.settings import LOGGER_ROOT_NAME
 
 initial_call = True
 
