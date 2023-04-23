@@ -1,6 +1,6 @@
 [project]
 name = "scoda"
-version = "1.0.2.3"
+version = "1.0.2.5"
 authors = [{ name = "Felix Schön", email = "schoen@kr.tuwien.ac.at" }]
 description = "A MIDI and music data manipulation library"
 readme = "README.md"
@@ -32,3 +32,6 @@ dev = [
 [build-system]
 requires = ["setuptools", "wheel"]
 build-backend = "setuptools.build_meta"
+
+[tool.setuptools.package-data]
+"*" = ["*.json"]
