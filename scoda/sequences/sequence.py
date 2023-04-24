@@ -17,6 +17,7 @@ from scoda.settings.settings import PPQN, NOTE_LOWER_BOUND, NOTE_UPPER_BOUND, VE
 from scoda.utils.midi_wrapper import MidiTrack, MidiFile
 from scoda.utils.music_theory import Key, CircleOfFifths
 from scoda.utils.util import minmax, simple_regression
+from utils.decorators import deprecated
 
 if TYPE_CHECKING:
     from scoda.elements.bar import Bar
@@ -254,87 +255,15 @@ class Sequence:
             self._diff_pattern = self.rel.diff_pattern()
         return self._diff_pattern
 
-    def get_message_timing(self, message_type: MessageType) -> [(int, Message)]:
+    def get_message_timing(self, message_type: MessageType) -> list[tuple[int, Message]]:
         """See `scoda.sequence.absolute_sequence.AbsoluteSequence.get_message_timing`.
 
         """
         return self.abs.get_message_timing(message_type)
 
-    def is_empty(self) -> bool:
-        """See `scoda.sequence.relative_sequence.RelativeSequence.is_empty`.
-
-        """
-        return self.rel.is_empty()
-
-    def merge(self, sequences: [Sequence]) -> None:
-        """See `scoda.sequence.absolute_sequence.AbsoluteSequence.merge`.
-
-        """
-        self.abs.merge([seq.abs for seq in sequences])
-        self._rel_stale = True
-
-    def pad_sequence(self, padding_length):
-        """See `scoda.sequence.relative_sequence.RelativeSequence.pad_sequence`.
-
-        """
-        self.rel.pad_sequence(padding_length)
-        self._abs_stale = True
-
-    def save(self, file_path: str) -> MidiFile:
-        """Saves the given sequence as a MIDI file.
-
-        Args:
-            file_path: Where to save the sequence to
-
-        Returns: The resulting MidiFile
-
-        """
-        return Sequence.save_sequences([self], file_path)
-
-    def sequence_length(self) -> float:
-        """See `scoda.sequence.absolute_sequence.AbsoluteSequence.sequence_length`.
-
-        """
-        return self.abs.sequence_length()
-
-    def sequence_length_relation(self) -> float:
-        """See `scoda.sequence.relative_sequence.RelativeSequence.sequence_length_relation`.
-
-        """
-        return self.rel.sequence_length_relation()
-
-    def split(self, capacities: [int]) -> [Sequence]:
-        """See `scoda.sequence.relative_sequence.RelativeSequence.split`.
-
-        """
-        relative_sequences = self.rel.split(capacities)
-        sequences = [Sequence(relative_sequence=seq) for seq in relative_sequences]
-        return sequences
-
-    def scale(self, factor, meta_sequence=None, quantise_afterwards=True) -> None:
-        """See `scoda.sequence.relative_sequence.RelativeSequence.scale`.
-
-        Args:
-            quantise_afterwards: Whether to apply quantisation to the sequence after the scaling operation
-
-
-        """
-        self.rel.scale(factor, meta_sequence)
-        self._abs_stale = True
-
-        if quantise_afterwards:
-            self.quantise()
-            self.quantise_note_lengths()
-
-    def to_midi_track(self) -> MidiTrack:
-        """See `scoda.sequence.relative_sequence.RelativeSequence.to_midi_track`.
-
-        """
-        return self.rel.to_midi_track()
-
-    def to_external_representation(self, note_representation_type: NoteRepresentationType,
-                                   temporal_representation_type: TemporalRepresentationType,
-                                   adjust_wait_messages=True) -> DataFrame:
+    def get_representation(self, note_representation_type: NoteRepresentationType,
+                           temporal_representation_type: TemporalRepresentationType,
+                           adjust_wait_messages=True) -> DataFrame:
         data = []
 
         absolute_sequence = copy.copy(self.abs)
@@ -461,6 +390,79 @@ class Sequence:
 
         return pd.DataFrame(data)
 
+    def is_empty(self) -> bool:
+        """See `scoda.sequence.relative_sequence.RelativeSequence.is_empty`.
+
+        """
+        return self.rel.is_empty()
+
+    def merge(self, sequences: [Sequence]) -> None:
+        """See `scoda.sequence.absolute_sequence.AbsoluteSequence.merge`.
+
+        """
+        self.abs.merge([seq.abs for seq in sequences])
+        self._rel_stale = True
+
+    def pad_sequence(self, padding_length):
+        """See `scoda.sequence.relative_sequence.RelativeSequence.pad_sequence`.
+
+        """
+        self.rel.pad_sequence(padding_length)
+        self._abs_stale = True
+
+    def save(self, file_path: str) -> MidiFile:
+        """Saves the given sequence as a MIDI file.
+
+        Args:
+            file_path: Where to save the sequence to
+
+        Returns: The resulting MidiFile
+
+        """
+        return Sequence.save_sequences([self], file_path)
+
+    def sequence_length(self) -> float:
+        """See `scoda.sequence.absolute_sequence.AbsoluteSequence.sequence_length`.
+
+        """
+        return self.abs.sequence_length()
+
+    def sequence_length_relation(self) -> float:
+        """See `scoda.sequence.relative_sequence.RelativeSequence.sequence_length_relation`.
+
+        """
+        return self.rel.sequence_length_relation()
+
+    def split(self, capacities: [int]) -> list[Sequence]:
+        """See `scoda.sequence.relative_sequence.RelativeSequence.split`.
+
+        """
+        relative_sequences = self.rel.split(capacities)
+        sequences = [Sequence(relative_sequence=seq) for seq in relative_sequences]
+        return sequences
+
+    def scale(self, factor, meta_sequence=None, quantise_afterwards=True) -> None:
+        """See `scoda.sequence.relative_sequence.RelativeSequence.scale`.
+
+        Args:
+            quantise_afterwards: Whether to apply quantisation to the sequence after the scaling operation
+
+
+        """
+        self.rel.scale(factor, meta_sequence)
+        self._abs_stale = True
+
+        if quantise_afterwards:
+            self.quantise()
+            self.quantise_note_lengths()
+
+    def to_midi_track(self) -> MidiTrack:
+        """See `scoda.sequence.relative_sequence.RelativeSequence.to_midi_track`.
+
+        """
+        return self.rel.to_midi_track()
+
+    @deprecated("Use `get_representation()` instead")
     def to_absolute_dataframe(self) -> DataFrame:
         """Creates a `DataFrame` from the messages in this sequence.
 
@@ -469,6 +471,7 @@ class Sequence:
         """
         return Sequence.to_dataframe(self.abs.messages)
 
+    @deprecated("Use `get_representation()` instead")
     def to_relative_dataframe(self, adjust_wait_messages=True) -> DataFrame:
         """Creates a `DataFrame` from the messages in this sequence.
 
@@ -520,7 +523,7 @@ class Sequence:
     # === Static Methods ===
 
     @staticmethod
-    def save_sequences(sequences: [Sequence], file_path: str):
+    def save_sequences(sequences: [Sequence], file_path: str) -> MidiFile:
         """Saves the given sequence as a MIDI file.
 
         Args:
@@ -539,7 +542,7 @@ class Sequence:
 
     @staticmethod
     def from_midi_file(file_path: str = None, midi_file: MidiFile = None, track_indices: [[int]] = None,
-                       meta_track_indices: [int] = None, meta_track_index: int = 0) -> [Sequence]:
+                       meta_track_indices: [int] = None, target_meta_track_index: int = 0) -> list[Sequence]:
         """Creates `scoda.Sequence` objects from the provided MIDI file.
 
         Args:
@@ -548,7 +551,7 @@ class Sequence:
             track_indices: A list of lists indicating which tracks of the MIDI file should be merged into which tracks
                 of the resulting sequence.
             meta_track_indices: A list of indices of tracks of the MIDI file to consider for meta messages
-            meta_track_index: The index of the track of the final sequence that should contain meta messages
+            target_meta_track_index: The index of the track of the final sequence that should contain meta messages
 
         Returns: An array of `scoda.Sequence` objects
 
@@ -563,12 +566,12 @@ class Sequence:
 
         # Get sequence from MIDI file
         merged_sequences = midi_file.to_sequences(track_indices, meta_track_indices,
-                                                  meta_track_index=meta_track_index)
+                                                  meta_track_index=target_meta_track_index)
 
         return merged_sequences
 
     @staticmethod
-    def split_into_bars(sequences_input: [Sequence], meta_track_index=0, quantise_note_lengths=True) -> [[Bar]]:
+    def split_into_bars(sequences_input: [Sequence], meta_track_index=0, quantise_note_lengths=True) -> list[list[Bar]]:
         """Splits the sequence into a lists of `scoda.Bar`, conforming to the contained time signatures.
 
         Each list of bars will correspond to one of the given sequence.
@@ -660,6 +663,7 @@ class Sequence:
         return tracks_bars
 
     @staticmethod
+    @deprecated("Use `get_representation()` instead")
     def to_dataframe(messages) -> DataFrame:
         data = []
 

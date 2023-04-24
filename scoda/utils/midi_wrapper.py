@@ -21,7 +21,7 @@ class MidiFile:
         self.tracks: [MidiTrack] = []
         self.PPQN = PPQN
 
-    def to_sequences(self, track_indices: [[int]], meta_track_indices: [int], meta_track_index: int = 0) -> [Sequence]:
+    def to_sequences(self, track_indices: [[int]], meta_track_indices: [int], meta_track_index: int = 0) -> list[Sequence]:
         """ Parses this `MidiFile` and returns a list of `scoda.Sequence`.
 
         Args:
