@@ -92,6 +92,12 @@ class Sequence:
 
         return cpy
 
+    def __eq__(self, o: object) -> bool:
+        if not isinstance(o, Sequence):
+            return False
+
+        return self.abs.__eq__(o.abs)
+
     @property
     def abs(self) -> AbsoluteSequence:
         """Returns a reference to the absolute representation of this sequence.

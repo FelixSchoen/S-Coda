@@ -36,6 +36,21 @@ class AbsoluteSequence(AbstractSequence):
 
         return copied_sequence
 
+    def __eq__(self, o: object) -> bool:
+        if not isinstance(o, AbsoluteSequence):
+            return False
+
+        self_array = self.absolute_note_array()
+        other_array = o.absolute_note_array()
+
+        for self_pair, other_pair in zip(self_array, other_array):
+            if self_pair[0].time != other_pair[0].time or \
+                    self_pair[0].note != other_pair[0].note or \
+                    self_pair[1].time != other_pair[1].time:
+                return False
+
+        return True
+
     def absolute_note_array(self, standard_length=PPQN) -> [[Message, Message]]:
         """Creates an array containing tuples of messages corresponding to the opening and closing of a note.
 
@@ -46,6 +61,8 @@ class AbsoluteSequence(AbstractSequence):
 
         """
         logger = get_logger(__name__)
+
+        self.sort()
 
         open_messages = dict()
         notes: [[]] = []
@@ -423,7 +440,7 @@ class AbsoluteSequence(AbstractSequence):
         they will occur in this order after the sort.
 
         """
-        self.messages.sort(key=lambda x: (x.time, x.message_type))
+        self.messages.sort(key=lambda x: (x.time, x.message_type, x.note))
 
     def to_relative_sequence(self) -> RelativeSequence:
         """Converts this AbsoluteSequence to a RelativeSequence.

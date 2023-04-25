@@ -19,6 +19,7 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Reworked settings to use `settings.json` file
 - Adapted `Sequence.from_midi_file` to be able to use opened MIDI files
 - Deprecated `to_dataframe()` methods
+- Absolute note array will now always be sorted by time and then pitch values (lower comes first)
 
 ### Fixed
 

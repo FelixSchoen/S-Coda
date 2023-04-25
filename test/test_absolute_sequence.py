@@ -1,6 +1,25 @@
 from base import *
 
 
+def test_equivalence():
+    sequence = util_midi_to_sequences()[0]
+
+    assert sequence == sequence
+
+
+def test_absolute_note_array():
+    sequence = util_midi_to_sequences()[0]
+    note_array = sequence.abs.absolute_note_array()
+
+    for i in range(len(note_array) - 1):
+        assert note_array[i][0].time <= note_array[i + 1][0].time
+
+        if note_array[i][0].note is not None and note_array[i + 1][0].note is not None:
+            assert note_array[i][0].note == note_array[i][1].note
+            if note_array[i][0].time == note_array[i + 1][0].time:
+                assert note_array[i][0].note <= note_array[i + 1][0].note
+
+
 def test_get_timing_of_message_type():
     sequences = util_midi_to_sequences()
     sequence = sequences[0]
