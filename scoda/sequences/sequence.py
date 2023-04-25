@@ -14,10 +14,10 @@ from scoda.elements.message import MessageType, Message
 from scoda.sequences.absolute_sequence import AbsoluteSequence
 from scoda.sequences.relative_sequence import RelativeSequence
 from scoda.settings.settings import PPQN, NOTE_LOWER_BOUND, NOTE_UPPER_BOUND, VELOCITY_MAX
+from scoda.utils.decorators import deprecated
 from scoda.utils.midi_wrapper import MidiTrack, MidiFile
 from scoda.utils.music_theory import Key, CircleOfFifths
 from scoda.utils.util import minmax, simple_regression
-from utils.decorators import deprecated
 
 if TYPE_CHECKING:
     from scoda.elements.bar import Bar
@@ -282,7 +282,7 @@ class Sequence:
 
                 if note_representation_type == NoteRepresentationType.ABSOLUTE_VALUES:
                     Sequence._fill_dictionary_entry(entry,
-                                                    message_type=msg.message_type.value,
+                                                    msg_type=msg.message_type.value,
                                                     time=msg.time,
                                                     note=msg.note,
                                                     velocity=msg.velocity,
@@ -294,7 +294,7 @@ class Sequence:
                 elif note_representation_type == NoteRepresentationType.RELATIVE_DISTANCES:
                     Sequence._fill_dictionary_entry(
                         entry,
-                        message_type=msg.message_type.value,
+                        msg_type=msg.message_type.value,
                         time=msg.time,
                         note=msg.note,
                         velocity=msg.velocity,
@@ -316,7 +316,7 @@ class Sequence:
 
                         Sequence._fill_dictionary_entry(
                             entry,
-                            message_type=msg.message_type.value,
+                            msg_type=msg.message_type.value,
                             time=msg.time,
                             note=msg.note,
                             velocity=msg.velocity,
@@ -351,7 +351,7 @@ class Sequence:
                         time_to_wait = time_dif
 
                     Sequence._fill_dictionary_entry(entry,
-                                                    message_type=MessageType.WAIT,
+                                                    msg_type=MessageType.WAIT,
                                                     time=time_to_wait)
                     time_dif -= time_to_wait
                     data.append(entry)
@@ -361,13 +361,13 @@ class Sequence:
 
                 if note_representation_type == NoteRepresentationType.ABSOLUTE_VALUES:
                     Sequence._fill_dictionary_entry(entry,
-                                                    message_type=MessageType.NOTE_ON,
+                                                    msg_type=MessageType.NOTE_ON,
                                                     time=note_pairing[1].time - note_pairing[0].time,
                                                     note=note_pairing[0].note,
                                                     velocity=note_pairing[0].velocity)
                 elif note_representation_type == NoteRepresentationType.RELATIVE_DISTANCES:
                     Sequence._fill_dictionary_entry(entry,
-                                                    message_type=MessageType.NOTE_ON,
+                                                    msg_type=MessageType.NOTE_ON,
                                                     time=note_pairing[1].time - note_pairing[0].time,
                                                     note=note_pairing[0].note,
                                                     velocity=note_pairing[0].velocity,
@@ -378,7 +378,7 @@ class Sequence:
                     distance = CircleOfFifths.get_distance(current_note, note_pairing[0].note)
 
                     Sequence._fill_dictionary_entry(entry,
-                                                    message_type=MessageType.NOTE_ON,
+                                                    msg_type=MessageType.NOTE_ON,
                                                     time=note_pairing[1].time - note_pairing[0].time,
                                                     note=note_pairing[0].note,
                                                     velocity=note_pairing[0].velocity,
@@ -671,7 +671,7 @@ class Sequence:
 
         for msg in messages:
             data.append(Sequence._fill_dictionary_entry(entry,
-                                                        message_type=msg.message_type.value,
+                                                        msg_type=msg.message_type.value,
                                                         time=msg.time,
                                                         note=msg.note,
                                                         velocity=msg.velocity,
@@ -795,10 +795,20 @@ class Sequence:
     # === Helper Methods ===
 
     @staticmethod
-    def _fill_dictionary_entry(entry, message_type=None, time=None, note=None, velocity=None, control=None,
-                               program=None, numerator=None, denominator=None, key=None, rel_note_dist=None,
-                               rel_note_pair_dist=None, rel_note_pair_oct=None):
-        entry["type"] = message_type
+    def _fill_dictionary_entry(entry,
+                               msg_type=None,
+                               time=None,
+                               note=None,
+                               velocity=None,
+                               control=None,
+                               program=None,
+                               numerator=None,
+                               denominator=None,
+                               key=None,
+                               rel_note_dist=None,
+                               rel_note_pair_dist=None,
+                               rel_note_pair_oct=None):
+        entry["msg_type"] = msg_type
         entry["time"] = time
         entry["note"] = note
         entry["velocity"] = velocity
