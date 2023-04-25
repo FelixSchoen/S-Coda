@@ -11,6 +11,7 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Setup CI pipeline
 - Implement `get_representation()` methods
 - Add changelog
+- Add equivalence test for absolute sequences
 
 ### Changed
 

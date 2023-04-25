@@ -44,6 +44,12 @@ class RelativeSequence(AbstractSequence):
 
         return copied_sequence
 
+    def __eq__(self, o: object) -> bool:
+        if not isinstance(o, RelativeSequence):
+            return False
+
+        return self.to_absolute_sequence() == o.to_absolute_sequence()
+
     def add_message(self, msg: Message) -> None:
         self.messages.append(msg)
 
@@ -174,7 +180,8 @@ class RelativeSequence(AbstractSequence):
         if len(concurrent_notes) == 0:
             concurrent_notes.append(0)
 
-        scaled_difficulty = simple_regression(DIFF_DUAL_NOTE_CONCURRENT_UPPER_BOUND, 1, DIFF_DUAL_NOTE_CONCURRENT_LOWER_BOUND, 0,
+        scaled_difficulty = simple_regression(DIFF_DUAL_NOTE_CONCURRENT_UPPER_BOUND, 1,
+                                              DIFF_DUAL_NOTE_CONCURRENT_LOWER_BOUND, 0,
                                               mean(concurrent_notes))
 
         return minmax(0, 1, scaled_difficulty)
@@ -269,7 +276,8 @@ class RelativeSequence(AbstractSequence):
 
         relation = amount_notes_played / self.sequence_length_relation()
 
-        scaled_difficulty = simple_regression(DIFF_DUAL_NOTE_AMOUNT_UPPER_BOUND, 1, DIFF_DUAL_NOTE_AMOUNT_LOWER_BOUND, 0,
+        scaled_difficulty = simple_regression(DIFF_DUAL_NOTE_AMOUNT_UPPER_BOUND, 1, DIFF_DUAL_NOTE_AMOUNT_LOWER_BOUND,
+                                              0,
                                               relation)
 
         return minmax(0, 1, scaled_difficulty)
@@ -292,7 +300,8 @@ class RelativeSequence(AbstractSequence):
             return 0
 
         relation = len(note_classes) / self.sequence_length_relation()
-        scaled_relation = simple_regression(DIFF_DUAL_NOTE_CLASSES_UPPER_BOUND, 1, DIFF_DUAL_NOTE_CLASSES_LOWER_BOUND, 0,
+        scaled_relation = simple_regression(DIFF_DUAL_NOTE_CLASSES_UPPER_BOUND, 1, DIFF_DUAL_NOTE_CLASSES_LOWER_BOUND,
+                                            0,
                                             relation)
 
         return minmax(0, 1, scaled_relation)

@@ -2,9 +2,11 @@ from base import *
 
 
 def test_equivalence():
-    sequence = util_midi_to_sequences()[0]
+    sequence_a = util_midi_to_sequences()[0]
+    sequence_b = util_midi_to_sequences(file=RESOURCE_CHOPIN)[0]
 
-    assert sequence == sequence
+    assert sequence_a == sequence_a
+    assert sequence_a != sequence_b
 
 
 def test_absolute_note_array():
