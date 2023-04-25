@@ -24,15 +24,15 @@ if TYPE_CHECKING:
 
 
 class NoteRepresentationType(enum.Enum):
-    absolute_values = 0
-    relative_distances = 1
-    circle_of_fifths = 2
-    scale = 3
+    ABSOLUTE_VALUES = 0
+    RELATIVE_DISTANCES = 1
+    CIRCLE_OF_FIFTHS = 2
+    SCALE = 3
 
 
 class TemporalRepresentationType(enum.Enum):
-    relative_ticks = 0
-    notelike_representation = 1
+    RELATIVE_TICKS = 0
+    NOTELIKE_REPRESENTATION = 1
 
 
 class Sequence:
@@ -274,13 +274,13 @@ class Sequence:
 
         base_note = 69  # A4, 440 Hz
 
-        if temporal_representation_type == TemporalRepresentationType.relative_ticks:
+        if temporal_representation_type == TemporalRepresentationType.RELATIVE_TICKS:
             current_note = base_note
 
             for msg in relative_sequence.messages:
                 entry = dict()
 
-                if note_representation_type == NoteRepresentationType.absolute_values:
+                if note_representation_type == NoteRepresentationType.ABSOLUTE_VALUES:
                     Sequence._fill_dictionary_entry(entry,
                                                     message_type=msg.message_type.value,
                                                     time=msg.time,
@@ -291,7 +291,7 @@ class Sequence:
                                                     numerator=msg.numerator,
                                                     denominator=msg.denominator,
                                                     key=None if msg.key is None else msg.key.value)
-                elif note_representation_type == NoteRepresentationType.relative_distances:
+                elif note_representation_type == NoteRepresentationType.RELATIVE_DISTANCES:
                     Sequence._fill_dictionary_entry(
                         entry,
                         message_type=msg.message_type.value,
@@ -310,7 +310,7 @@ class Sequence:
                         rel_note_pair_oct=None if msg.note is None else ((
                                                                                  msg.note - current_note) // 12)
                     )
-                elif note_representation_type == NoteRepresentationType.circle_of_fifths:
+                elif note_representation_type == NoteRepresentationType.CIRCLE_OF_FIFTHS:
                     if msg.note is not None:
                         distance = CircleOfFifths.get_distance(current_note, msg.note)
 
@@ -333,7 +333,7 @@ class Sequence:
                 if msg.note is not None:
                     current_note = msg.note
                 data.append(entry)
-        elif temporal_representation_type == TemporalRepresentationType.notelike_representation:
+        elif temporal_representation_type == TemporalRepresentationType.NOTELIKE_REPRESENTATION:
             current_note = base_note
             note_array = absolute_sequence.absolute_note_array()
             current_time = 0
@@ -351,7 +351,7 @@ class Sequence:
                         time_to_wait = time_dif
 
                     Sequence._fill_dictionary_entry(entry,
-                                                    message_type=MessageType.wait,
+                                                    message_type=MessageType.WAIT,
                                                     time=time_to_wait)
                     time_dif -= time_to_wait
                     data.append(entry)
@@ -359,26 +359,26 @@ class Sequence:
 
                 current_time = note_time
 
-                if note_representation_type == NoteRepresentationType.absolute_values:
+                if note_representation_type == NoteRepresentationType.ABSOLUTE_VALUES:
                     Sequence._fill_dictionary_entry(entry,
-                                                    message_type=MessageType.note_on,
+                                                    message_type=MessageType.NOTE_ON,
                                                     time=note_pairing[1].time - note_pairing[0].time,
                                                     note=note_pairing[0].note,
                                                     velocity=note_pairing[0].velocity)
-                elif note_representation_type == NoteRepresentationType.relative_distances:
+                elif note_representation_type == NoteRepresentationType.RELATIVE_DISTANCES:
                     Sequence._fill_dictionary_entry(entry,
-                                                    message_type=MessageType.note_on,
+                                                    message_type=MessageType.NOTE_ON,
                                                     time=note_pairing[1].time - note_pairing[0].time,
                                                     note=note_pairing[0].note,
                                                     velocity=note_pairing[0].velocity,
                                                     rel_note_dist=(note_pairing[0].note - current_note),
                                                     rel_note_pair_dist=((note_pairing[0].note - current_note) % 12),
                                                     rel_note_pair_oct=((note_pairing[0].note - current_note) // 12))
-                elif note_representation_type == NoteRepresentationType.circle_of_fifths:
+                elif note_representation_type == NoteRepresentationType.CIRCLE_OF_FIFTHS:
                     distance = CircleOfFifths.get_distance(current_note, note_pairing[0].note)
 
                     Sequence._fill_dictionary_entry(entry,
-                                                    message_type=MessageType.note_on,
+                                                    message_type=MessageType.NOTE_ON,
                                                     time=note_pairing[1].time - note_pairing[0].time,
                                                     note=note_pairing[0].note,
                                                     velocity=note_pairing[0].velocity,
@@ -597,14 +597,14 @@ class Sequence:
 
         # Determine signature timings
         meta_track = sequences[meta_track_index]
-        time_signature_timings = meta_track.get_message_timing(MessageType.time_signature)
-        key_signature_timings = meta_track.get_message_timing(MessageType.key_signature)
+        time_signature_timings = meta_track.get_message_timing(MessageType.TIME_SIGNATURE)
+        key_signature_timings = meta_track.get_message_timing(MessageType.KEY_SIGNATURE)
 
         tracks_bars = [[] for _ in sequences]
 
         if len(time_signature_timings) == 0:
             time_signature_timings = [(0,
-                                       Message(message_type=MessageType.time_signature, numerator=current_ts_numerator,
+                                       Message(message_type=MessageType.TIME_SIGNATURE, numerator=current_ts_numerator,
                                                denominator=current_ts_denominator))]
 
         # Keep track of when bars are of equal length
@@ -752,7 +752,7 @@ class Sequence:
             # Get length of sequence (if wait messages occur after notes)
             length = 0
             for msg in sequence.rel.messages:
-                if msg.message_type == MessageType.wait:
+                if msg.message_type == MessageType.WAIT:
                     length += msg.time
 
             x_scale_max = max(x_scale_max, length)

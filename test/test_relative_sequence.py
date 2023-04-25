@@ -7,18 +7,18 @@ def test_adjust_wait_messages():
 
     duration_pre = 0
     for msg in sequence.rel.messages:
-        if msg.message_type == MessageType.wait:
+        if msg.message_type == MessageType.WAIT:
             duration_pre += msg.time
 
     sequence.adjust_messages()
 
     duration_post = 0
     for msg in sequence.rel.messages:
-        if msg.message_type == MessageType.wait:
+        if msg.message_type == MessageType.WAIT:
             duration_post += msg.time
 
     assert duration_pre == duration_post
-    assert all((not (msg.message_type == MessageType.wait) or msg.time <= PPQN) for msg in sequence.rel.messages)
+    assert all((not (msg.message_type == MessageType.WAIT) or msg.time <= PPQN) for msg in sequence.rel.messages)
 
 
 def test_consolidate_sequences():
@@ -51,12 +51,12 @@ def test_pad_sequence():
     sequence = sequences[0]
 
     assert sum(
-        msg.time for msg in sequence.rel.messages if msg.message_type == MessageType.wait) < PPQN * 4 * 300
+        msg.time for msg in sequence.rel.messages if msg.message_type == MessageType.WAIT) < PPQN * 4 * 300
 
     sequence.pad_sequence(PPQN * 4 * 300)
 
     assert sum(
-        msg.time for msg in sequence.rel.messages if msg.message_type == MessageType.wait) >= PPQN * 4 * 300
+        msg.time for msg in sequence.rel.messages if msg.message_type == MessageType.WAIT) >= PPQN * 4 * 300
 
 
 def test_split():
@@ -66,7 +66,7 @@ def test_split():
     split_up = sequence.split([4 * PPQN])
 
     assert sum(
-        msg.time for msg in split_up[0].rel.messages if msg.message_type == MessageType.wait) == 4 * PPQN
+        msg.time for msg in split_up[0].rel.messages if msg.message_type == MessageType.WAIT) == 4 * PPQN
 
 
 def test_scale():
@@ -84,12 +84,12 @@ def test_scale():
     original_duration = 0
     for bar in original_bars:
         for msg in bar.sequence.rel.messages:
-            if msg.message_type == MessageType.wait:
+            if msg.message_type == MessageType.WAIT:
                 original_duration += msg.time
 
     scaled_duration = 0
     for msg in scaled_sequence.rel.messages:
-        if msg.message_type == MessageType.wait:
+        if msg.message_type == MessageType.WAIT:
             scaled_duration += msg.time
 
     assert scaled_duration == original_duration * scale_factor
@@ -98,7 +98,7 @@ def test_scale():
 def test_scale_then_create_composition():
     sequences = util_midi_to_sequences()
 
-    assert all(msg.message_type != MessageType.time_signature for msg in sequences[1].rel.messages)
+    assert all(msg.message_type != MessageType.TIME_SIGNATURE for msg in sequences[1].rel.messages)
 
     compositions = []
     scale_factors = [0.5, 2]
@@ -130,15 +130,15 @@ def test_transpose():
     sequence = sequences[0]
 
     note_heights = [msg.note for msg in sequence.rel.messages if
-                    msg.message_type == MessageType.note_on or msg.message_type == MessageType.note_off]
+                    msg.message_type == MessageType.NOTE_ON or msg.message_type == MessageType.NOTE_OFF]
 
     had_to_wrap = sequence.transpose(1)
 
     assert not had_to_wrap
 
     note_heights_after_quantization = [msg.note for msg in sequence.rel.messages if
-                                       msg.message_type == MessageType.note_on
-                                       or msg.message_type == MessageType.note_off]
+                                       msg.message_type == MessageType.NOTE_ON
+                                       or msg.message_type == MessageType.NOTE_OFF]
 
     assert all(
         note_heights_after_quantization[i] == note_heights[i] + 1 for i in range(len(note_heights_after_quantization)))

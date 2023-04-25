@@ -54,18 +54,18 @@ class AbsoluteSequence(AbstractSequence):
         # Collect notes
         for msg in self.messages:
             # Add notes to open messages
-            if msg.message_type == MessageType.note_on:
+            if msg.message_type == MessageType.NOTE_ON:
                 if msg.note in open_messages:
                     logger.info(f"Note {msg.note} at time {msg.time} not previously stopped, inserting stop message.")
                     index = open_messages.pop(msg.note)
-                    notes[index].append(Message(message_type=MessageType.note_off, note=msg.note, time=msg.time))
+                    notes[index].append(Message(message_type=MessageType.NOTE_OFF, note=msg.note, time=msg.time))
 
                 open_messages[msg.note] = i
                 notes.insert(i, [msg])
                 i += 1
 
             # Add closing message to fitting open message
-            elif msg.message_type == MessageType.note_off:
+            elif msg.message_type == MessageType.NOTE_OFF:
                 if msg.note not in open_messages:
                     logger.info(f"Note {msg.note} at time {msg.time} not previously started, skipping.")
                 else:
@@ -75,7 +75,7 @@ class AbsoluteSequence(AbstractSequence):
         # Check unclosed notes
         for pairing in notes:
             if len(pairing) == 1:
-                pairing.append(Message(message_type=MessageType.note_off, time=pairing[0].time + standard_length))
+                pairing.append(Message(message_type=MessageType.NOTE_OFF, time=pairing[0].time + standard_length))
 
         return notes
 
@@ -94,10 +94,10 @@ class AbsoluteSequence(AbstractSequence):
 
         for entry in note_array:
             if len(entry) == 1:
-                if not entry[0].message_type == MessageType.note_on:
+                if not entry[0].message_type == MessageType.NOTE_ON:
                     raise SequenceException("Note was closed without having been opened.")
                 self.add_message(
-                    Message(message_type=MessageType.note_off, note=entry[0].note, time=entry[0].time + maximum_length))
+                    Message(message_type=MessageType.NOTE_OFF, note=entry[0].note, time=entry[0].time + maximum_length))
             else:
                 if entry[1].time - entry[0].time > maximum_length:
                     entry[1].time = entry[0].time + reduced_length
@@ -255,7 +255,7 @@ class AbsoluteSequence(AbstractSequence):
             valid_positions = []
 
             # Consider quantisations that could smother notes
-            if msg.message_type == MessageType.note_on:
+            if msg.message_type == MessageType.NOTE_ON:
                 valid_positions += possible_positions
                 message_to_append.time = valid_positions[find_minimal_distance(message_original_time, valid_positions)]
 
@@ -263,7 +263,7 @@ class AbsoluteSequence(AbstractSequence):
                 if msg.note in open_messages:
                     logger.info(f"Note {msg.note} not previously stopped, inserting stop message.")
                     quantised_messages.append(
-                        Message(message_type=MessageType.note_off, note=msg.note, time=message_to_append.time))
+                        Message(message_type=MessageType.NOTE_OFF, note=msg.note, time=message_to_append.time))
                     open_messages.pop(msg.note, None)
                     message_timings[msg.note].append(message_to_append.time)
 
@@ -275,7 +275,7 @@ class AbsoluteSequence(AbstractSequence):
                 # In this case note would overlap with other, existing note
                 else:
                     message_to_append = None
-            elif msg.message_type == MessageType.note_off:
+            elif msg.message_type == MessageType.NOTE_OFF:
                 # Message is currently open, have to quantize
                 if msg.note in open_messages:
                     note_open_timing = open_messages.pop(msg.note, None)
@@ -311,9 +311,9 @@ class AbsoluteSequence(AbstractSequence):
 
         # Get indices of violating messages
         for i, msg in enumerate(quantised_messages):
-            if msg.message_type == MessageType.note_on:
+            if msg.message_type == MessageType.NOTE_ON:
                 message_timings_with_indices[msg.note] = (i, msg.time)
-            elif msg.message_type == MessageType.note_off:
+            elif msg.message_type == MessageType.NOTE_OFF:
                 j, time = message_timings_with_indices.pop(msg.note)
                 if msg.time - time <= 0:
                     original_indices_to_remove.extend([j, i])
@@ -402,7 +402,7 @@ class AbsoluteSequence(AbstractSequence):
             quantised_messages.extend(pairing)
 
         for msg in self.messages:
-            if msg.message_type is not MessageType.note_on and msg.message_type is not MessageType.note_off:
+            if msg.message_type is not MessageType.NOTE_ON and msg.message_type is not MessageType.NOTE_OFF:
                 quantised_messages.append(msg)
 
         self.messages = quantised_messages
@@ -440,10 +440,10 @@ class AbsoluteSequence(AbstractSequence):
             # Check if we have to add wait messages
             if time > current_point_in_time:
                 relative_sequence.add_message(
-                    Message(message_type=MessageType.wait, time=time - current_point_in_time))
+                    Message(message_type=MessageType.WAIT, time=time - current_point_in_time))
                 current_point_in_time = time
 
-            if msg.message_type != MessageType.internal:
+            if msg.message_type != MessageType.INTERNAL:
                 message_to_add = copy.copy(msg)
                 message_to_add.time = None
                 relative_sequence.add_message(message_to_add)

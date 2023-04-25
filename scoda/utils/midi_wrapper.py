@@ -68,38 +68,38 @@ class MidiFile:
                 rounded_point_in_time = round(current_point_in_time)
 
                 # Note On
-                if msg.message_type == MessageType.note_on and any(i in indices for indices in track_indices):
+                if msg.message_type == MessageType.NOTE_ON and any(i in indices for indices in track_indices):
                     current_sequence.add_absolute_message(
-                        Message(message_type=MessageType.note_on, note=msg.note, velocity=msg.velocity,
+                        Message(message_type=MessageType.NOTE_ON, note=msg.note, velocity=msg.velocity,
                                 time=rounded_point_in_time))
                 # Note Off
-                elif msg.message_type == MessageType.note_off and any(i in indices for indices in track_indices):
+                elif msg.message_type == MessageType.NOTE_OFF and any(i in indices for indices in track_indices):
                     current_sequence.add_absolute_message(
-                        Message(message_type=MessageType.note_off, note=msg.note, time=rounded_point_in_time))
+                        Message(message_type=MessageType.NOTE_OFF, note=msg.note, time=rounded_point_in_time))
                 # Time Signature
-                elif msg.message_type == MessageType.time_signature:
+                elif msg.message_type == MessageType.TIME_SIGNATURE:
                     if i not in meta_track_indices:
                         logger.warning("Encountered time signature change in unexpected track.")
 
                     meta_sequence.add_absolute_message(
-                        Message(message_type=MessageType.time_signature, numerator=msg.numerator,
+                        Message(message_type=MessageType.TIME_SIGNATURE, numerator=msg.numerator,
                                 denominator=msg.denominator, time=rounded_point_in_time))
                 # Key Signature
-                elif msg.message_type == MessageType.key_signature:
+                elif msg.message_type == MessageType.KEY_SIGNATURE:
                     if i not in meta_track_indices:
                         logger.warning("Encountered key signature change in unexpected track.")
 
                     meta_sequence.add_absolute_message(
-                        Message(message_type=MessageType.key_signature, key=msg.key, time=rounded_point_in_time))
+                        Message(message_type=MessageType.KEY_SIGNATURE, key=msg.key, time=rounded_point_in_time))
                 # Control change
-                elif msg.message_type == MessageType.control_change:
+                elif msg.message_type == MessageType.CONTROL_CHANGE:
                     meta_sequence.add_absolute_message(
-                        Message(message_type=MessageType.control_change, velocity=msg.velocity, control=msg.control,
+                        Message(message_type=MessageType.CONTROL_CHANGE, velocity=msg.velocity, control=msg.control,
                                 time=rounded_point_in_time))
                 # Program change
-                elif msg.message_type == MessageType.program_change:
+                elif msg.message_type == MessageType.PROGRAM_CHANGE:
                     current_sequence.add_absolute_message(
-                        Message(message_type=MessageType.program_change, program=msg.program,
+                        Message(message_type=MessageType.PROGRAM_CHANGE, program=msg.program,
                                 time=rounded_point_in_time))
                 # Unknown, e.g. MetaMessage (will be ignored)
                 else:
@@ -121,9 +121,9 @@ class MidiFile:
 
         # Set standard time if not set
         if not any(timing_tuple[0] == 0 for timing_tuple in
-                   meta_track.get_message_timing(MessageType.time_signature)):
+                   meta_track.get_message_timing(MessageType.TIME_SIGNATURE)):
             meta_track.add_absolute_message(
-                Message(message_type=MessageType.time_signature, numerator=4, denominator=4, time=0))
+                Message(message_type=MessageType.TIME_SIGNATURE, numerator=4, denominator=4, time=0))
 
         return merged_sequences
 
@@ -169,24 +169,24 @@ class MidiTrack:
         time_buffer = 0
 
         for msg in self.messages:
-            if msg.message_type == MessageType.note_on:
+            if msg.message_type == MessageType.NOTE_ON:
                 track.append(
                     mido.Message("note_on", note=msg.note, velocity=msg.velocity if msg.velocity is not None else 127,
                                  time=int(time_buffer)))
                 time_buffer = 0
-            elif msg.message_type == MessageType.note_off:
+            elif msg.message_type == MessageType.NOTE_OFF:
                 track.append(mido.Message("note_off", note=msg.note, velocity=0, time=int(time_buffer)))
                 time_buffer = 0
-            elif msg.message_type == MessageType.wait:
+            elif msg.message_type == MessageType.WAIT:
                 time_buffer += msg.time
-            elif msg.message_type == MessageType.time_signature:
+            elif msg.message_type == MessageType.TIME_SIGNATURE:
                 track.append(mido.MetaMessage("time_signature", numerator=msg.numerator, denominator=msg.denominator,
                                               time=int(time_buffer)))
                 time_buffer = 0
-            elif msg.message_type == MessageType.key_signature:
+            elif msg.message_type == MessageType.KEY_SIGNATURE:
                 track.append(mido.MetaMessage("key_signature", key=msg.key.value, time=int(time_buffer)))
                 time_buffer = 0
-            elif msg.message_type == MessageType.control_change:
+            elif msg.message_type == MessageType.CONTROL_CHANGE:
                 track.append(
                     mido.Message("control_change", channel=0, control=msg.control, value=msg.velocity,
                                  time=int(time_buffer)))
@@ -217,26 +217,26 @@ class MidiMessage:
         msg.time = mido_message.time
 
         if mido_message.type == "note_on" and mido_message.velocity > 0:
-            msg.message_type = MessageType.note_on
+            msg.message_type = MessageType.NOTE_ON
             msg.note = mido_message.note
             msg.velocity = mido_message.velocity
         elif mido_message.type == "note_on" or mido_message.type == "note_off":
-            msg.message_type = MessageType.note_off
+            msg.message_type = MessageType.NOTE_OFF
             msg.note = mido_message.note
             msg.velocity = mido_message.velocity
         elif mido_message.type == "time_signature":
-            msg.message_type = MessageType.time_signature
+            msg.message_type = MessageType.TIME_SIGNATURE
             msg.denominator = mido_message.denominator
             msg.numerator = mido_message.numerator
         elif mido_message.type == "key_signature":
-            msg.message_type = MessageType.key_signature
+            msg.message_type = MessageType.KEY_SIGNATURE
             msg.key = MusicMapping.KeyKeyMapping[mido_message.key]
         elif mido_message.type == "control_change":
-            msg.message_type = MessageType.control_change
+            msg.message_type = MessageType.CONTROL_CHANGE
             msg.control = mido_message.control
             msg.velocity = mido_message.value
         elif mido_message.type == "program_change":
-            msg.message_type = MessageType.program_change
+            msg.message_type = MessageType.PROGRAM_CHANGE
             msg.program = mido_message.program
 
         return msg

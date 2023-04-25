@@ -37,7 +37,7 @@ class Bar:
         # Assert time signature is consistent
         relative_sequence = self.sequence.rel
         time_signatures = [msg for msg in relative_sequence.messages if
-                           msg.message_type == MessageType.time_signature]
+                           msg.message_type == MessageType.TIME_SIGNATURE]
 
         if len(time_signatures) > 1:
             raise BarException("Too many time signatures in a bar")
@@ -48,8 +48,8 @@ class Bar:
         # Set time signature and remove all other time signature messages
         relative_sequence = self.sequence.rel
         relative_sequence.messages = [msg for msg in relative_sequence.messages if
-                                      msg.message_type != MessageType.time_signature]
-        relative_sequence.messages.insert(0, Message(message_type=MessageType.time_signature,
+                                      msg.message_type != MessageType.TIME_SIGNATURE]
+        relative_sequence.messages.insert(0, Message(message_type=MessageType.TIME_SIGNATURE,
                                                      numerator=self.time_signature_numerator,
                                                      denominator=self.time_signature_denominator))
 

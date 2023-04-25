@@ -61,11 +61,11 @@ class RelativeSequence(AbstractSequence):
         current_ts_denominator = None
 
         for msg in self.messages:
-            if msg.message_type == MessageType.wait:
+            if msg.message_type == MessageType.WAIT:
                 wait_buffer += msg.time
             else:
                 # Remove double time signatures
-                if msg.message_type == MessageType.time_signature:
+                if msg.message_type == MessageType.TIME_SIGNATURE:
                     if msg.numerator != current_ts_numerator or msg.denominator != current_ts_denominator:
                         current_ts_numerator = msg.numerator
                         current_ts_denominator = msg.denominator
@@ -74,28 +74,28 @@ class RelativeSequence(AbstractSequence):
 
                 # Split up wait messages to maximum length of PPQN
                 while wait_buffer > PPQN:
-                    messages_normalized.append(Message(message_type=MessageType.wait, time=PPQN))
+                    messages_normalized.append(Message(message_type=MessageType.WAIT, time=PPQN))
                     wait_buffer -= PPQN
                 if wait_buffer > 0:
-                    messages_normalized.append(Message(message_type=MessageType.wait, time=wait_buffer))
+                    messages_normalized.append(Message(message_type=MessageType.WAIT, time=wait_buffer))
 
                 # Clear wait buffer
                 wait_buffer = 0
 
                 # Keep track of open notes
-                if msg.message_type == MessageType.note_on:
+                if msg.message_type == MessageType.NOTE_ON:
                     open_messages[msg.note] = True
-                elif msg.message_type == MessageType.note_off:
+                elif msg.message_type == MessageType.NOTE_OFF:
                     open_messages.pop(msg.note, None)
 
                 messages_normalized.append(msg)
 
         # Repeat procedure for wait messages that occur at the end of the sequence
         while wait_buffer > PPQN:
-            messages_normalized.append(Message(message_type=MessageType.wait, time=PPQN))
+            messages_normalized.append(Message(message_type=MessageType.WAIT, time=PPQN))
             wait_buffer -= PPQN
         if wait_buffer > 0:
-            messages_normalized.append(Message(message_type=MessageType.wait, time=wait_buffer))
+            messages_normalized.append(Message(message_type=MessageType.WAIT, time=wait_buffer))
 
         if len(open_messages) > 0:
             logger.info("The sequence contains messages that have not been closed.")
@@ -126,7 +126,7 @@ class RelativeSequence(AbstractSequence):
         violations = 0
 
         for msg in self.messages:
-            if msg.message_type == MessageType.note_on:
+            if msg.message_type == MessageType.NOTE_ON:
                 if Note(msg.note % 12) not in note_mapping[0]:
                     violations += 1
 
@@ -148,11 +148,11 @@ class RelativeSequence(AbstractSequence):
         notes_to_close = set()
 
         for msg in self.messages:
-            if msg.message_type == MessageType.note_on:
+            if msg.message_type == MessageType.NOTE_ON:
                 notes_to_open.add(msg.note)
-            elif msg.message_type == MessageType.note_off:
+            elif msg.message_type == MessageType.NOTE_OFF:
                 notes_to_close.add(msg.note)
-            elif msg.message_type == MessageType.wait:
+            elif msg.message_type == MessageType.WAIT:
                 if len(open_notes) > 0:
                     concurrent_notes.append(len(open_notes))
 
@@ -192,10 +192,10 @@ class RelativeSequence(AbstractSequence):
         distances = []
 
         for msg in self.messages:
-            if msg.message_type == MessageType.wait and len(current_notes) > 0:
+            if msg.message_type == MessageType.WAIT and len(current_notes) > 0:
                 notes_played.append(sorted(current_notes))
                 current_notes = []
-            elif msg.message_type == MessageType.note_on:
+            elif msg.message_type == MessageType.NOTE_ON:
                 current_notes.append(msg.note)
 
         for i in range(1, len(notes_played)):
@@ -233,13 +233,13 @@ class RelativeSequence(AbstractSequence):
         key_signature = key
 
         for msg in self.messages:
-            if msg.message_type == MessageType.key_signature:
+            if msg.message_type == MessageType.KEY_SIGNATURE:
                 if key_signature is not None and key_signature is not msg.key:
                     logger.info(f"Key was {key_signature}, now is {msg.key}.")
                     key_signature = None
                     break
                 key_signature = msg.key
-            if msg.message_type == MessageType.wait:
+            if msg.message_type == MessageType.WAIT:
                 break
 
         # Have to guess key signature based on induced accidentals
@@ -264,7 +264,7 @@ class RelativeSequence(AbstractSequence):
             return 0
 
         for msg in self.messages:
-            if msg.message_type == MessageType.note_on:
+            if msg.message_type == MessageType.NOTE_ON:
                 amount_notes_played += 1
 
         relation = amount_notes_played / self.sequence_length_relation()
@@ -284,7 +284,7 @@ class RelativeSequence(AbstractSequence):
         note_classes = []
 
         for msg in self.messages:
-            if msg.message_type == MessageType.note_on and msg.note not in note_classes:
+            if msg.message_type == MessageType.NOTE_ON and msg.note not in note_classes:
                 note_classes.append(msg.note)
 
         # If sequence is empty, return easiest difficulty
@@ -310,9 +310,9 @@ class RelativeSequence(AbstractSequence):
         current_bin = []
 
         for msg in self.messages:
-            if msg.message_type == MessageType.wait and len(current_bin) > 0:
+            if msg.message_type == MessageType.WAIT and len(current_bin) > 0:
                 notes_played.extend(sorted(current_bin, key=lambda message: message.note))
-            elif msg.message_type == MessageType.note_on:
+            elif msg.message_type == MessageType.NOTE_ON:
                 notes_played.append(msg)
 
         string_representation = ""
@@ -373,12 +373,12 @@ class RelativeSequence(AbstractSequence):
         open_messages = dict()
 
         for msg in self.messages:
-            if msg.message_type == MessageType.note_on:
+            if msg.message_type == MessageType.NOTE_ON:
                 at_bar_border = False
                 open_messages[msg.note] = current_point_in_time
-            elif msg.message_type == MessageType.note_off:
+            elif msg.message_type == MessageType.NOTE_OFF:
                 open_messages.pop(msg.note, None)
-            elif msg.message_type == MessageType.wait:
+            elif msg.message_type == MessageType.WAIT:
                 at_bar_border = False
 
                 current_point_in_time += msg.time
@@ -392,7 +392,7 @@ class RelativeSequence(AbstractSequence):
                 while current_bar_time > current_bar_capacity:
                     current_bar_time -= current_bar_capacity
                     amount_bars_completed += 1
-            elif msg.message_type == MessageType.time_signature:
+            elif msg.message_type == MessageType.TIME_SIGNATURE:
                 if not at_bar_border:
                     raise SequenceException("Time signature message may only occur at border of a bar")
                 at_bar_border = False
@@ -411,19 +411,19 @@ class RelativeSequence(AbstractSequence):
                     current_point_in_time + wait_time - value <= maximum_note_length for value in
                     open_messages.values())
                 ):
-                    valid_messages.append({"message_type": MessageType.wait.value, "time": wait_time})
+                    valid_messages.append({"message_type": MessageType.WAIT.value, "time": wait_time})
 
         for note in range(NOTE_LOWER_BOUND, NOTE_UPPER_BOUND + 1):
             if note not in open_messages and amount_bars_completed < desired_bars and not (
                     at_bar_border and force_time_signature):
-                valid_messages.append({"message_type": MessageType.note_on.value, "note": note})
+                valid_messages.append({"message_type": MessageType.NOTE_ON.value, "note": note})
 
         for note in range(NOTE_LOWER_BOUND, NOTE_UPPER_BOUND + 1):
             if note in open_messages and open_messages[note] != current_point_in_time:
-                valid_messages.append({"message_type": MessageType.note_off.value, "note": note})
+                valid_messages.append({"message_type": MessageType.NOTE_OFF.value, "note": note})
 
         if at_bar_border and amount_bars_completed < desired_bars:
-            valid_messages.append({"message_type": MessageType.time_signature.value})
+            valid_messages.append({"message_type": MessageType.TIME_SIGNATURE.value})
 
         return valid_messages
 
@@ -438,7 +438,7 @@ class RelativeSequence(AbstractSequence):
             key_candidates.append(0)
 
         for msg in self.messages:
-            if msg.message_type == MessageType.note_on:
+            if msg.message_type == MessageType.NOTE_ON:
                 for i, (_, key_notes) in enumerate(MusicMapping.KeyNoteMapping.items()):
                     if Note(msg.note % 12) not in key_notes[0]:
                         key_candidates[i] += 1
@@ -465,7 +465,7 @@ class RelativeSequence(AbstractSequence):
 
         """
         for msg in self.messages:
-            if msg.message_type == MessageType.note_on:
+            if msg.message_type == MessageType.NOTE_ON:
                 return False
         return True
 
@@ -479,14 +479,14 @@ class RelativeSequence(AbstractSequence):
         current_length = 0
 
         for msg in self.messages:
-            if msg.message_type == MessageType.wait:
+            if msg.message_type == MessageType.WAIT:
                 current_length += msg.time
 
                 if current_length >= padding_length:
                     break
 
         if current_length < padding_length:
-            self.messages.append(Message(message_type=MessageType.wait, time=padding_length - current_length))
+            self.messages.append(Message(message_type=MessageType.WAIT, time=padding_length - current_length))
 
     def sequence_length_relation(self) -> float:
         """Calculates the length of the sequence in multiples of the `PPQN`.
@@ -497,7 +497,7 @@ class RelativeSequence(AbstractSequence):
         length = 0
 
         for msg in self.messages:
-            if msg.message_type == MessageType.wait:
+            if msg.message_type == MessageType.WAIT:
                 length += msg.time
 
         return length / PPQN
@@ -539,17 +539,17 @@ class RelativeSequence(AbstractSequence):
                 msg = working_memory.pop(0)
 
                 # Check messages, if capacity 0 add to next sequence for most of them
-                if msg.message_type == MessageType.note_on:
+                if msg.message_type == MessageType.NOTE_ON:
                     if remaining_capacity > 0:
                         current_sequence.add_message(msg)
                         open_messages[msg.note] = copy.copy(msg)
                     else:
                         next_sequence_queue.append(msg)
                 # For stop messages, add them to the current sequence
-                elif msg.message_type == MessageType.note_off:
+                elif msg.message_type == MessageType.NOTE_OFF:
                     current_sequence.add_message(msg)
                     open_messages.pop(msg.note, None)
-                elif msg.message_type == MessageType.wait:
+                elif msg.message_type == MessageType.WAIT:
                     # Can add message in entirety
                     if msg.time <= remaining_capacity:
                         remaining_capacity -= msg.time
@@ -560,14 +560,14 @@ class RelativeSequence(AbstractSequence):
 
                         if remaining_capacity > 0:
                             current_sequence.add_message(
-                                Message(message_type=MessageType.wait, time=remaining_capacity))
+                                Message(message_type=MessageType.WAIT, time=remaining_capacity))
 
                         for key, value in open_messages.items():
-                            current_sequence.add_message(Message(message_type=MessageType.note_off, note=value.note))
+                            current_sequence.add_message(Message(message_type=MessageType.NOTE_OFF, note=value.note))
                             next_sequence_queue.append(
-                                Message(message_type=MessageType.note_on, note=value.note, velocity=value.velocity))
+                                Message(message_type=MessageType.NOTE_ON, note=value.note, velocity=value.velocity))
 
-                        next_sequence_queue.append(Message(message_type=MessageType.wait, time=carry_time))
+                        next_sequence_queue.append(Message(message_type=MessageType.WAIT, time=carry_time))
 
                         if len(current_sequence.messages) > 0:
                             split_sequences.append(current_sequence)
@@ -608,7 +608,7 @@ class RelativeSequence(AbstractSequence):
         # Normal case, simply multiply duration
         if factor >= 1:
             for msg in self.messages:
-                if msg.message_type == MessageType.wait:
+                if msg.message_type == MessageType.WAIT:
                     msg.time = msg.time * factor
         # Handle special case, have to consider time signatures
         else:
@@ -641,7 +641,7 @@ class RelativeSequence(AbstractSequence):
                        cbar.time_signature_denominator == current_bar.time_signature_denominator
                        for cbar in consecutive_bars):
                     for msg in [msg for cbar in consecutive_bars for msg in cbar.sequence.rel.messages]:
-                        if msg.message_type == MessageType.wait:
+                        if msg.message_type == MessageType.WAIT:
                             msg.time = msg.time * factor
 
                         modified_messages.append(msg)
@@ -650,9 +650,9 @@ class RelativeSequence(AbstractSequence):
                 # Not all have same time signature
                 else:
                     for msg in current_bar.sequence.rel.messages:
-                        if msg.message_type == MessageType.wait:
+                        if msg.message_type == MessageType.WAIT:
                             msg.time = msg.time * factor
-                        elif msg.message_type == MessageType.time_signature:
+                        elif msg.message_type == MessageType.TIME_SIGNATURE:
                             if msg.numerator % (1 / factor) == 0:
                                 msg.numerator = int(msg.numerator * factor)
                             else:
@@ -677,7 +677,7 @@ class RelativeSequence(AbstractSequence):
         cap_message_exists = True
 
         for msg in self.messages:
-            if msg.message_type == MessageType.wait:
+            if msg.message_type == MessageType.WAIT:
                 current_point_in_time += msg.time
                 cap_message_exists = False
             else:
@@ -687,7 +687,7 @@ class RelativeSequence(AbstractSequence):
                 cap_message_exists = True
 
         if not cap_message_exists:
-            absolute_sequence.add_message(Message(message_type=MessageType.internal, time=current_point_in_time))
+            absolute_sequence.add_message(Message(message_type=MessageType.INTERNAL, time=current_point_in_time))
 
         return absolute_sequence
 
@@ -718,7 +718,7 @@ class RelativeSequence(AbstractSequence):
         had_to_shift = False
 
         for msg in self.messages:
-            if msg.message_type == MessageType.note_on or msg.message_type == MessageType.note_off:
+            if msg.message_type == MessageType.NOTE_ON or msg.message_type == MessageType.NOTE_OFF:
                 msg.note += transpose_by
                 while msg.note < NOTE_LOWER_BOUND:
                     had_to_shift = True
@@ -726,7 +726,7 @@ class RelativeSequence(AbstractSequence):
                 while msg.note > NOTE_UPPER_BOUND:
                     had_to_shift = True
                     msg.note -= 12
-            elif msg.message_type == MessageType.key_signature:
+            elif msg.message_type == MessageType.KEY_SIGNATURE:
                 if transpose_by % 12 != 0:
                     if msg.key in MusicMapping.key_transpose_mapping:
                         msg.key = MusicMapping.key_transpose_mapping[msg.key]

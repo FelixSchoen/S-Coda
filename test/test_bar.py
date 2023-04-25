@@ -34,11 +34,11 @@ def test_bars_to_sequence():
 
     for bar in bars[0]:
         for msg in bar.sequence.rel.messages:
-            if msg.message_type == MessageType.wait:
+            if msg.message_type == MessageType.WAIT:
                 time_pre_consolidate += msg.time
 
     for msg in consolidated.rel.messages:
-        if msg.message_type == MessageType.wait:
+        if msg.message_type == MessageType.WAIT:
             time_post_consolidate += msg.time
 
     assert time_pre_consolidate == time_post_consolidate

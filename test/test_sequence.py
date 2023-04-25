@@ -5,10 +5,10 @@ def test_difficulty_assessment():
     bars = util_split_into_bars()
     bar = bars[0][0]
     for msg in bar.sequence.rel.messages:
-        if msg.message_type == MessageType.key_signature:
+        if msg.message_type == MessageType.KEY_SIGNATURE:
             bar.sequence.rel.messages.remove(msg)
             bar.sequence._abs_stale = True
-    bar.key_signature = None
+    bar.KEY_SIGNATURE = None
 
     difficulty = bar.difficulty()
 
@@ -43,23 +43,23 @@ def test_sequence_to_external_representation():
     sequence = sequences[0]
     sequence.quantise()
 
-    df_1 = sequence.get_representation(NoteRepresentationType.absolute_values,
-                                       TemporalRepresentationType.relative_ticks)
+    df_1 = sequence.get_representation(NoteRepresentationType.ABSOLUTE_VALUES,
+                                       TemporalRepresentationType.RELATIVE_TICKS)
 
-    df_2 = sequence.get_representation(NoteRepresentationType.relative_distances,
-                                       TemporalRepresentationType.relative_ticks)
+    df_2 = sequence.get_representation(NoteRepresentationType.RELATIVE_DISTANCES,
+                                       TemporalRepresentationType.RELATIVE_TICKS)
 
-    df_3 = sequence.get_representation(NoteRepresentationType.circle_of_fifths,
-                                       TemporalRepresentationType.relative_ticks)
+    df_3 = sequence.get_representation(NoteRepresentationType.CIRCLE_OF_FIFTHS,
+                                       TemporalRepresentationType.RELATIVE_TICKS)
 
-    df_4 = sequence.get_representation(NoteRepresentationType.absolute_values,
-                                       TemporalRepresentationType.notelike_representation)
+    df_4 = sequence.get_representation(NoteRepresentationType.ABSOLUTE_VALUES,
+                                       TemporalRepresentationType.NOTELIKE_REPRESENTATION)
 
-    df_5 = sequence.get_representation(NoteRepresentationType.relative_distances,
-                                       TemporalRepresentationType.notelike_representation)
+    df_5 = sequence.get_representation(NoteRepresentationType.RELATIVE_DISTANCES,
+                                       TemporalRepresentationType.NOTELIKE_REPRESENTATION)
 
-    df_6 = sequence.get_representation(NoteRepresentationType.circle_of_fifths,
-                                       TemporalRepresentationType.notelike_representation)
+    df_6 = sequence.get_representation(NoteRepresentationType.CIRCLE_OF_FIFTHS,
+                                       TemporalRepresentationType.NOTELIKE_REPRESENTATION)
 
     for data_frame in [df_1, df_2, df_3, df_4, df_5, df_6]:
         assert data_frame is not None

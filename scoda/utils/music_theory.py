@@ -2,45 +2,45 @@ import enum
 
 
 class Note(enum.Enum):
-    c = 0
-    c_s = 1
-    d = 2
-    d_s = 3
-    e = 4
-    f = 5
-    f_s = 6
-    g = 7
-    g_s = 8
-    a = 9
-    a_s = 10
-    b = 11
+    C = 0
+    C_S = 1
+    D = 2
+    D_S = 3
+    E = 4
+    F = 5
+    F_S = 6
+    G = 7
+    G_S = 8
+    A = 9
+    A_S = 10
+    B = 11
 
 
 class Key(enum.Enum):
-    c = "C"
-    g = "G"
-    d = "D"
-    a = "A"
-    e = "E"
-    b = "B"
-    f_s = "F#"
-    c_s = "C#"
-    f = "F"
-    b_b = "Bb"
-    e_b = "Eb"
-    a_b = "Ab"
-    d_b = "Db"
-    g_b = "Gb"
-    c_b = "Cb"
+    C = "C"
+    G = "G"
+    D = "D"
+    A = "A"
+    E = "E"
+    B = "B"
+    F_S = "F#"
+    C_S = "C#"
+    F = "F"
+    B_B = "Bb"
+    E_B = "Eb"
+    A_B = "Ab"
+    D_B = "Db"
+    G_B = "Gb"
+    C_B = "Cb"
 
 
 class CircleOfFifths:
     """Represents knowledge about the circle of fifths, note that some pitches are doubly assigned which can lead to
     ambiguity."""
 
-    circle_of_fifths_order = [Note.c_s, Note.g_s, Note.d_s, Note.a_s, Note.f,
-                              Note.c, Note.g, Note.d, Note.a, Note.e, Note.b,
-                              Note.f_s]
+    circle_of_fifths_order = [Note.C_S, Note.G_S, Note.D_S, Note.A_S, Note.F,
+                              Note.C, Note.G, Note.D, Note.A, Note.E, Note.B,
+                              Note.F_S]
 
     @staticmethod
     def get_distance(from_note_val: int, to_note_val: int):
@@ -62,30 +62,30 @@ class CircleOfFifths:
 
 
 class MusicMapping:
-    KeyKeyMapping = {"C": Key.c, "G": Key.g, "D": Key.d, "A": Key.a, "E": Key.e, "B": Key.b, "F#": Key.f_s,
-                     "C#": Key.c_s,
-                     "F": Key.f, "Bb": Key.b_b, "Eb": Key.e_b, "Ab": Key.a_b, "Db": Key.d_b, "Gb": Key.g_b,
-                     "Cb": Key.c_b,
-                     "Am": Key.c, "Em": Key.g, "Bm": Key.d, "F#m": Key.a, "C#m": Key.e, "G#m": Key.b, "D#m": Key.f_s,
-                     "Dm": Key.f, "Gm": Key.b_b, "Cm": Key.e_b, "Fm": Key.a_b, "Bbm": Key.d_b, "Ebm": Key.g_b}
+    KeyKeyMapping = {"C": Key.C, "G": Key.G, "D": Key.D, "A": Key.A, "E": Key.E, "B": Key.B, "F#": Key.F_S,
+                     "C#": Key.C_S,
+                     "F": Key.F, "Bb": Key.B_B, "Eb": Key.E_B, "Ab": Key.A_B, "Db": Key.D_B, "Gb": Key.G_B,
+                     "Cb": Key.C_B,
+                     "Am": Key.C, "Em": Key.G, "Bm": Key.D, "F#m": Key.A, "C#m": Key.E, "G#m": Key.B, "D#m": Key.F_S,
+                     "Dm": Key.F, "Gm": Key.B_B, "Cm": Key.E_B, "Fm": Key.A_B, "Bbm": Key.D_B, "Ebm": Key.G_B}
 
     KeyNoteMapping = {
         # Notes belonging to scale, accidentals
-        Key.c: ([Note.c, Note.d, Note.e, Note.f, Note.g, Note.a, Note.b], 0),
-        Key.g: ([Note.g, Note.a, Note.b, Note.c, Note.d, Note.e, Note.f_s], 1),
-        Key.d: ([Note.d, Note.e, Note.f_s, Note.g, Note.a, Note.b, Note.c_s], 2),
-        Key.a: ([Note.a, Note.b, Note.c_s, Note.d, Note.e, Note.f_s, Note.g_s], 3),
-        Key.e: ([Note.e, Note.f_s, Note.g_s, Note.a, Note.b, Note.c_s, Note.d_s], 4),
-        Key.b: ([Note.b, Note.c_s, Note.d_s, Note.e, Note.f_s, Note.g_s, Note.a_s], 5),
-        Key.f_s: ([Note.f_s, Note.g_s, Note.a_s, Note.b, Note.c_s, Note.d_s, Note.f], 6),
-        Key.c_s: ([Note.c_s, Note.d_s, Note.f, Note.f_s, Note.g_s, Note.a_s, Note.c], 7),
-        Key.f: ([Note.f, Note.g, Note.a, Note.a_s, Note.c, Note.d, Note.e], 1),
-        Key.b_b: ([Note.a_s, Note.c, Note.d, Note.d_s, Note.f, Note.g, Note.a], 2),
-        Key.e_b: ([Note.d_s, Note.f, Note.g, Note.g_s, Note.a_s, Note.c, Note.d], 3),
-        Key.a_b: ([Note.g_s, Note.a_s, Note.c, Note.c_s, Note.d_s, Note.f, Note.g], 4),
-        Key.d_b: ([Note.c_s, Note.d_s, Note.f, Note.f_s, Note.g_s, Note.a_s, Note.c], 5),
-        Key.g_b: ([Note.f_s, Note.g_s, Note.a_s, Note.b, Note.c_s, Note.d_s, Note.f], 6),
-        Key.c_b: ([Note.b, Note.c_s, Note.d_s, Note.e, Note.f_s, Note.g_s, Note.a_s], 7)}
+        Key.C: ([Note.C, Note.D, Note.E, Note.F, Note.G, Note.A, Note.B], 0),
+        Key.G: ([Note.G, Note.A, Note.B, Note.C, Note.D, Note.E, Note.F_S], 1),
+        Key.D: ([Note.D, Note.E, Note.F_S, Note.G, Note.A, Note.B, Note.C_S], 2),
+        Key.A: ([Note.A, Note.B, Note.C_S, Note.D, Note.E, Note.F_S, Note.G_S], 3),
+        Key.E: ([Note.E, Note.F_S, Note.G_S, Note.A, Note.B, Note.C_S, Note.D_S], 4),
+        Key.B: ([Note.B, Note.C_S, Note.D_S, Note.E, Note.F_S, Note.G_S, Note.A_S], 5),
+        Key.F_S: ([Note.F_S, Note.G_S, Note.A_S, Note.B, Note.C_S, Note.D_S, Note.F], 6),
+        Key.C_S: ([Note.C_S, Note.D_S, Note.F, Note.F_S, Note.G_S, Note.A_S, Note.C], 7),
+        Key.F: ([Note.F, Note.G, Note.A, Note.A_S, Note.C, Note.D, Note.E], 1),
+        Key.B_B: ([Note.A_S, Note.C, Note.D, Note.D_S, Note.F, Note.G, Note.A], 2),
+        Key.E_B: ([Note.D_S, Note.F, Note.G, Note.G_S, Note.A_S, Note.C, Note.D], 3),
+        Key.A_B: ([Note.G_S, Note.A_S, Note.C, Note.C_S, Note.D_S, Note.F, Note.G], 4),
+        Key.D_B: ([Note.C_S, Note.D_S, Note.F, Note.F_S, Note.G_S, Note.A_S, Note.C], 5),
+        Key.G_B: ([Note.F_S, Note.G_S, Note.A_S, Note.B, Note.C_S, Note.D_S, Note.F], 6),
+        Key.C_B: ([Note.B, Note.C_S, Note.D_S, Note.E, Note.F_S, Note.G_S, Note.A_S], 7)}
 
-    key_transpose_order = [Key.c, Key.c_s, Key.d, Key.e_b, Key.e, Key.f, Key.f_s, Key.g, Key.a_b, Key.a, Key.b_b, Key.b]
-    key_transpose_mapping = {Key.d_b: Key.c_s, Key.g_b: Key.f_s, Key.c_b: Key.b}
+    key_transpose_order = [Key.C, Key.C_S, Key.D, Key.E_B, Key.E, Key.F, Key.F_S, Key.G, Key.A_B, Key.A, Key.B_B, Key.B]
+    key_transpose_mapping = {Key.D_B: Key.C_S, Key.G_B: Key.F_S, Key.C_B: Key.B}

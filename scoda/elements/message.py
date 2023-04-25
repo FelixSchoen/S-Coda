@@ -6,14 +6,14 @@ from scoda.utils.music_theory import Key
 
 
 class MessageType(enum.Enum):
-    internal = "internal"
-    key_signature = "key_signature"
-    time_signature = "time_signature"
-    control_change = "control_change"
-    program_change = "program_change"
-    note_off = "note_off"
-    note_on = "note_on"
-    wait = "wait"
+    INTERNAL = "internal"
+    KEY_SIGNATURE = "key_signature"
+    TIME_SIGNATURE = "time_signature"
+    CONTROL_CHANGE = "control_change"
+    PROGRAM_CHANGE = "program_change"
+    NOTE_OFF = "note_off"
+    NOTE_ON = "note_on"
+    WAIT = "wait"
 
     def __lt__(self, other):
         values = [e for e in MessageType]
