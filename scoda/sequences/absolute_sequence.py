@@ -4,12 +4,13 @@ import copy
 from statistics import geometric_mean
 from typing import TYPE_CHECKING
 
-from scoda.elements.message import Message, MessageType
+from scoda.elements.message import Message
 from scoda.exceptions.exceptions import SequenceException
 from scoda.sequences.abstract_sequence import AbstractSequence
 from scoda.settings.settings import PPQN, DIFF_DUAL_NOTE_VALUES_UPPER_BOUND, \
     DIFF_DUAL_NOTE_VALUES_LOWER_BOUND, NOTE_VALUE_UPPER_BOUND, NOTE_VALUE_LOWER_BOUND, VALID_TUPLETS, DOTTED_ITERATIONS, \
     SCALE_LOGLIKE
+from scoda.utils.enumerations import MessageType
 from scoda.utils.scoda_logging import get_logger
 from scoda.utils.util import b_insort, find_minimal_distance, regress, minmax, simple_regression, get_note_durations, \
     get_tuplet_durations, get_dotted_note_durations

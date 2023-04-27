@@ -5,8 +5,9 @@ from typing import TYPE_CHECKING
 
 import mido
 
-from scoda.elements.message import MessageType, Message
+from scoda.elements.message import Message
 from scoda.settings.settings import PPQN
+from scoda.utils.enumerations import MessageType
 from scoda.utils.music_theory import MusicMapping
 from scoda.utils.scoda_logging import get_logger
 

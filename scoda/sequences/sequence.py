@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import copy
-import enum
 from typing import TYPE_CHECKING
 
 import numpy as np
@@ -10,29 +9,19 @@ from matplotlib import pyplot as plt, pyplot
 from matplotlib.patches import Rectangle
 from pandas import DataFrame
 
-from scoda.elements.message import MessageType, Message
+from scoda.elements.message import Message
 from scoda.sequences.absolute_sequence import AbsoluteSequence
 from scoda.sequences.relative_sequence import RelativeSequence
 from scoda.settings.settings import PPQN, NOTE_LOWER_BOUND, NOTE_UPPER_BOUND, VELOCITY_MAX
 from scoda.utils.decorators import deprecated
+from scoda.utils.enumerations import MessageType
+from scoda.utils.enumerations import NoteRepresentationType, TemporalRepresentationType
 from scoda.utils.midi_wrapper import MidiTrack, MidiFile
 from scoda.utils.music_theory import Key, CircleOfFifths
 from scoda.utils.util import minmax, simple_regression
 
 if TYPE_CHECKING:
     from scoda.elements.bar import Bar
-
-
-class NoteRepresentationType(enum.Enum):
-    ABSOLUTE_VALUES = 0
-    RELATIVE_DISTANCES = 1
-    CIRCLE_OF_FIFTHS = 2
-    SCALE = 3
-
-
-class TemporalRepresentationType(enum.Enum):
-    RELATIVE_TICKS = 0
-    NOTELIKE_REPRESENTATION = 1
 
 
 class Sequence:

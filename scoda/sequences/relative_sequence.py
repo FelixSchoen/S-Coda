@@ -7,7 +7,7 @@ import time
 from statistics import mean
 from typing import TYPE_CHECKING
 
-from scoda.elements.message import Message, MessageType
+from scoda.elements.message import Message
 from scoda.exceptions.exceptions import SequenceException
 from scoda.sequences.abstract_sequence import AbstractSequence
 from scoda.settings.settings import NOTE_LOWER_BOUND, NOTE_UPPER_BOUND, PPQN, DIFF_DUAL_DISTANCES_UPPER_BOUND, \
@@ -17,6 +17,7 @@ from scoda.settings.settings import NOTE_LOWER_BOUND, NOTE_UPPER_BOUND, PPQN, DI
     DIFF_DUAL_NOTE_AMOUNT_UPPER_BOUND, DIFF_DUAL_NOTE_AMOUNT_LOWER_BOUND, PATTERN_SECONDS_SEARCH_DURATION, \
     DIFF_DUAL_NOTE_CONCURRENT_UPPER_BOUND, DIFF_DUAL_NOTE_CONCURRENT_LOWER_BOUND, DIFF_DUAL_ACCIDENTALS_UPPER_BOUND, \
     DIFF_DUAL_ACCIDENTALS_LOWER_BOUND
+from scoda.utils.enumerations import MessageType
 from scoda.utils.midi_wrapper import MidiTrack, MidiMessage
 from scoda.utils.music_theory import Note, Key, MusicMapping
 from scoda.utils.scoda_logging import get_logger

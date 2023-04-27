@@ -15,7 +15,9 @@ from scoda.sequences.sequence import *
 # noinspection PyUnresolvedReferences
 from scoda.settings.settings import *
 # noinspection PyUnresolvedReferences
-from utils.music_theory import *
+from scoda.utils.music_theory import *
+# noinspection PyUnresolvedReferences
+from scoda.utils.enumerations import *
 # noinspection PyUnresolvedReferences
 from scoda.utils.util import *
 # noinspection PyUnresolvedReferences

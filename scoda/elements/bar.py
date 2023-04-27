@@ -2,10 +2,11 @@ from __future__ import annotations
 
 from pandas import DataFrame
 
-from scoda.elements.message import MessageType, Message
+from scoda.elements.message import Message
 from scoda.exceptions.exceptions import BarException
 from scoda.sequences.sequence import Sequence
 from scoda.settings.settings import PPQN
+from scoda.utils.enumerations import MessageType
 from scoda.utils.music_theory import Key
 
 
