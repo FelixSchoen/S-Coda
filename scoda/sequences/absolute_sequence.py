@@ -52,11 +52,14 @@ class AbsoluteSequence(AbstractSequence):
 
         return True
 
-    def absolute_note_array(self, standard_length=PPQN) -> [[Message, Message]]:
+    def absolute_note_array(self, standard_length=PPQN, include_internal_messages: bool = False) -> [
+        [Message, Message]]:
         """Creates an array containing tuples of messages corresponding to the opening and closing of a note.
 
         Args:
             standard_length: The length used for notes that have not been closed
+            include_internal_messages: Whether internal messages should be added to the array.
+                Internal messages are represented using a tuple of length 1.
 
         Returns: An array of tuples of two messages constituting a note
 
@@ -89,6 +92,10 @@ class AbsoluteSequence(AbstractSequence):
                 else:
                     index = open_messages.pop(msg.note)
                     notes[index].append(msg)
+
+            elif msg.message_type == MessageType.INTERNAL and include_internal_messages:
+                notes.insert(i, [Message(message_type=MessageType.INTERNAL, time=msg.time)])
+                i += 1
 
         # Check unclosed notes
         for pairing in notes:

@@ -330,14 +330,15 @@ class Sequence:
                 data.append(entry)
         elif temporal_representation_type == TemporalRepresentationType.NOTELIKE_REPRESENTATION:
             current_note = base_note
-            note_array = absolute_sequence.absolute_note_array()
+            note_and_internal_messages_array = absolute_sequence.absolute_note_array(include_internal_messages=True)
             current_time = 0
 
-            for note_pairing in note_array:
+            for event_pairing in note_and_internal_messages_array:
                 entry = dict()
 
-                note_time = note_pairing[0].time
-                time_dif = note_time - current_time
+                event_type = event_pairing[0].message_type
+                event_time = event_pairing[0].time
+                time_dif = event_time - current_time
 
                 # Insert wait messages to catch up with current note
                 while time_dif != 0:
@@ -352,36 +353,37 @@ class Sequence:
                     data.append(entry)
                     entry = dict()
 
-                current_time = note_time
+                current_time = event_time
 
-                if note_representation_type == NoteRepresentationType.ABSOLUTE_VALUES:
-                    Sequence._fill_dictionary_entry(entry,
-                                                    msg_type=MessageType.NOTE_ON,
-                                                    time=note_pairing[1].time - note_pairing[0].time,
-                                                    note=note_pairing[0].note,
-                                                    velocity=note_pairing[0].velocity)
-                elif note_representation_type == NoteRepresentationType.RELATIVE_DISTANCES:
-                    Sequence._fill_dictionary_entry(entry,
-                                                    msg_type=MessageType.NOTE_ON,
-                                                    time=note_pairing[1].time - note_pairing[0].time,
-                                                    note=note_pairing[0].note,
-                                                    velocity=note_pairing[0].velocity,
-                                                    rel_note_dist=(note_pairing[0].note - current_note),
-                                                    rel_note_pair_dist=((note_pairing[0].note - current_note) % 12),
-                                                    rel_note_pair_oct=((note_pairing[0].note - current_note) // 12))
-                elif note_representation_type == NoteRepresentationType.CIRCLE_OF_FIFTHS:
-                    distance = CircleOfFifths.get_distance(current_note, note_pairing[0].note)
+                if event_type == MessageType.NOTE_ON:
+                    if note_representation_type == NoteRepresentationType.ABSOLUTE_VALUES:
+                        Sequence._fill_dictionary_entry(entry,
+                                                        msg_type=MessageType.NOTE_ON,
+                                                        time=event_pairing[1].time - event_pairing[0].time,
+                                                        note=event_pairing[0].note,
+                                                        velocity=event_pairing[0].velocity)
+                    elif note_representation_type == NoteRepresentationType.RELATIVE_DISTANCES:
+                        Sequence._fill_dictionary_entry(entry,
+                                                        msg_type=MessageType.NOTE_ON,
+                                                        time=event_pairing[1].time - event_pairing[0].time,
+                                                        note=event_pairing[0].note,
+                                                        velocity=event_pairing[0].velocity,
+                                                        rel_note_dist=(event_pairing[0].note - current_note),
+                                                        rel_note_pair_dist=((event_pairing[0].note - current_note) % 12),
+                                                        rel_note_pair_oct=((event_pairing[0].note - current_note) // 12))
+                    elif note_representation_type == NoteRepresentationType.CIRCLE_OF_FIFTHS:
+                        distance = CircleOfFifths.get_distance(current_note, event_pairing[0].note)
 
-                    Sequence._fill_dictionary_entry(entry,
-                                                    msg_type=MessageType.NOTE_ON,
-                                                    time=note_pairing[1].time - note_pairing[0].time,
-                                                    note=note_pairing[0].note,
-                                                    velocity=note_pairing[0].velocity,
-                                                    rel_note_pair_dist=distance,
-                                                    rel_note_pair_oct=(note_pairing[0].note - current_note) // 12)
+                        Sequence._fill_dictionary_entry(entry,
+                                                        msg_type=MessageType.NOTE_ON,
+                                                        time=event_pairing[1].time - event_pairing[0].time,
+                                                        note=event_pairing[0].note,
+                                                        velocity=event_pairing[0].velocity,
+                                                        rel_note_pair_dist=distance,
+                                                        rel_note_pair_oct=(event_pairing[0].note - current_note) // 12)
 
-                current_note = note_pairing[0].note
-                data.append(entry)
+                    current_note = event_pairing[0].note
+                    data.append(entry)
 
         return pd.DataFrame(data)
 
