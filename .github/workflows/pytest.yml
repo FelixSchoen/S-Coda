@@ -15,15 +15,13 @@ jobs:
           submodules: 'recursive'
           ref: ${{ github.head_ref }}
           fetch-depth: 0
-          runs-on: ubuntu-latest
-          env:
-            NODE_VERSION: 16.x
+        env:
+          NODE_VERSION: 16.x
 
       - name: Set up Python
         uses: actions/setup-python@v2
         with:
           python-version: '3.10'
-        runs-on: ubuntu-latest
         env:
           NODE_VERSION: 16.x
 
