@@ -389,7 +389,6 @@ class Sequence:
                 elif event_type == MessageType.TIME_SIGNATURE:
                     Sequence._fill_dictionary_entry(entry,
                                                     msg_type=MessageType.TIME_SIGNATURE,
-                                                    time=event_pairing[0].time,
                                                     numerator=event_pairing[0].numerator,
                                                     denominator=event_pairing[0].denominator)
                     data.append(entry)
