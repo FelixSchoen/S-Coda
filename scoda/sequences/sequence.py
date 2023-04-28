@@ -330,7 +330,7 @@ class Sequence:
                 data.append(entry)
         elif temporal_representation_type == TemporalRepresentationType.NOTELIKE_REPRESENTATION:
             current_note = base_note
-            note_and_internal_messages_array = absolute_sequence.absolute_note_array(include_internal_messages=True)
+            note_and_internal_messages_array = absolute_sequence.absolute_note_array(include_meta_messages=True)
             current_time = 0
 
             for event_pairing in note_and_internal_messages_array:
@@ -369,8 +369,10 @@ class Sequence:
                                                         note=event_pairing[0].note,
                                                         velocity=event_pairing[0].velocity,
                                                         rel_note_dist=(event_pairing[0].note - current_note),
-                                                        rel_note_pair_dist=((event_pairing[0].note - current_note) % 12),
-                                                        rel_note_pair_oct=((event_pairing[0].note - current_note) // 12))
+                                                        rel_note_pair_dist=(
+                                                                (event_pairing[0].note - current_note) % 12),
+                                                        rel_note_pair_oct=(
+                                                                (event_pairing[0].note - current_note) // 12))
                     elif note_representation_type == NoteRepresentationType.CIRCLE_OF_FIFTHS:
                         distance = CircleOfFifths.get_distance(current_note, event_pairing[0].note)
 
@@ -383,6 +385,13 @@ class Sequence:
                                                         rel_note_pair_oct=(event_pairing[0].note - current_note) // 12)
 
                     current_note = event_pairing[0].note
+                    data.append(entry)
+                elif event_type == MessageType.TIME_SIGNATURE:
+                    Sequence._fill_dictionary_entry(entry,
+                                                    msg_type=MessageType.TIME_SIGNATURE,
+                                                    time=event_pairing[0].time,
+                                                    numerator=event_pairing[0].numerator,
+                                                    denominator=event_pairing[0].denominator)
                     data.append(entry)
 
         return pd.DataFrame(data)
