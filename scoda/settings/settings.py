@@ -3,8 +3,6 @@ from pathlib import Path
 
 # General settings
 
-"""Name of the root logger"""
-LOGGER_ROOT_NAME: str
 """Parts per quarter note, amount of ticks used for the representation of a quarter note"""
 PPQN: int
 """Maximum velocity value, velocity values usually range from 0 to 127"""
@@ -61,11 +59,10 @@ SCALE_LOGLIKE: list[float]
 
 
 def load_from_file():
-    settings_file_path = Path(__file__).parent.joinpath("settings.json")
+    settings_file_path = Path(__file__).parent.parent.joinpath("config/settings.json")
     settings_file = open(settings_file_path)
     settings = json.load(settings_file)
 
-    global LOGGER_ROOT_NAME
     global PPQN
     global VELOCITY_MAX
     global VELOCITY_BINS
@@ -99,7 +96,6 @@ def load_from_file():
     global SCALE_CUBIC
     global SCALE_LOGLIKE
 
-    LOGGER_ROOT_NAME = settings["general_settings"]["logger_root_name"]
     PPQN = settings["general_settings"]["ppqn"]
     VELOCITY_MAX = settings["general_settings"]["velocity_max"]
     VELOCITY_BINS = settings["general_settings"]["velocity_bins"]

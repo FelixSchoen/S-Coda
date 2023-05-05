@@ -1,6 +1,5 @@
 {
   "general_settings": {
-    "logger_root_name": "S-Coda",
     "ppqn": 24,
     "velocity_max": 127,
     "velocity_bins": 8,

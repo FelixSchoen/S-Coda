@@ -30,3 +30,10 @@ def test_midi_file_to_mido_track():
     mido_track = midi_file.tracks[0].to_mido_track()
 
     assert isinstance(mido_track, mido.MidiTrack)
+
+
+# Logging
+
+def test_logging_framework():
+    logger = get_logger()
+    logger.info("Logging test")

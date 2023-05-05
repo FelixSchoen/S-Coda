@@ -4,7 +4,7 @@ version = "1.0.3.3"
 authors = [{ name = "Felix Schön", email = "schoen@kr.tuwien.ac.at" }]
 description = "A MIDI and music data manipulation library"
 readme = "README.md"
-requires-python = ">=3.10"
+requires-python = ">= 3.10"
 keywords = ["midi", "music"]
 license = { file = "LICENSE.md" }
 dependencies = [

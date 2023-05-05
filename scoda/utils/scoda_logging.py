@@ -1,33 +1,22 @@
 import logging
 import logging.config
+from pathlib import Path
 
-from scoda.settings.settings import LOGGER_ROOT_NAME
-
-initial_call = True
+logger: logging.Logger = None
 
 
-def get_logger(name):
-    # Check if this is the first logger on this thread
-    global initial_call
+def get_logger(logger_designation: str = None):
+    return _setup_logger(logger_designation)
 
-    if initial_call:
-        setup_root_logger()
-        initial_call = False
 
-    logger = logging.getLogger(LOGGER_ROOT_NAME + "." + name)
+def _setup_logger(logger_designation: str):
+    if logger_designation is None:
+        logger_designation = "scoda"
+
+    global logger
+
+    if logger is None:
+        logging.config.fileConfig(Path(__file__).parent.parent.joinpath("config/logging.conf"))
+        logger = logging.getLogger(logger_designation)
 
     return logger
-
-
-def setup_root_logger():
-    root_logger = logging.getLogger(LOGGER_ROOT_NAME)
-    root_logger.setLevel(logging.WARNING)
-    root_logger.propagate = False
-
-    handler = logging.StreamHandler()
-    handler.setLevel(logging.WARNING)
-
-    formatter = logging.Formatter("%(asctime)s - [%(name)s] - %(levelname)s: %(message)s")
-    handler.setFormatter(formatter)
-
-    root_logger.addHandler(handler)

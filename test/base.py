@@ -21,6 +21,8 @@ from scoda.utils.enumerations import *
 # noinspection PyUnresolvedReferences
 from scoda.utils.util import *
 # noinspection PyUnresolvedReferences
+from scoda.utils.scoda_logging import get_logger
+# noinspection PyUnresolvedReferences
 import mido
 
 RESOURCES_ROOT = Path(__file__).parent.joinpath("res")
