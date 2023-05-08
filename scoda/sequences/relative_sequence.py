@@ -8,7 +8,7 @@ from statistics import mean
 from typing import TYPE_CHECKING
 
 from scoda.elements.message import Message
-from scoda.exceptions.exceptions import SequenceException
+from scoda.exceptions.sequence_exception import SequenceException
 from scoda.sequences.abstract_sequence import AbstractSequence
 from scoda.settings.settings import NOTE_LOWER_BOUND, NOTE_UPPER_BOUND, PPQN, DIFF_DUAL_DISTANCES_UPPER_BOUND, \
     DIFF_DUAL_DISTANCES_LOWER_BOUND, DIFF_DUAL_PATTERN_COVERAGE_UPPER_BOUND, DIFF_DUAL_PATTERN_COVERAGE_LOWER_BOUND, \

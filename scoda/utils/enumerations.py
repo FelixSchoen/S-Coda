@@ -28,3 +28,8 @@ class MessageType(enum.Enum):
     def __lt__(self, other):
         values = [e for e in MessageType]
         return values.index(self) < values.index(other)
+
+
+class Flags(enum.Enum):
+    RUNNING_VALUE = "running_value"
+    RUNNING_TIME_SIG = "running_time_signature"

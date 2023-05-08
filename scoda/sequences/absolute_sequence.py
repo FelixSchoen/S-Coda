@@ -5,7 +5,7 @@ from statistics import geometric_mean
 from typing import TYPE_CHECKING
 
 from scoda.elements.message import Message
-from scoda.exceptions.exceptions import SequenceException
+from scoda.exceptions.sequence_exception import SequenceException
 from scoda.sequences.abstract_sequence import AbstractSequence
 from scoda.settings.settings import PPQN, DIFF_DUAL_NOTE_VALUES_UPPER_BOUND, \
     DIFF_DUAL_NOTE_VALUES_LOWER_BOUND, NOTE_VALUE_UPPER_BOUND, NOTE_VALUE_LOWER_BOUND, VALID_TUPLETS, DOTTED_ITERATIONS, \

@@ -3,7 +3,7 @@ from __future__ import annotations
 from pandas import DataFrame
 
 from scoda.elements.message import Message
-from scoda.exceptions.exceptions import BarException
+from scoda.exceptions.bar_exception import BarException
 from scoda.sequences.sequence import Sequence
 from scoda.settings.settings import PPQN
 from scoda.utils.enumerations import MessageType
