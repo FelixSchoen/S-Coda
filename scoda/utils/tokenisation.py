@@ -1,5 +1,6 @@
 from abc import ABC, abstractmethod
 
+from scoda.elements.message import Message
 from scoda.exceptions.tokenisation_exception import TokenisationException
 from scoda.sequences.sequence import Sequence
 from scoda.settings.settings import PPQN
@@ -10,9 +11,6 @@ class Tokeniser(ABC):
 
     def __init__(self, running_value: bool, running_time_sig: bool) -> None:
         super().__init__()
-
-        self.buffer_tokens = None
-        self.buffer_sequence = None
 
         self.flags = dict()
         self.flags[Flags.RUNNING_VALUE] = running_value
@@ -32,13 +30,15 @@ class Tokeniser(ABC):
         self.reset()
 
     def reset(self) -> None:
-        self.buffer_tokens = []
-        self.buffer_sequence = Sequence()
+        self.reset_time()
+        self.reset_previous()
 
+    def reset_time(self) -> None:
         self.cur_time = 0
         self.cur_time_target = 0
         self.cur_rest_buffer = 0
 
+    def reset_previous(self) -> None:
         self.prv_type = None
         self.prv_value = -1
         self.prv_numerator = -1
@@ -47,8 +47,9 @@ class Tokeniser(ABC):
     def tokenise(self, sequence: Sequence):
         pass
 
+    @staticmethod
     @abstractmethod
-    def detokenise(self):
+    def detokenise(tokens: list[int]) -> Sequence:
         pass
 
     @staticmethod
@@ -77,7 +78,7 @@ class NotelikeTokeniser(Tokeniser):
     def __init__(self, running_value: bool, running_time_sig: bool) -> None:
         super().__init__(running_value, running_time_sig)
 
-    def tokenise(self, sequence: Sequence):
+    def tokenise(self, sequence: Sequence, apply_buffer: bool = True, reset_time: bool = True):
         tokens = []
         event_pairings = sequence.abs.absolute_note_array(include_meta_messages=True)
 
@@ -121,30 +122,36 @@ class NotelikeTokeniser(Tokeniser):
                 self.prv_type = MessageType.TIME_SIGNATURE
                 self.prv_numerator = numerator
             elif msg_type == MessageType.INTERNAL:
-                self.cur_rest_buffer += msg_time
+                self.cur_rest_buffer += msg_time - self.cur_time
                 self.prv_type = MessageType.INTERNAL
+
+        if apply_buffer:
+            tokens.extend(self.tokenise_flush_rest_buffer(apply_target=True))
+
+        if reset_time:
+            self.reset_time()
 
         return tokens
 
-    def tokenise_flush_rest_buffer(self, apply_target: bool = False) -> list[int]:
+    def tokenise_flush_rest_buffer(self, apply_target: bool = False, shift: int = 3) -> list[int]:
         tokens = []
 
         # Insert rests of length up to `set_max_rest_value`
         while self.cur_rest_buffer > self.set_max_rest_value:
             if not (self.prv_value == self.set_max_rest_value and self.flags.get(Flags.RUNNING_VALUE, False)):
-                tokens.append(self.set_max_rest_value)
+                tokens.append(self.set_max_rest_value + shift)
                 self.prv_value = self.set_max_rest_value
 
-            tokens.append(3)
+            tokens.append(shift)
             self.cur_time += self.set_max_rest_value
             self.cur_rest_buffer -= self.set_max_rest_value
 
         # Insert rests smaller than `set_max_rest_value`
         if self.cur_rest_buffer > 0:
             if not (self.prv_value == self.cur_rest_buffer and self.flags.get(Flags.RUNNING_VALUE, False)):
-                tokens.append(self.cur_rest_buffer)
+                tokens.append(self.cur_rest_buffer + shift)
                 self.prv_value = self.cur_rest_buffer
-            tokens.append(3)
+            tokens.append(shift)
 
         self.cur_time += self.cur_rest_buffer
         self.cur_rest_buffer = 0
@@ -156,15 +163,49 @@ class NotelikeTokeniser(Tokeniser):
 
         return tokens
 
-    def tokenise_flush_generic_buffer(self, time: int) -> list[int]:
+    def tokenise_flush_generic_buffer(self, time: int, shift: int = 3) -> list[int]:
         tokens = []
         while time > self.set_max_rest_value:
-            tokens.append(self.set_max_rest_value + 3)
+            tokens.append(self.set_max_rest_value + shift)
             time -= self.set_max_rest_value
         if time > 0:
-            tokens.append(time + 3)
+            tokens.append(time + shift)
 
         return tokens
 
-    def detokenise(self):
-        pass
+    @staticmethod
+    def detokenise(tokens: list[int]) -> Sequence:
+        seq = Sequence()
+        cur_time = 0
+        prv_type = None
+        prv_value = -1
+
+        for token in tokens:
+            if token <= 2:
+                prv_type = "sequence_control"
+            elif token == 3:
+                cur_time += prv_value
+                prv_type = MessageType.WAIT
+            elif 4 <= token <= 27:
+                if prv_type == MessageType.INTERNAL:
+                    prv_value += token - 3
+                else:
+                    prv_value = token - 3
+                prv_type = MessageType.INTERNAL
+            elif 28 <= token <= 115:
+                seq.add_absolute_message(
+                    Message(message_type=MessageType.NOTE_ON, note=token - 28 + 21, time=cur_time))
+                seq.add_absolute_message(
+                    Message(message_type=MessageType.NOTE_OFF, note=token - 28 + 21,
+                            time=cur_time + prv_value))
+                prv_type = MessageType.NOTE_ON
+            elif 116 <= token <= 130:
+                seq.add_absolute_message(
+                    Message(message_type=MessageType.TIME_SIGNATURE, time=cur_time,
+                            numerator=token - 116 + 2, denominator=8)
+                )
+                prv_type = MessageType.TIME_SIGNATURE
+            else:
+                raise TokenisationException(f"Encountered invalid token during detokenisation: {token}")
+
+        return seq

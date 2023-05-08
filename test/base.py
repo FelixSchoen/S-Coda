@@ -23,12 +23,18 @@ from scoda.utils.util import *
 # noinspection PyUnresolvedReferences
 from scoda.utils.scoda_logging import get_logger
 # noinspection PyUnresolvedReferences
+from scoda.utils.tokenisation import NotelikeTokeniser
+# noinspection PyUnresolvedReferences
 import mido
+# noinspection PyUnresolvedReferences
+import pytest
 
 RESOURCES_ROOT = Path(__file__).parent.joinpath("res")
 RESOURCE_BEETHOVEN = RESOURCES_ROOT.joinpath("beethoven_o27-2_m3.mid")
 RESOURCE_CHOPIN = RESOURCES_ROOT.joinpath("chopin_o66_fantaisie_impromptu.mid")
 RESOURCE_SWEEP = RESOURCES_ROOT.joinpath("sweep.mid")
+RESOURCE_EMPTY_BARS = RESOURCES_ROOT.joinpath("empty_bars.mid")
+RESOURCES = [RESOURCE_SWEEP, RESOURCE_EMPTY_BARS, RESOURCE_BEETHOVEN, RESOURCE_CHOPIN]
 
 
 def util_midi_to_sequences(file=None, lead_tracks=None, acmp_tracks=None, meta_tracks=None):
