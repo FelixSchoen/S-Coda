@@ -136,8 +136,8 @@ class NotelikeTokeniser(Tokeniser):
                 self.prv_value = self.set_max_rest_value
 
             tokens.append(3)
-            self.cur_rest_buffer -= self.set_max_rest_value
             self.cur_time += self.set_max_rest_value
+            self.cur_rest_buffer -= self.set_max_rest_value
 
         # Insert rests smaller than `set_max_rest_value`
         if self.cur_rest_buffer > 0:
@@ -146,8 +146,8 @@ class NotelikeTokeniser(Tokeniser):
                 self.prv_value = self.cur_rest_buffer
             tokens.append(3)
 
-        self.cur_rest_buffer = 0
         self.cur_time += self.cur_rest_buffer
+        self.cur_rest_buffer = 0
 
         # If there are open notes, extend the sequence to the minimum needed time target
         if apply_target and self.cur_time_target > self.cur_time:
