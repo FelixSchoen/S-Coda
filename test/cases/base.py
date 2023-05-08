@@ -1,8 +1,8 @@
 import sys
 from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
-sys.path.insert(0, str(Path(__file__).resolve().parent.parent.joinpath("scoda")))
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent))
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent.joinpath("scoda")))
 
 # noinspection PyUnresolvedReferences
 import scoda as sc
@@ -29,7 +29,7 @@ import mido
 # noinspection PyUnresolvedReferences
 import pytest
 
-RESOURCES_ROOT = Path(__file__).parent.joinpath("res")
+RESOURCES_ROOT = Path(__file__).parent.parent.joinpath("res")
 RESOURCE_BEETHOVEN = RESOURCES_ROOT.joinpath("beethoven_o27-2_m3.mid")
 RESOURCE_CHOPIN = RESOURCES_ROOT.joinpath("chopin_o66_fantaisie_impromptu.mid")
 RESOURCE_SWEEP = RESOURCES_ROOT.joinpath("sweep.mid")
