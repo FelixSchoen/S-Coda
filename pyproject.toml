@@ -1,6 +1,6 @@
 [project]
 name = "scoda"
-version = "1.0.3.3"
+version = "1.0.4"
 authors = [{ name = "Felix Schön", email = "schoen@kr.tuwien.ac.at" }]
 description = "A MIDI and music data manipulation library"
 readme = "README.md"
