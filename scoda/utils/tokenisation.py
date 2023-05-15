@@ -56,9 +56,13 @@ class Tokeniser(ABC):
     def _time_signature_to_eights(numerator: int, denominator: int) -> int:
         scaled = numerator * (8 / denominator)
 
-        if (not float(scaled).is_integer()) or (not scaled >= 2):
+        if (not float(scaled).is_integer()):
             raise TokenisationException(
                 f"Original time signature of {int(numerator)}/{int(denominator)} cannot be represented as multiples of eights")
+
+        if not 2 <= scaled <= 16:
+            raise TokenisationException(
+                f"Invalid time signature numerator: {int(numerator)}")
 
         return int(scaled)
 
@@ -96,11 +100,11 @@ class NotelikeTokeniser(Tokeniser):
                 # Check if message occurs at current time, if not place rest messages
                 if not self.cur_time == msg_time:
                     self.cur_rest_buffer += msg_time - self.cur_time
-                    tokens.extend(self.tokenise_flush_rest_buffer())
+                    tokens.extend(self._tokenise_flush_rest_buffer())
 
                 # Check if value of note has to be defined
                 if not (self.prv_value == msg_value and self.flags.get(Flags.RUNNING_VALUE, False)):
-                    tokens.extend(self.tokenise_flush_generic_buffer(msg_value))
+                    tokens.extend(self._tokenise_flush_value_buffer(msg_value))
 
                 tokens.append(msg_note - 21 + 28)
 
@@ -116,7 +120,7 @@ class NotelikeTokeniser(Tokeniser):
                 # Check if time signature has to be defined
                 if not (self.prv_numerator == numerator and self.flags.get(Flags.RUNNING_TIME_SIG, False)):
                     self.cur_rest_buffer += msg_time - self.cur_time
-                    tokens.extend(self.tokenise_flush_rest_buffer())
+                    tokens.extend(self._tokenise_flush_rest_buffer())
                     tokens.append(numerator - 2 + 116)
 
                 self.prv_type = MessageType.TIME_SIGNATURE
@@ -126,14 +130,14 @@ class NotelikeTokeniser(Tokeniser):
                 self.prv_type = MessageType.INTERNAL
 
         if apply_buffer:
-            tokens.extend(self.tokenise_flush_rest_buffer(apply_target=True))
+            tokens.extend(self._tokenise_flush_rest_buffer(apply_target=True))
 
         if reset_time:
             self.reset_time()
 
         return tokens
 
-    def tokenise_flush_rest_buffer(self, apply_target: bool = False, shift: int = 3) -> list[int]:
+    def _tokenise_flush_rest_buffer(self, apply_target: bool = False, shift: int = 3) -> list[int]:
         tokens = []
 
         # Insert rests of length up to `set_max_rest_value`
@@ -159,11 +163,11 @@ class NotelikeTokeniser(Tokeniser):
         # If there are open notes, extend the sequence to the minimum needed time target
         if apply_target and self.cur_time_target > self.cur_time:
             self.cur_rest_buffer += self.cur_time_target - self.cur_time
-            tokens.extend(self.tokenise_flush_rest_buffer(apply_target=False))
+            tokens.extend(self._tokenise_flush_rest_buffer(apply_target=False))
 
         return tokens
 
-    def tokenise_flush_generic_buffer(self, time: int, shift: int = 3) -> list[int]:
+    def _tokenise_flush_value_buffer(self, time: int, shift: int = 3) -> list[int]:
         tokens = []
         while time > self.set_max_rest_value:
             tokens.append(self.set_max_rest_value + shift)
@@ -209,3 +213,83 @@ class NotelikeTokeniser(Tokeniser):
                 raise TokenisationException(f"Encountered invalid token during detokenisation: {token}")
 
         return seq
+
+
+class MIDIlikeTokeniser(Tokeniser):
+    """Tokeniser that uses note-like temporal representation.
+
+    [        0] ... pad
+    [        1] ... start
+    [        2] ... stop
+    [  3 -  26] ... wait
+    [ 27 - 114] ... note on
+    [115 - 202] ... note off
+    [203 - 217] ... time signature numerator in eights from 2/8 to 16/8
+    """
+
+    def __init__(self, running_value: bool, running_time_sig: bool) -> None:
+        super().__init__(running_value, running_time_sig)
+
+    def tokenise(self, sequence: Sequence, apply_buffer: bool = True, reset_time: bool = True):
+        tokens = []
+
+        for message in sequence.rel.messages:
+            msg_type = message.message_type
+
+            if msg_type == MessageType.NOTE_ON:
+                msg_note = message.note
+
+                if not (21 <= msg_note <= 108):
+                    raise TokenisationException(f"Invalid note: {msg_note}")
+
+                tokens.extend(self._tokenise_flush_rest_buffer())
+                tokens.append(msg_note - 21 + 27)
+
+                self.prv_type = MessageType.NOTE_ON
+            elif msg_type == MessageType.NOTE_OFF:
+                msg_note = message.note
+
+                if not (21 <= msg_note <= 108):
+                    raise TokenisationException(f"Invalid note: {msg_note}")
+
+                tokens.extend(self._tokenise_flush_rest_buffer())
+                tokens.append(msg_note - 21 + 115)
+
+                self.prv_type = MessageType.NOTE_OFF
+            elif msg_type == MessageType.WAIT:
+                self.cur_rest_buffer += message.time
+
+                self.prv_type = MessageType.WAIT
+            elif msg_type == MessageType.TIME_SIGNATURE:
+                msg_numerator = message.numerator
+                msg_denominator = message.denominator
+
+                numerator = self._time_signature_to_eights(msg_numerator, msg_denominator)
+
+                tokens.extend(self._tokenise_flush_rest_buffer())
+                tokens.append(numerator - 2 + 203)
+
+                self.prv_type = MessageType.TIME_SIGNATURE
+
+        if apply_buffer and self.cur_rest_buffer > 0:
+            tokens.extend(self._tokenise_flush_rest_buffer())
+
+        return tokens
+
+    def _tokenise_flush_rest_buffer(self, shift: int = 2) -> list[int]:
+        tokens = []
+
+        while self.cur_rest_buffer > self.set_max_rest_value:
+            tokens.append(self.set_max_rest_value + shift)
+            self.cur_rest_buffer -= self.set_max_rest_value
+
+        if self.cur_rest_buffer > 0:
+            tokens.append(self.cur_rest_buffer)
+
+        self.cur_rest_buffer = 0
+
+        return tokens
+
+    @staticmethod
+    def detokenise(tokens: list[int]) -> Sequence:
+        pass
