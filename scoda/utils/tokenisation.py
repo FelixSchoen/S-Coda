@@ -286,7 +286,7 @@ class MIDIlikeTokeniser(Tokeniser):
             self.cur_rest_buffer -= self.set_max_rest_value
 
         if self.cur_rest_buffer > 0:
-            tokens.append(self.cur_rest_buffer)
+            tokens.append(self.cur_rest_buffer + shift)
 
         self.cur_rest_buffer = 0
 
