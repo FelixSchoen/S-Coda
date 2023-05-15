@@ -34,8 +34,7 @@ def test_roundtrip_midilike_absolute_tokenisation():
     for i, bar in enumerate(bars):
         tokens.extend(tokeniser.tokenise(bar.sequence))
 
-    print(tokens)
+    sequence_roundtrip = tokeniser.detokenise(tokens)
+    sequence_roundtrip.save(str(Path(__file__).parent.parent.joinpath("out").joinpath("deto.mid")))
 
-    # sequence_roundtrip = tokeniser.detokenise(tokens)
-    #
-    # assert sequence == sequence_roundtrip
+    assert sequence == sequence_roundtrip

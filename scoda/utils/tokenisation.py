@@ -266,10 +266,12 @@ class MIDIlikeTokeniser(Tokeniser):
 
                 numerator = self._time_signature_to_eights(msg_numerator, msg_denominator)
 
-                tokens.extend(self._tokenise_flush_rest_buffer())
-                tokens.append(numerator - 2 + 203)
+                if not (self.prv_numerator == numerator and self.flags.get(Flags.RUNNING_TIME_SIG, False)):
+                    tokens.extend(self._tokenise_flush_rest_buffer())
+                    tokens.append(numerator - 2 + 203)
 
                 self.prv_type = MessageType.TIME_SIGNATURE
+                self.prv_numerator = numerator
 
         if apply_buffer and self.cur_rest_buffer > 0:
             tokens.extend(self._tokenise_flush_rest_buffer())
@@ -292,4 +294,24 @@ class MIDIlikeTokeniser(Tokeniser):
 
     @staticmethod
     def detokenise(tokens: list[int]) -> Sequence:
-        pass
+        seq = Sequence()
+        prv_type = None
+
+        for token in tokens:
+            if token <= 2:
+                prv_type = "sequence_control"
+            elif 3 <= token <= 26:
+                seq.rel.add_message(Message(message_type=MessageType.WAIT, time=token - 2))
+                prv_type = MessageType.WAIT
+            elif 27 <= token <= 114:
+                seq.rel.add_message(Message(message_type=MessageType.NOTE_ON, note=token - 27 + 21))
+                prv_type = MessageType.NOTE_ON
+            elif 115 <= token <= 202:
+                seq.rel.add_message(Message(message_type=MessageType.NOTE_OFF, note=token - 115 + 21))
+                prv_type = MessageType.NOTE_OFF
+            elif 203 <= token <= 217:
+                seq.rel.add_message(
+                    Message(message_type=MessageType.TIME_SIGNATURE, numerator=token - 203 + 2, denominator=8))
+                prv_type = MessageType.TIME_SIGNATURE
+
+        return seq
