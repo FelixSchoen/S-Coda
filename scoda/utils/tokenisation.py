@@ -1,3 +1,4 @@
+import math
 from abc import ABC, abstractmethod
 
 from scoda.elements.message import Message
@@ -9,11 +10,10 @@ from scoda.utils.enumerations import MessageType, Flags
 
 class Tokeniser(ABC):
 
-    def __init__(self, running_value: bool, running_time_sig: bool) -> None:
+    def __init__(self, running_time_sig: bool) -> None:
         super().__init__()
 
         self.flags = dict()
-        self.flags[Flags.RUNNING_VALUE] = running_value
         self.flags[Flags.RUNNING_TIME_SIG] = running_time_sig
 
         self.cur_time = None
@@ -44,7 +44,7 @@ class Tokeniser(ABC):
         self.prv_numerator = -1
 
     @abstractmethod
-    def tokenise(self, sequence: Sequence):
+    def tokenise(self, sequence: Sequence) -> list[int]:
         pass
 
     @staticmethod
@@ -80,9 +80,11 @@ class NotelikeTokeniser(Tokeniser):
     """
 
     def __init__(self, running_value: bool, running_time_sig: bool) -> None:
-        super().__init__(running_value, running_time_sig)
+        super().__init__(running_time_sig)
 
-    def tokenise(self, sequence: Sequence, apply_buffer: bool = True, reset_time: bool = True):
+        self.flags[Flags.RUNNING_VALUE] = running_value
+
+    def tokenise(self, sequence: Sequence, apply_buffer: bool = True, reset_time: bool = True) -> list[int]:
         tokens = []
         event_pairings = sequence.abs.absolute_note_array(include_meta_messages=True)
 
@@ -227,16 +229,20 @@ class MIDIlikeTokeniser(Tokeniser):
     [203 - 217] ... time signature numerator in eights from 2/8 to 16/8
     """
 
-    def __init__(self, running_value: bool, running_time_sig: bool) -> None:
-        super().__init__(running_value, running_time_sig)
+    def __init__(self, running_time_sig: bool) -> None:
+        super().__init__(running_time_sig)
 
-    def tokenise(self, sequence: Sequence, apply_buffer: bool = True, reset_time: bool = True):
+    def tokenise(self, sequence: Sequence, apply_buffer: bool = True, reset_time: bool = True) -> list[int]:
         tokens = []
 
         for message in sequence.rel.messages:
             msg_type = message.message_type
 
-            if msg_type == MessageType.NOTE_ON:
+            if msg_type == MessageType.WAIT:
+                self.cur_rest_buffer += message.time
+
+                self.prv_type = MessageType.WAIT
+            elif msg_type == MessageType.NOTE_ON:
                 msg_note = message.note
 
                 if not (21 <= msg_note <= 108):
@@ -256,10 +262,6 @@ class MIDIlikeTokeniser(Tokeniser):
                 tokens.append(msg_note - 21 + 115)
 
                 self.prv_type = MessageType.NOTE_OFF
-            elif msg_type == MessageType.WAIT:
-                self.cur_rest_buffer += message.time
-
-                self.prv_type = MessageType.WAIT
             elif msg_type == MessageType.TIME_SIGNATURE:
                 msg_numerator = message.numerator
                 msg_denominator = message.denominator
@@ -313,5 +315,110 @@ class MIDIlikeTokeniser(Tokeniser):
                 seq.rel.add_message(
                     Message(message_type=MessageType.TIME_SIGNATURE, numerator=token - 203 + 2, denominator=8))
                 prv_type = MessageType.TIME_SIGNATURE
+
+        return seq
+
+
+class GridlikeTokeniser(Tokeniser):
+    """Tokeniser that uses note-like temporal representation.
+
+    [        0] ... pad
+    [        1] ... start
+    [        2] ... stop
+    [        3] ... grid
+    [  4 -  27] ... grid time definition
+    [ 28 - 115] ... note on
+    [116 - 203] ... note off
+    [204 - 218] ... time signature numerator in eights from 2/8 to 16/8
+    """
+
+    def __init__(self, running_time_sig: bool) -> None:
+        super().__init__(running_time_sig)
+
+    def tokenise(self, sequence: Sequence, apply_buffer: bool = True, reset_time: bool = True) -> list[int]:
+        tokens = []
+        min_grid_size = self.set_max_rest_value
+
+        print("start")
+
+        # First pass to get minimum grid size
+        for message in sequence.rel.messages:
+            msg_type = message.message_type
+
+            if msg_type == MessageType.WAIT:
+                self.cur_rest_buffer += message.time
+            elif msg_type in [MessageType.NOTE_ON, MessageType.NOTE_OFF, MessageType.TIME_SIGNATURE]:
+                if self.cur_rest_buffer > 0:
+                    min_grid_size = math.gcd(int(min_grid_size), int(self.cur_rest_buffer))
+                self.cur_rest_buffer = 0
+
+        # Calculate grid size for trailing waits
+        if self.cur_rest_buffer > 0:
+            min_grid_size = math.gcd(int(min_grid_size), int(self.cur_rest_buffer))
+        self.cur_rest_buffer = 0
+
+        # Limit grid size
+        min_grid_size = min(min_grid_size, self.set_max_rest_value)
+
+        tokens.append(min_grid_size + 3)
+
+        # Second pass to generate tokens
+        for message in sequence.rel.messages:
+            msg_type = message.message_type
+
+            if msg_type == MessageType.WAIT:
+                self.cur_rest_buffer += message.time
+
+                self.prv_type = MessageType.WAIT
+            elif msg_type == MessageType.NOTE_ON:
+                msg_note = message.note
+
+                if not (21 <= msg_note <= 108):
+                    raise TokenisationException(f"Invalid note: {msg_note}")
+
+                tokens.extend(self._tokenise_flush_grid_buffer(min_grid_size))
+                tokens.append(msg_note - 21 + 28)
+
+                self.prv_type = MessageType.NOTE_ON
+            elif msg_type == MessageType.NOTE_OFF:
+                msg_note = message.note
+
+                if not (21 <= msg_note <= 108):
+                    raise TokenisationException(f"Invalid note: {msg_note}")
+
+                tokens.extend(self._tokenise_flush_grid_buffer(min_grid_size))
+                tokens.append(msg_note - 21 + 116)
+
+                self.prv_type = MessageType.NOTE_OFF
+            elif msg_type == MessageType.TIME_SIGNATURE:
+                msg_numerator = message.numerator
+                msg_denominator = message.denominator
+
+                numerator = self._time_signature_to_eights(msg_numerator, msg_denominator)
+
+                if not (self.prv_numerator == numerator and self.flags.get(Flags.RUNNING_TIME_SIG, False)):
+                    tokens.extend(self._tokenise_flush_grid_buffer(min_grid_size))
+                    tokens.append(numerator - 2 + 204)
+
+                self.prv_type = MessageType.TIME_SIGNATURE
+                self.prv_numerator = numerator
+
+        if apply_buffer and self.cur_rest_buffer > 0:
+            tokens.extend(self._tokenise_flush_grid_buffer(min_grid_size))
+
+        return tokens
+
+    def _tokenise_flush_grid_buffer(self, min_grid_size: int) -> list[int]:
+        tokens = []
+
+        while self.cur_rest_buffer > 0:
+            tokens.append(3)
+            self.cur_rest_buffer -= min_grid_size
+
+        return tokens
+
+    @staticmethod
+    def detokenise(tokens: list[int]) -> Sequence:
+        seq = Sequence()
 
         return seq
