@@ -339,8 +339,6 @@ class GridlikeTokeniser(Tokeniser):
         tokens = []
         min_grid_size = self.set_max_rest_value
 
-        print("start")
-
         # First pass to get minimum grid size
         for message in sequence.rel.messages:
             msg_type = message.message_type
@@ -420,5 +418,38 @@ class GridlikeTokeniser(Tokeniser):
     @staticmethod
     def detokenise(tokens: list[int]) -> Sequence:
         seq = Sequence()
+        prv_type = None
+        min_grid_size = -1
+
+        for token in tokens:
+            if token <= 2:
+                prv_type = "sequence_control"
+            elif token == 3:
+                if min_grid_size == -1:
+                    raise TokenisationException(f"Grid size not initialised")
+
+                seq.add_relative_message(Message(MessageType.WAIT, time=min_grid_size))
+
+                prv_type = MessageType.INTERNAL
+            elif 4 <= token <= 27:
+                if prv_type == MessageType.WAIT:
+                    raise TokenisationException(f"Illegal consecutive grid size definition")
+
+                min_grid_size = token - 3
+
+                prv_type = MessageType.WAIT
+            elif 28 <= token <= 115:
+                seq.rel.add_message(Message(message_type=MessageType.NOTE_ON, note=token - 28 + 21))
+
+                prv_type = MessageType.NOTE_ON
+            elif 116 <= token <= 203:
+                seq.rel.add_message(Message(message_type=MessageType.NOTE_OFF, note=token - 116 + 21))
+
+                prv_type = MessageType.NOTE_OFF
+            elif 204 <= token <= 218:
+                seq.rel.add_message(
+                    Message(message_type=MessageType.TIME_SIGNATURE, numerator=token - 204 + 2, denominator=8))
+
+                prv_type = MessageType.TIME_SIGNATURE
 
         return seq

@@ -50,6 +50,8 @@ def test_tokenisation_single():
     for i, bar in enumerate(bars):
         tokens.extend(tokeniser.tokenise(bar.sequence))
 
+    print(tokens)
+
     sequence_roundtrip = tokeniser.detokenise(tokens)
 
     assert sequence == sequence_roundtrip
