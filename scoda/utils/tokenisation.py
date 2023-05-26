@@ -43,6 +43,102 @@ class Tokeniser(ABC):
         self.prv_value = -1
         self.prv_numerator = -1
 
+    def _general_tokenise_flush_time_buffer(self, time: int, shift: int) -> list[int]:
+        tokens = []
+
+        while time > self.set_max_rest_value:
+            tokens.append(self.set_max_rest_value + shift)
+            time -= self.set_max_rest_value
+
+        if time > 0:
+            tokens.append(time + shift)
+
+        return tokens
+
+    def _notelike_handle_pairings(self, tokens: list[int], event_pairings: list[list[Message]],
+                                  shift_wait: int, shift_note: int, shift_signature: int):
+        for event_pairing in event_pairings:
+            msg_type = event_pairing[0].message_type
+            msg_time = event_pairing[0].time
+
+            if msg_type == MessageType.NOTE_ON:
+                msg_note = event_pairing[0].note
+                msg_value = event_pairing[1].time - msg_time
+
+                if not (21 <= msg_note <= 108):
+                    raise TokenisationException(f"Invalid note: {msg_note}")
+
+                # Check if message occurs at current time, if not place rest messages
+                if not self.cur_time == msg_time:
+                    self.cur_rest_buffer += msg_time - self.cur_time
+                    tokens.extend(self._notelike_tokenise_flush_rest_buffer(apply_target=False, shift=shift_wait))
+
+                # Check if value of note has to be defined
+                if not (self.prv_value == msg_value and self.flags.get(Flags.RUNNING_VALUE, False)):
+                    tokens.extend(self._general_tokenise_flush_time_buffer(msg_value, shift=shift_wait))
+
+                tokens.append(msg_note - 21 + shift_note)
+
+                self.cur_time_target = max(self.cur_time_target, self.cur_time + msg_value)
+                self.prv_type = MessageType.NOTE_ON
+                self.prv_value = msg_value
+            elif msg_type == MessageType.TIME_SIGNATURE:
+                msg_numerator = event_pairing[0].numerator
+                msg_denominator = event_pairing[0].denominator
+
+                numerator = self._time_signature_to_eights(msg_numerator, msg_denominator)
+
+                # Check if time signature has to be defined
+                if not (self.prv_numerator == numerator and self.flags.get(Flags.RUNNING_TIME_SIG, False)):
+                    self.cur_rest_buffer += msg_time - self.cur_time
+                    tokens.extend(self._notelike_tokenise_flush_rest_buffer(apply_target=False, shift=shift_wait))
+                    tokens.append(numerator - 2 + shift_signature)
+
+                self.prv_type = MessageType.TIME_SIGNATURE
+                self.prv_numerator = numerator
+            elif msg_type == MessageType.INTERNAL:
+                self.cur_rest_buffer += msg_time - self.cur_time
+                self.prv_type = MessageType.INTERNAL
+
+    def _notelike_tokenise_flush_rest_buffer(self, apply_target: bool, shift: int) -> list[int]:
+        tokens = []
+
+        # Insert rests of length up to `set_max_rest_value`
+        while self.cur_rest_buffer > self.set_max_rest_value:
+            if not (self.prv_value == self.set_max_rest_value and self.flags.get(Flags.RUNNING_VALUE, False)):
+                tokens.append(self.set_max_rest_value + shift)
+                self.prv_value = self.set_max_rest_value
+
+            tokens.append(shift)
+            self.cur_time += self.set_max_rest_value
+            self.cur_rest_buffer -= self.set_max_rest_value
+
+        # Insert rests smaller than `set_max_rest_value`
+        if self.cur_rest_buffer > 0:
+            if not (self.prv_value == self.cur_rest_buffer and self.flags.get(Flags.RUNNING_VALUE, False)):
+                tokens.append(self.cur_rest_buffer + shift)
+                self.prv_value = self.cur_rest_buffer
+            tokens.append(shift)
+
+        self.cur_time += self.cur_rest_buffer
+        self.cur_rest_buffer = 0
+
+        # If there are open notes, extend the sequence to the minimum needed time target
+        if apply_target and self.cur_time_target > self.cur_time:
+            self.cur_rest_buffer += self.cur_time_target - self.cur_time
+            tokens.extend(self._notelike_tokenise_flush_rest_buffer(apply_target=False, shift=shift))
+
+        return tokens
+
+    def _gridlike_tokenise_flush_grid_buffer(self, min_grid_size: int, shift: int) -> list[int]:
+        tokens = []
+
+        while self.cur_rest_buffer > 0:
+            tokens.append(shift)
+            self.cur_rest_buffer -= min_grid_size
+
+        return tokens
+
     @abstractmethod
     def tokenise(self, sequence: Sequence) -> list[int]:
         pass
@@ -88,94 +184,13 @@ class NotelikeTokeniser(Tokeniser):
         tokens = []
         event_pairings = sequence.abs.absolute_note_array(include_meta_messages=True)
 
-        for event_pairing in event_pairings:
-            msg_type = event_pairing[0].message_type
-            msg_time = event_pairing[0].time
-
-            if msg_type == MessageType.NOTE_ON:
-                msg_note = event_pairing[0].note
-                msg_value = event_pairing[1].time - msg_time
-
-                if not (21 <= msg_note <= 108):
-                    raise TokenisationException(f"Invalid note: {msg_note}")
-
-                # Check if message occurs at current time, if not place rest messages
-                if not self.cur_time == msg_time:
-                    self.cur_rest_buffer += msg_time - self.cur_time
-                    tokens.extend(self._tokenise_flush_rest_buffer())
-
-                # Check if value of note has to be defined
-                if not (self.prv_value == msg_value and self.flags.get(Flags.RUNNING_VALUE, False)):
-                    tokens.extend(self._tokenise_flush_value_buffer(msg_value))
-
-                tokens.append(msg_note - 21 + 28)
-
-                self.cur_time_target = max(self.cur_time_target, self.cur_time + msg_value)
-                self.prv_type = MessageType.NOTE_ON
-                self.prv_value = msg_value
-            elif msg_type == MessageType.TIME_SIGNATURE:
-                msg_numerator = event_pairing[0].numerator
-                msg_denominator = event_pairing[0].denominator
-
-                numerator = self._time_signature_to_eights(msg_numerator, msg_denominator)
-
-                # Check if time signature has to be defined
-                if not (self.prv_numerator == numerator and self.flags.get(Flags.RUNNING_TIME_SIG, False)):
-                    self.cur_rest_buffer += msg_time - self.cur_time
-                    tokens.extend(self._tokenise_flush_rest_buffer())
-                    tokens.append(numerator - 2 + 116)
-
-                self.prv_type = MessageType.TIME_SIGNATURE
-                self.prv_numerator = numerator
-            elif msg_type == MessageType.INTERNAL:
-                self.cur_rest_buffer += msg_time - self.cur_time
-                self.prv_type = MessageType.INTERNAL
+        self._notelike_handle_pairings(tokens, event_pairings, shift_wait=3, shift_note=28, shift_signature=116)
 
         if apply_buffer:
-            tokens.extend(self._tokenise_flush_rest_buffer(apply_target=True))
+            tokens.extend(self._notelike_tokenise_flush_rest_buffer(apply_target=True, shift=3))
 
         if reset_time:
             self.reset_time()
-
-        return tokens
-
-    def _tokenise_flush_rest_buffer(self, apply_target: bool = False, shift: int = 3) -> list[int]:
-        tokens = []
-
-        # Insert rests of length up to `set_max_rest_value`
-        while self.cur_rest_buffer > self.set_max_rest_value:
-            if not (self.prv_value == self.set_max_rest_value and self.flags.get(Flags.RUNNING_VALUE, False)):
-                tokens.append(self.set_max_rest_value + shift)
-                self.prv_value = self.set_max_rest_value
-
-            tokens.append(shift)
-            self.cur_time += self.set_max_rest_value
-            self.cur_rest_buffer -= self.set_max_rest_value
-
-        # Insert rests smaller than `set_max_rest_value`
-        if self.cur_rest_buffer > 0:
-            if not (self.prv_value == self.cur_rest_buffer and self.flags.get(Flags.RUNNING_VALUE, False)):
-                tokens.append(self.cur_rest_buffer + shift)
-                self.prv_value = self.cur_rest_buffer
-            tokens.append(shift)
-
-        self.cur_time += self.cur_rest_buffer
-        self.cur_rest_buffer = 0
-
-        # If there are open notes, extend the sequence to the minimum needed time target
-        if apply_target and self.cur_time_target > self.cur_time:
-            self.cur_rest_buffer += self.cur_time_target - self.cur_time
-            tokens.extend(self._tokenise_flush_rest_buffer(apply_target=False))
-
-        return tokens
-
-    def _tokenise_flush_value_buffer(self, time: int, shift: int = 3) -> list[int]:
-        tokens = []
-        while time > self.set_max_rest_value:
-            tokens.append(self.set_max_rest_value + shift)
-            time -= self.set_max_rest_value
-        if time > 0:
-            tokens.append(time + shift)
 
         return tokens
 
@@ -248,7 +263,9 @@ class MIDIlikeTokeniser(Tokeniser):
                 if not (21 <= msg_note <= 108):
                     raise TokenisationException(f"Invalid note: {msg_note}")
 
-                tokens.extend(self._tokenise_flush_rest_buffer())
+                tokens.extend(self._general_tokenise_flush_time_buffer(time=self.cur_rest_buffer, shift=2))
+                self.cur_rest_buffer = 0
+
                 tokens.append(msg_note - 21 + 27)
 
                 self.prv_type = MessageType.NOTE_ON
@@ -258,7 +275,9 @@ class MIDIlikeTokeniser(Tokeniser):
                 if not (21 <= msg_note <= 108):
                     raise TokenisationException(f"Invalid note: {msg_note}")
 
-                tokens.extend(self._tokenise_flush_rest_buffer())
+                tokens.extend(self._general_tokenise_flush_time_buffer(time=self.cur_rest_buffer, shift=2))
+                self.cur_rest_buffer = 0
+
                 tokens.append(msg_note - 21 + 115)
 
                 self.prv_type = MessageType.NOTE_OFF
@@ -269,28 +288,17 @@ class MIDIlikeTokeniser(Tokeniser):
                 numerator = self._time_signature_to_eights(msg_numerator, msg_denominator)
 
                 if not (self.prv_numerator == numerator and self.flags.get(Flags.RUNNING_TIME_SIG, False)):
-                    tokens.extend(self._tokenise_flush_rest_buffer())
+                    tokens.extend(self._general_tokenise_flush_time_buffer(time=self.cur_rest_buffer, shift=2))
+                    self.cur_rest_buffer = 0
+
                     tokens.append(numerator - 2 + 203)
 
                 self.prv_type = MessageType.TIME_SIGNATURE
                 self.prv_numerator = numerator
 
         if apply_buffer and self.cur_rest_buffer > 0:
-            tokens.extend(self._tokenise_flush_rest_buffer())
-
-        return tokens
-
-    def _tokenise_flush_rest_buffer(self, shift: int = 2) -> list[int]:
-        tokens = []
-
-        while self.cur_rest_buffer > self.set_max_rest_value:
-            tokens.append(self.set_max_rest_value + shift)
-            self.cur_rest_buffer -= self.set_max_rest_value
-
-        if self.cur_rest_buffer > 0:
-            tokens.append(self.cur_rest_buffer + shift)
-
-        self.cur_rest_buffer = 0
+            tokens.extend(self._general_tokenise_flush_time_buffer(time=self.cur_rest_buffer, shift=2))
+            self.cur_rest_buffer = 0
 
         return tokens
 
@@ -320,7 +328,8 @@ class MIDIlikeTokeniser(Tokeniser):
 
 
 class GridlikeTokeniser(Tokeniser):
-    """Tokeniser that uses note-like temporal representation.
+    """Tokeniser that uses grid-like temporal representation. Note that input sequences are expected to represent bars,
+    as the grid size definition is redone for each input sequence.
 
     [        0] ... pad
     [        1] ... start
@@ -374,7 +383,7 @@ class GridlikeTokeniser(Tokeniser):
                 if not (21 <= msg_note <= 108):
                     raise TokenisationException(f"Invalid note: {msg_note}")
 
-                tokens.extend(self._tokenise_flush_grid_buffer(min_grid_size))
+                tokens.extend(self._gridlike_tokenise_flush_grid_buffer(min_grid_size=min_grid_size, shift=3))
                 tokens.append(msg_note - 21 + 28)
 
                 self.prv_type = MessageType.NOTE_ON
@@ -384,7 +393,7 @@ class GridlikeTokeniser(Tokeniser):
                 if not (21 <= msg_note <= 108):
                     raise TokenisationException(f"Invalid note: {msg_note}")
 
-                tokens.extend(self._tokenise_flush_grid_buffer(min_grid_size))
+                tokens.extend(self._gridlike_tokenise_flush_grid_buffer(min_grid_size=min_grid_size, shift=3))
                 tokens.append(msg_note - 21 + 116)
 
                 self.prv_type = MessageType.NOTE_OFF
@@ -395,23 +404,14 @@ class GridlikeTokeniser(Tokeniser):
                 numerator = self._time_signature_to_eights(msg_numerator, msg_denominator)
 
                 if not (self.prv_numerator == numerator and self.flags.get(Flags.RUNNING_TIME_SIG, False)):
-                    tokens.extend(self._tokenise_flush_grid_buffer(min_grid_size))
+                    tokens.extend(self._gridlike_tokenise_flush_grid_buffer(min_grid_size=min_grid_size, shift=3))
                     tokens.append(numerator - 2 + 204)
 
                 self.prv_type = MessageType.TIME_SIGNATURE
                 self.prv_numerator = numerator
 
         if apply_buffer and self.cur_rest_buffer > 0:
-            tokens.extend(self._tokenise_flush_grid_buffer(min_grid_size))
-
-        return tokens
-
-    def _tokenise_flush_grid_buffer(self, min_grid_size: int) -> list[int]:
-        tokens = []
-
-        while self.cur_rest_buffer > 0:
-            tokens.append(3)
-            self.cur_rest_buffer -= min_grid_size
+            tokens.extend(self._gridlike_tokenise_flush_grid_buffer(min_grid_size=min_grid_size, shift=3))
 
         return tokens
 
@@ -453,3 +453,66 @@ class GridlikeTokeniser(Tokeniser):
                 prv_type = MessageType.TIME_SIGNATURE
 
         return seq
+
+
+class TransposedNotelikeTokeniser(Tokeniser):
+    """Tokeniser that uses transposed temporal representation with a note-like approach, i.e., all occurrences of a note
+    are shown first before any other note is handled. Note that input sequences are expected to represent bars, as otherwise
+    the relationships between notes could be too far apart in the encoded sequence.
+
+    [        0] ... pad
+    [        1] ... start
+    [        2] ... stop
+    [        3] ... play
+    [        4] ... wait
+    [  5 -  28] ... value definition
+    [ 29 - 116] ... note
+    [117 - 131] ... time signature numerator in eights from 2/8 to 16/8
+    """
+
+    def __init__(self, running_value: bool, running_time_sig: bool) -> None:
+        super().__init__(running_time_sig)
+
+        self.flags[Flags.RUNNING_VALUE] = running_value
+
+    def tokenise(self, sequence: Sequence, apply_buffer: bool = True, reset_time: bool = True) -> list[int]:
+        tokens = []
+        event_pairings = sequence.abs.absolute_note_array(include_meta_messages=True)
+
+        event_pairings_by_key = dict()
+        keys_order = list()
+
+        for event_pairing in event_pairings:
+            message = event_pairing[0]
+
+            if message.message_type == MessageType.NOTE_ON:
+                if message.note not in keys_order:
+                    keys_order.append(message.note)
+
+                event_pairings_by_key.setdefault(message.note, list())
+                event_pairings_by_key[message.note].append(event_pairing)
+            elif message.message_type == MessageType.TIME_SIGNATURE:
+                if MessageType.TIME_SIGNATURE not in keys_order:
+                    keys_order.insert(0, MessageType.TIME_SIGNATURE)
+
+                event_pairings_by_key.setdefault(MessageType.TIME_SIGNATURE, list())
+                event_pairings_by_key[MessageType.TIME_SIGNATURE].append(event_pairing)
+            elif message.message_type == MessageType.INTERNAL:
+                if MessageType.INTERNAL not in keys_order:
+                    keys_order.append(MessageType.INTERNAL)
+
+                event_pairings_by_key.setdefault(MessageType.INTERNAL, list())
+                event_pairings_by_key[MessageType.INTERNAL].append(event_pairing)
+
+        for key_order in keys_order:
+            event_pairings_for_key = event_pairings_by_key[key_order]
+            tokens_for_key = []
+
+            self._notelike_handle_pairings(tokens_for_key, event_pairings_by_key,
+                                           shift_wait=4, shift_note=29, shift_signature=117)
+
+        return tokens
+
+    @staticmethod
+    def detokenise(tokens: list[int]) -> Sequence:
+        pass
