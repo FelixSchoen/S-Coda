@@ -61,7 +61,7 @@ class Tokeniser(ABC):
         # Insert rests of length up to `set_max_rest_value`
         while self.cur_rest_buffer > self.set_max_rest_value:
             if not (self.prv_value == self.set_max_rest_value and self.flags.get(Flags.RUNNING_VALUE, False)):
-                tokens.append(self.set_max_rest_value + value_shift)
+                tokens.append(int(self.set_max_rest_value + value_shift))
                 self.prv_value = self.set_max_rest_value
 
             tokens.append(wait_token)
@@ -71,7 +71,7 @@ class Tokeniser(ABC):
         # Insert rests smaller than `set_max_rest_value`
         if self.cur_rest_buffer > 0:
             if not (self.prv_value == self.cur_rest_buffer and self.flags.get(Flags.RUNNING_VALUE, False)):
-                tokens.append(self.cur_rest_buffer + value_shift)
+                tokens.append(int(self.cur_rest_buffer + value_shift))
                 self.prv_value = self.cur_rest_buffer
             tokens.append(wait_token)
 
@@ -188,7 +188,7 @@ class NotelikeTokeniser(Tokeniser):
 
         if apply_buffer:
             tokens.extend(
-                self._notelike_tokenise_flush_rest_buffer(apply_target=False, wait_token=3, value_shift=3))
+                self._notelike_tokenise_flush_rest_buffer(apply_target=True, wait_token=3, value_shift=3))
 
         if reset_time:
             self.reset_time()
@@ -569,7 +569,7 @@ class TransposedNotelikeTokeniser(Tokeniser):
 
         if apply_buffer:
             tokens.extend(
-                self._notelike_tokenise_flush_rest_buffer(apply_target=False, wait_token=4, value_shift=5))
+                self._notelike_tokenise_flush_rest_buffer(apply_target=True, wait_token=4, value_shift=5))
 
         if reset_time:
             self.reset_time()
