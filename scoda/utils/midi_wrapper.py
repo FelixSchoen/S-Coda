@@ -23,6 +23,27 @@ class MidiFile:
         self.tracks: [MidiTrack] = []
         self.PPQN = PPQN
 
+    @staticmethod
+    def open_midi_file(filename) -> MidiFile:
+        midi_file = MidiFile()
+        mido_midi_file = mido.MidiFile(filename)
+        midi_file.parse_mido_file(mido_midi_file)
+        return midi_file
+
+    def parse_mido_file(self, mido_midi_file):
+        self.PPQN = mido_midi_file.ticks_per_beat
+        for mido_track in mido_midi_file.tracks:
+            self.tracks.append(MidiTrack.parse_mido_track(mido_track))
+
+    def save(self, path):
+        mido_midi_file = mido.MidiFile()
+        mido_midi_file.ticks_per_beat = PPQN
+
+        for track in self.tracks:
+            mido_midi_file.tracks.append(track.to_mido_track())
+
+        mido_midi_file.save(path)
+
     def to_sequences(self, track_indices: [[int]], meta_track_indices: [int], meta_track_index: int = 0) -> list[
         Sequence]:
         """ Parses this `MidiFile` and returns a list of `scoda.Sequence`.
@@ -127,27 +148,6 @@ class MidiFile:
                 Message(message_type=MessageType.TIME_SIGNATURE, numerator=4, denominator=4, time=0))
 
         return merged_sequences
-
-    @staticmethod
-    def open_midi_file(filename) -> MidiFile:
-        midi_file = MidiFile()
-        mido_midi_file = mido.MidiFile(filename)
-        midi_file.parse_mido_file(mido_midi_file)
-        return midi_file
-
-    def parse_mido_file(self, mido_midi_file):
-        self.PPQN = mido_midi_file.ticks_per_beat
-        for mido_track in mido_midi_file.tracks:
-            self.tracks.append(MidiTrack.parse_mido_track(mido_track))
-
-    def save(self, path):
-        mido_midi_file = mido.MidiFile()
-        mido_midi_file.ticks_per_beat = PPQN
-
-        for track in self.tracks:
-            mido_midi_file.tracks.append(track.to_mido_track())
-
-        mido_midi_file.save(path)
 
 
 class MidiTrack:

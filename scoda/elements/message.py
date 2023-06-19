@@ -30,23 +30,34 @@ class Message:
     def __deepcopy__(self, memodict=None) -> Message:
         return self.__copy__()
 
-    def __eq__(self, o: object) -> bool:
-        if not isinstance(o, Message):
-            return False
+    # def __eq__(self, o: object) -> bool:
+    #     if not isinstance(o, Message):
+    #         return False
+    #
+    #     return (
+    #             self.message_type == o.message_type and
+    #             self.note == o.note and
+    #             self.velocity == o.velocity and
+    #             self.control == o.control and
+    #             self.numerator == o.numerator and
+    #             self.denominator == o.denominator and
+    #             self.key == o.key and
+    #             self.time == o.time and
+    #             self.program == o.program
+    #     )
 
-        is_equal = True
-
-        is_equal &= self.message_type == o.message_type
-        is_equal &= self.note == o.note
-        is_equal &= self.velocity == o.velocity
-        is_equal &= self.control == o.control
-        is_equal &= self.numerator == o.numerator
-        is_equal &= self.denominator == o.denominator
-        is_equal &= self.key == o.key
-        is_equal &= self.time == o.time
-        is_equal &= self.program == o.program
-
-        return is_equal
+    # def __hash__(self) -> int:
+    #     return hash((
+    #         self.message_type,
+    #         self.note,
+    #         self.velocity,
+    #         self.control,
+    #         self.numerator,
+    #         self.denominator,
+    #         self.key,
+    #         self.time,
+    #         self.program
+    #     ))
 
     def __repr__(self) -> str:
         representation = f"[{self.message_type.value}]:"

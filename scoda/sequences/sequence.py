@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import copy
+from pathlib import Path
 from typing import TYPE_CHECKING
 
 import numpy as np
@@ -521,19 +522,19 @@ class Sequence:
         return midi_file
 
     @staticmethod
-    def from_midi_file(file_path: str = None, midi_file: MidiFile = None, track_indices: list[list[int]] = None,
+    def from_midi_file(file_path: Path | str = None, midi_file: MidiFile = None, track_indices: list[list[int]] = None,
                        meta_track_indices: list[int] = None, target_meta_track_index: int = 0) -> list[Sequence]:
         """Creates `scoda.Sequence` objects from the provided MIDI file.
 
         Args:
-            midi_file: If provided, this file is used instead of trying to load from a file
-            file_path: The file path of the MIDI file
+            midi_file: If provided, this file is used instead of trying to load from a file.
+            file_path: The file path of the MIDI file.
             track_indices: A list of lists indicating which tracks of the MIDI file should be merged into which tracks
                 of the resulting sequence.
-            meta_track_indices: A list of indices of tracks of the MIDI file to consider for meta messages
-            target_meta_track_index: The index of the track of the final sequence that should contain meta messages
+            meta_track_indices: A list of indices of tracks of the MIDI file to consider for meta messages.
+            target_meta_track_index: The index of the track of the final sequence that should contain meta messages.
 
-        Returns: An array of `scoda.Sequence` objects
+        Returns: A list of `scoda.Sequence` objects.
 
         """
         if midi_file is None:
@@ -551,20 +552,20 @@ class Sequence:
         return merged_sequences
 
     @staticmethod
-    def split_into_bars(sequences_input: list[Sequence], meta_track_index=0, quantise_note_lengths=True) -> list[list[Bar]]:
+    def split_into_bars(sequences_input: list[Sequence], meta_track_index=0, quantise_note_lengths=True) -> list[
+        list[Bar]]:
         """Splits the sequence into a lists of `scoda.Bar`, conforming to the contained time signatures.
 
         Each list of bars will correspond to one of the given sequence.
 
         Args:
-            sequences_input: The sequence to split
-            meta_track_index: The index of the sequence that contains the time signature changes
-            quantise_note_lengths: Whether the note lengths of the split bar should be quantised after the split
+            sequences_input: The sequence to split.
+            meta_track_index: The index of the sequence that contains the time signature changes.
+            quantise_note_lengths: Whether the note lengths of the split bar should be quantised after the split.
 
-        Returns: A list of bars
+        Returns: A list of bars.
 
         """
-
         from scoda.elements.bar import Bar
 
         sequences = copy.copy(sequences_input)
