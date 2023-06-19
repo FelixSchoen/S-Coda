@@ -33,6 +33,8 @@ class RelativeSequence(AbstractSequence):
 
     LOGGER = setup_logger(__name__)
 
+    # General Methods
+
     def __init__(self) -> None:
         super().__init__()
 
@@ -53,10 +55,13 @@ class RelativeSequence(AbstractSequence):
 
         return self.to_absolute_sequence() == o.to_absolute_sequence()
 
+    # Basic Methods
+
     def add_message(self, msg: Message) -> None:
+        """Adds the given message to the sequence."""
         self.messages.append(msg)
 
-    def adjust_messages(self) -> None:
+    def adjust(self) -> None:
         """Consolidates and then splits up wait messages to a maximum size of `PPQN`. Removes double time signatures.
 
         """
@@ -109,379 +114,22 @@ class RelativeSequence(AbstractSequence):
 
         self.messages = messages_normalized
 
-    def concatenate(self, sequences: [RelativeSequence]) -> None:
-        """Concatenates this one and the given sequence, resulting in the current sequence containing messages from
-        both of the previous sequence.
+    def concatenate(self, sequences: list[RelativeSequence]) -> None:
+        """Concatenates the sequence with the given sequences, resulting in this sequence containing the combined
+        messages of itself and the given sequences.
 
         Args:
-            sequences: A sequence which should be appended to this sequence
+            sequences: A sequence which should be appended to this sequence.
 
         """
         for seq in sequences:
             self.messages.extend(seq.messages)
 
-    def diff_accidentals(self, key: Key) -> float:
-        """Calculates the difficulty of the sequence based on the amount of accidentals needed.
-
-        Args:
-            key: A fixed key of the sequence
-
-        Returns: A value from 0 (low difficulty) to 1 (high difficulty)
-
-        """
-        note_mapping = MusicMapping.KeyNoteMapping[key]
-        violations = 0
-
-        for msg in self.messages:
-            if msg.message_type == MessageType.NOTE_ON:
-                if Note(msg.note % 12) not in note_mapping[0]:
-                    violations += 1
-
-        relation = violations / self.sequence_length_relation()
-        scaled_relation = simple_regression(DIFF_DUAL_ACCIDENTALS_UPPER_BOUND, 1, DIFF_DUAL_ACCIDENTALS_LOWER_BOUND, 0,
-                                            relation)
-
-        return minmax(0, 1, scaled_relation)
-
-    def diff_concurrent_notes(self) -> float:
-        """Calculates the difficulty of the sequence based on the amount of concurrent notes.
-
-        Returns: A value from 0 (low difficulty) to 1 (high difficulty)
-
-        """
-        concurrent_notes = []
-        open_notes = set()
-        notes_to_open = set()
-        notes_to_close = set()
-
-        for msg in self.messages:
-            if msg.message_type == MessageType.NOTE_ON:
-                notes_to_open.add(msg.note)
-            elif msg.message_type == MessageType.NOTE_OFF:
-                notes_to_close.add(msg.note)
-            elif msg.message_type == MessageType.WAIT:
-                if len(open_notes) > 0:
-                    concurrent_notes.append(len(open_notes))
-
-                if len(notes_to_close) > 0:
-                    for note in notes_to_close:
-                        open_notes.remove(note)
-                    notes_to_close = set()
-
-                if len(notes_to_open) > 0:
-                    for note in notes_to_open:
-                        open_notes.add(note)
-                    notes_to_open = set()
-
-        # Handle end of sequence
-        if len(open_notes) > 0:
-            concurrent_notes.append(len(open_notes))
-
-        # Handle no entries
-        if len(concurrent_notes) == 0:
-            concurrent_notes.append(0)
-
-        scaled_difficulty = simple_regression(DIFF_DUAL_NOTE_CONCURRENT_UPPER_BOUND, 1,
-                                              DIFF_DUAL_NOTE_CONCURRENT_LOWER_BOUND, 0,
-                                              mean(concurrent_notes))
-
-        return minmax(0, 1, scaled_difficulty)
-
-    def diff_distances(self) -> float:
-        """Calculates the difficulty of the sequence based on the distances between notes.
-
-        Here, only the top 15% of distances are considered, in order not to disregard notes due to dilution.
-
-        Returns: A value from 0 (low difficulty) to 1 (high difficulty)
-
-        """
-        notes_played = []
-        current_notes = []
-        distances = []
-
-        for msg in self.messages:
-            if msg.message_type == MessageType.WAIT and len(current_notes) > 0:
-                notes_played.append(sorted(current_notes))
-                current_notes = []
-            elif msg.message_type == MessageType.NOTE_ON:
-                current_notes.append(msg.note)
-
-        for i in range(1, len(notes_played)):
-            distance_lower = abs(notes_played[i][0] - notes_played[i - 1][0])
-            distance_higher = abs(notes_played[i][-1] - notes_played[i - 1][-1])
-            distance = max(distance_lower, distance_higher)
-            distances.append(distance)
-
-        # If bar is empty, return easiest difficulty
-        if len(distances) == 0:
-            return 0
-
-        high_distances_mean = mean(sorted(distances, reverse=True)[0: max(1, math.ceil((len(distances) * 0.15)))])
-
-        scaled_difficulty = simple_regression(DIFF_DUAL_DISTANCES_UPPER_BOUND, 1, DIFF_DUAL_DISTANCES_LOWER_BOUND, 0,
-                                              high_distances_mean)
-
-        return minmax(0, 1, scaled_difficulty)
-
-    def diff_key(self, key: Key = None) -> float:
-        """Calculates the difficulty of the sequence based on the key it is in.
-
-        Here, a key that is further from C is considered more difficult to play, since the performer has to consider
-        more accidentals. Furthermore, if no key is specified, a key is guessed based on the amount of the induced
-        accidentals that would have to be played.
-
-        Args:
-            key: A fixed key of the sequence, will prevent the program from trying to determine one.
-
-        Returns: A value from 0 (low difficulty) to 1 (high difficulty)
-
-        """
-        key_signature = key
-
-        for msg in self.messages:
-            if msg.message_type == MessageType.KEY_SIGNATURE:
-                if key_signature is not None and key_signature is not msg.key:
-                    RelativeSequence.LOGGER.info(f"Key was {key_signature}, now is {msg.key}.")
-                    key_signature = None
-                    break
-                key_signature = msg.key
-            if msg.message_type == MessageType.WAIT:
-                break
-
-        # Have to guess key signature based on induced accidentals
-        if key_signature is None:
-            key_signature = self.guess_key_signature()
-
-        # Check how many accidentals this key uses
-        _, accidentals = MusicMapping.KeyNoteMapping[key_signature]
-
-        scaled_difficulty = simple_regression(7, 1, 0, 0, accidentals)
-        return minmax(0, 1, scaled_difficulty)
-
-    def diff_note_amount(self) -> float:
-        """Calculates difficulty of the sequence based on the amount of notes played.
-
-        Returns: A value from 0 (low difficulty) to 1 (high difficulty)
-
-        """
-        amount_notes_played = 0
-
-        if self.sequence_length_relation() == 0:
-            return 0
-
-        for msg in self.messages:
-            if msg.message_type == MessageType.NOTE_ON:
-                amount_notes_played += 1
-
-        relation = amount_notes_played / self.sequence_length_relation()
-
-        scaled_difficulty = simple_regression(DIFF_DUAL_NOTE_AMOUNT_UPPER_BOUND, 1, DIFF_DUAL_NOTE_AMOUNT_LOWER_BOUND,
-                                              0,
-                                              relation)
-
-        return minmax(0, 1, scaled_difficulty)
-
-    def diff_note_classes(self) -> float:
-        """Calculates difficulty of the sequence based on the amount of note classes (different notes played) in
-        relation to the overall amount of messages.
-
-        Returns: A value from 0 (low difficulty) to 1 (high difficulty)
-
-        """
-        note_classes = []
-
-        for msg in self.messages:
-            if msg.message_type == MessageType.NOTE_ON and msg.note not in note_classes:
-                note_classes.append(msg.note)
-
-        # If sequence is empty, return easiest difficulty
-        if len(note_classes) == 0:
-            return 0
-
-        relation = len(note_classes) / self.sequence_length_relation()
-        scaled_relation = simple_regression(DIFF_DUAL_NOTE_CLASSES_UPPER_BOUND, 1, DIFF_DUAL_NOTE_CLASSES_LOWER_BOUND,
-                                            0,
-                                            relation)
-
-        return minmax(0, 1, scaled_relation)
-
-    def diff_pattern(self) -> float:
-        """Calculates the difficulty of the sequence based on the patterns of the start messages.
-
-        If a sequence contains patterns, i.e., if a building block is reused several times, the sequence is easier to
-        play, since the player has to read fewer notes.
-
-        Returns: A value from 0 (low difficulty) to 1 (high difficulty)
-
-        """
-        notes_played = []
-        current_bin = []
-
-        for msg in self.messages:
-            if msg.message_type == MessageType.WAIT and len(current_bin) > 0:
-                notes_played.extend(sorted(current_bin, key=lambda message: message.note))
-            elif msg.message_type == MessageType.NOTE_ON:
-                notes_played.append(msg)
-
-        string_representation = ""
-
-        # Create string representation
-        for i in range(1, len(notes_played)):
-            value = notes_played[i].note - notes_played[i - 1].note
-            if value >= 0:
-                string_representation += "+"
-            else:
-                string_representation += "-"
-
-            string_representation += str(abs(value))
-
-        # Obtain patterns, switch to greedy method if pattern matching takes too long
-        try:
-            results = RelativeSequence._match_pattern(string_representation, start_time=time.time(),
-                                                      max_duration=PATTERN_SECONDS_SEARCH_DURATION)
-        except TimeoutError:
-            results = RelativeSequence._greedy_match_pattern(string_representation)
-
-        results_with_coverage = []
-
-        # Determine coverage and length of found pattern
-        for result in results:
-            uncovered = string_representation
-            length = 0
-            for match in result:
-                uncovered = uncovered.replace(match, "")
-                length += match.count("+") + match.count("-")
-            coverage = (len(string_representation) - len(uncovered)) / len(string_representation)
-            results_with_coverage.append((coverage, length, result))
-
-        # Determine best fitting result
-        if len(results_with_coverage) > 0:
-            best_fit = max(results_with_coverage, key=lambda x: x[0] / x[1])
-
-            bound_difficulty = simple_regression(DIFF_DUAL_PATTERN_COVERAGE_UPPER_BOUND, 1,
-                                                 DIFF_DUAL_PATTERN_COVERAGE_LOWER_BOUND, 0,
-                                                 best_fit[0] / best_fit[1])
-
-            return minmax(0, 1, bound_difficulty)
-        else:
-            return 1
-
-    def get_valid_next_messages(self, desired_bars, force_time_signature=True, maximum_note_length=-1):
-        """Determines, which messages are valid messages to be inserted into this sequence.
-
-        Returns:
-
-        """
-        amount_bars_completed = 0
-        current_bar_capacity = 4 * PPQN
-        current_point_in_time = 0
-        current_bar_time = 0
-        at_bar_border = True
-
-        open_messages = dict()
-
-        for msg in self.messages:
-            if msg.message_type == MessageType.NOTE_ON:
-                at_bar_border = False
-                open_messages[msg.note] = current_point_in_time
-            elif msg.message_type == MessageType.NOTE_OFF:
-                open_messages.pop(msg.note, None)
-            elif msg.message_type == MessageType.WAIT:
-                at_bar_border = False
-
-                current_point_in_time += msg.time
-                current_bar_time += msg.time
-
-                if current_bar_time == current_bar_capacity:
-                    at_bar_border = True
-                    amount_bars_completed += 1
-                    current_bar_time -= current_bar_capacity
-
-                while current_bar_time > current_bar_capacity:
-                    current_bar_time -= current_bar_capacity
-                    amount_bars_completed += 1
-            elif msg.message_type == MessageType.TIME_SIGNATURE:
-                if not at_bar_border:
-                    raise SequenceException("Time signature message may only occur at border of a bar")
-                at_bar_border = False
-
-                current_bar_capacity = PPQN * (msg.numerator / (msg.denominator / 4))
-
-        valid_messages = []
-
-        if amount_bars_completed < desired_bars and not (at_bar_border and force_time_signature):
-            for wait_time in range(1, PPQN + 1):
-                if (
-                        current_bar_time + wait_time <= current_bar_capacity or
-                        current_bar_time + wait_time <= 2 * current_bar_capacity and
-                        amount_bars_completed + 1 < desired_bars) \
-                        and (maximum_note_length == -1 or all(
-                    current_point_in_time + wait_time - value <= maximum_note_length for value in
-                    open_messages.values())
-                ):
-                    valid_messages.append({"message_type": MessageType.WAIT.value, "time": wait_time})
-
-        for note in range(NOTE_LOWER_BOUND, NOTE_UPPER_BOUND + 1):
-            if note not in open_messages and amount_bars_completed < desired_bars and not (
-                    at_bar_border and force_time_signature):
-                valid_messages.append({"message_type": MessageType.NOTE_ON.value, "note": note})
-
-        for note in range(NOTE_LOWER_BOUND, NOTE_UPPER_BOUND + 1):
-            if note in open_messages and open_messages[note] != current_point_in_time:
-                valid_messages.append({"message_type": MessageType.NOTE_OFF.value, "note": note})
-
-        if at_bar_border and amount_bars_completed < desired_bars:
-            valid_messages.append({"message_type": MessageType.TIME_SIGNATURE.value})
-
-        return valid_messages
-
-    def guess_key_signature(self) -> Key:
-        """Determines the best key based on which key induces the minimum amount of additional accidentals.
-
-        Returns: The best-fitting key for this bar
-
-        """
-        key_candidates = []
-        for _ in MusicMapping.KeyNoteMapping:
-            key_candidates.append(0)
-
-        for msg in self.messages:
-            if msg.message_type == MessageType.NOTE_ON:
-                for i, (_, key_notes) in enumerate(MusicMapping.KeyNoteMapping.items()):
-                    if Note(msg.note % 12) not in key_notes[0]:
-                        key_candidates[i] += 1
-
-        best_index = 0
-        best_solution = math.inf
-        best_solution_accidentals = math.inf
-        key_note_mapping = list(MusicMapping.KeyNoteMapping.items())
-
-        for i in range(0, len(key_candidates)):
-            if key_candidates[i] <= best_solution:
-                if key_candidates[i] < best_solution or key_note_mapping[i][1][1] < best_solution_accidentals:
-                    best_index = i
-                    best_solution = key_candidates[i]
-                    best_solution_accidentals = key_note_mapping[i][1][1]
-
-        guessed_key = [key for key in MusicMapping.KeyNoteMapping][best_index]
-        return guessed_key
-
-    def is_empty(self) -> bool:
-        """Checks if the sequence is empty, i.e., no notes are opened.
-
-        Returns: `True` if the sequence is empty, `False` otherwise.
-
-        """
-        for msg in self.messages:
-            if msg.message_type == MessageType.NOTE_ON:
-                return False
-        return True
-
-    def pad_sequence(self, padding_length):
+    def pad(self, padding_length) -> None:
         """Pads the sequence to a minimum fixed length.
 
         Args:
-            padding_length: The minimum length this sequence should have after this operation
+            padding_length: The minimum length this sequence should have after this operation.
 
         """
         current_length = 0
@@ -496,31 +144,17 @@ class RelativeSequence(AbstractSequence):
         if current_length < padding_length:
             self.messages.append(Message(message_type=MessageType.WAIT, time=padding_length - current_length))
 
-    def sequence_length_relation(self) -> float:
-        """Calculates the length of the sequence in multiples of the `PPQN`.
-
-        Returns: The length of the sequence as a multiple of the `PPQN`
-
-        """
-        length = 0
-
-        for msg in self.messages:
-            if msg.message_type == MessageType.WAIT:
-                length += msg.time
-
-        return length / PPQN
-
-    def split(self, capacities: [int]) -> [RelativeSequence]:
+    def split(self, capacities: list[int]) -> list[RelativeSequence]:
         """Splits the sequence into parts of the given capacity.
 
         Creates up to `len(capacities) + 1` new `RelativeSequence`s, where the first `len(capacities)` entries contain
-        sequence of the given capacities, while the last one contains any remaining notes. Messages at the boundaries
+        sequences of the given capacities, while the last one contains any remaining notes. Messages at the boundaries
         of a capacity are split up and possibly reinserted at the beginning of the next sequence.
 
         Args:
-            capacities: An array of capacities to split the sequence into
+            capacities: A list of capacities to split the sequence into.
 
-        Returns: An array of `RelativeSequence`s of the desired size
+        Returns: A list of `RelativeSequence`s of the desired size.
 
         """
         split_sequences = []
@@ -598,12 +232,12 @@ class RelativeSequence(AbstractSequence):
 
         return split_sequences
 
-    def scale(self, factor, meta_sequence=None):
+    def scale(self, factor, meta_sequence=None) -> None:
         """Stretches the sequence by the given factor.
 
         Args:
-            factor: Factor to stretch by
-            meta_sequence: Sequence containing the time signatures to apply
+            factor: Factor to stretch by.
+            meta_sequence: Sequence containing the time signatures to apply.
 
         """
         if factor > 1:
@@ -671,46 +305,7 @@ class RelativeSequence(AbstractSequence):
                     bar_index += 1
 
             self.messages = modified_messages
-            self.adjust_messages()
-
-    def to_absolute_sequence(self) -> AbsoluteSequence:
-        """Converts this `RelativeSequence` to an `AbsoluteSequence`
-
-        Returns: The absolute representation of this sequence
-
-        """
-        from scoda.sequences.absolute_sequence import AbsoluteSequence
-        absolute_sequence = AbsoluteSequence()
-        current_point_in_time = 0
-        cap_message_exists = True
-
-        for msg in self.messages:
-            if msg.message_type == MessageType.WAIT:
-                current_point_in_time += msg.time
-                cap_message_exists = False
-            else:
-                message_to_add = copy.copy(msg)
-                message_to_add.time = current_point_in_time
-                absolute_sequence.add_message(message_to_add)
-                cap_message_exists = True
-
-        if not cap_message_exists:
-            absolute_sequence.add_message(Message(message_type=MessageType.INTERNAL, time=current_point_in_time))
-
-        return absolute_sequence
-
-    def to_midi_track(self) -> MidiTrack:
-        """Converts the sequence to a `MidiTrack`
-
-        Returns: The corresponding `MidiTrack`
-
-        """
-        track = MidiTrack()
-
-        for msg in self.messages:
-            track.messages.append(MidiMessage.parse_internal_message(msg))
-
-        return track
+            self.adjust()
 
     def transpose(self, transpose_by: int) -> bool:
         """Transposes the sequence by the given amount.
@@ -718,9 +313,9 @@ class RelativeSequence(AbstractSequence):
         If the lower or upper bound is undercut over exceeded, these notes are transposed by an octave each.
 
         Args:
-            transpose_by: Half-tone steps to transpose by
+            transpose_by: Half-tone steps to transpose by.
 
-        Returns: `True` if at least one note had to be shifted due to it otherwise being out of bounds
+        Returns: `True` if at least one note had to be shifted due to it otherwise being out of bounds.
 
         """
         had_to_shift = False
@@ -745,6 +340,422 @@ class RelativeSequence(AbstractSequence):
 
         return had_to_shift
 
+    # Misc. Methods
+
+    def is_empty(self) -> bool:
+        """Checks if the sequence is empty, i.e., no notes are opened.
+
+        Returns: `True` if the sequence is empty, `False` otherwise.
+
+        """
+        for msg in self.messages:
+            if msg.message_type == MessageType.NOTE_ON:
+                return False
+        return True
+
+    def get_key_signature_guess(self) -> Key:
+        """Determines the best key based on which key induces the minimum amount of additional accidentals.
+
+        Returns: The best-fitting key for this bar.
+
+        """
+        key_candidates = []
+        for _ in MusicMapping.KeyNoteMapping:
+            key_candidates.append(0)
+
+        for msg in self.messages:
+            if msg.message_type == MessageType.NOTE_ON:
+                for i, (_, key_notes) in enumerate(MusicMapping.KeyNoteMapping.items()):
+                    if Note(msg.note % 12) not in key_notes[0]:
+                        key_candidates[i] += 1
+
+        best_index = 0
+        best_solution = math.inf
+        best_solution_accidentals = math.inf
+        key_note_mapping = list(MusicMapping.KeyNoteMapping.items())
+
+        for i in range(0, len(key_candidates)):
+            if key_candidates[i] <= best_solution:
+                if key_candidates[i] < best_solution or key_note_mapping[i][1][1] < best_solution_accidentals:
+                    best_index = i
+                    best_solution = key_candidates[i]
+                    best_solution_accidentals = key_note_mapping[i][1][1]
+
+        guessed_key = [key for key in MusicMapping.KeyNoteMapping][best_index]
+        return guessed_key
+
+    def get_sequence_length_relation(self) -> float:
+        """Calculates the length of the sequence in multiples of the `PPQN`.
+
+        Returns: The length of the sequence as a multiple of the `PPQN`.
+
+        """
+        length = 0
+
+        for msg in self.messages:
+            if msg.message_type == MessageType.WAIT:
+                length += msg.time
+
+        return length / PPQN
+
+    def get_valid_next_messages(self, desired_bars, force_time_signature=True, maximum_note_length=-1) -> list[dict]:
+        """Determines, which messages are valid messages to be inserted into this sequence.
+
+        Returns: A list of valid message types
+
+        """
+        amount_bars_completed = 0
+        current_bar_capacity = 4 * PPQN
+        current_point_in_time = 0
+        current_bar_time = 0
+        at_bar_border = True
+
+        open_messages = dict()
+
+        for msg in self.messages:
+            if msg.message_type == MessageType.NOTE_ON:
+                at_bar_border = False
+                open_messages[msg.note] = current_point_in_time
+            elif msg.message_type == MessageType.NOTE_OFF:
+                open_messages.pop(msg.note, None)
+            elif msg.message_type == MessageType.WAIT:
+                at_bar_border = False
+
+                current_point_in_time += msg.time
+                current_bar_time += msg.time
+
+                if current_bar_time == current_bar_capacity:
+                    at_bar_border = True
+                    amount_bars_completed += 1
+                    current_bar_time -= current_bar_capacity
+
+                while current_bar_time > current_bar_capacity:
+                    current_bar_time -= current_bar_capacity
+                    amount_bars_completed += 1
+            elif msg.message_type == MessageType.TIME_SIGNATURE:
+                if not at_bar_border:
+                    raise SequenceException("Time signature message may only occur at border of a bar")
+                at_bar_border = False
+
+                current_bar_capacity = PPQN * (msg.numerator / (msg.denominator / 4))
+
+        valid_messages = []
+
+        if amount_bars_completed < desired_bars and not (at_bar_border and force_time_signature):
+            for wait_time in range(1, PPQN + 1):
+                if (
+                        current_bar_time + wait_time <= current_bar_capacity or
+                        current_bar_time + wait_time <= 2 * current_bar_capacity and
+                        amount_bars_completed + 1 < desired_bars) \
+                        and (maximum_note_length == -1 or all(
+                    current_point_in_time + wait_time - value <= maximum_note_length for value in
+                    open_messages.values())
+                ):
+                    valid_messages.append({"message_type": MessageType.WAIT.value, "time": wait_time})
+
+        for note in range(NOTE_LOWER_BOUND, NOTE_UPPER_BOUND + 1):
+            if note not in open_messages and amount_bars_completed < desired_bars and not (
+                    at_bar_border and force_time_signature):
+                valid_messages.append({"message_type": MessageType.NOTE_ON.value, "note": note})
+
+        for note in range(NOTE_LOWER_BOUND, NOTE_UPPER_BOUND + 1):
+            if note in open_messages and open_messages[note] != current_point_in_time:
+                valid_messages.append({"message_type": MessageType.NOTE_OFF.value, "note": note})
+
+        if at_bar_border and amount_bars_completed < desired_bars:
+            valid_messages.append({"message_type": MessageType.TIME_SIGNATURE.value})
+
+        return valid_messages
+
+    def to_absolute_sequence(self) -> AbsoluteSequence:
+        """Converts this `RelativeSequence` to an `AbsoluteSequence`.
+
+        Returns: The absolute representation of this sequence.
+
+        """
+        from scoda.sequences.absolute_sequence import AbsoluteSequence
+        absolute_sequence = AbsoluteSequence()
+        current_point_in_time = 0
+        cap_message_exists = True
+
+        for msg in self.messages:
+            if msg.message_type == MessageType.WAIT:
+                current_point_in_time += msg.time
+                cap_message_exists = False
+            else:
+                message_to_add = copy.copy(msg)
+                message_to_add.time = current_point_in_time
+                absolute_sequence.add_message(message_to_add)
+                cap_message_exists = True
+
+        if not cap_message_exists:
+            absolute_sequence.add_message(Message(message_type=MessageType.INTERNAL, time=current_point_in_time))
+
+        return absolute_sequence
+
+    def to_midi_track(self) -> MidiTrack:
+        """Converts the sequence to a `MidiTrack`.
+
+        Returns: The corresponding `MidiTrack`.
+
+        """
+        track = MidiTrack()
+
+        for msg in self.messages:
+            track.messages.append(MidiMessage.parse_internal_message(msg))
+
+        return track
+
+    # Difficulty Methods
+
+    def diff_accidentals(self, key: Key) -> float:
+        """Calculates the difficulty of the sequence based on the amount of accidentals needed.
+
+        Args:
+            key: A fixed key of the sequence.
+
+        Returns: A value from 0 (low difficulty) to 1 (high difficulty).
+
+        """
+        note_mapping = MusicMapping.KeyNoteMapping[key]
+        violations = 0
+
+        for msg in self.messages:
+            if msg.message_type == MessageType.NOTE_ON:
+                if Note(msg.note % 12) not in note_mapping[0]:
+                    violations += 1
+
+        relation = violations / self.get_sequence_length_relation()
+        scaled_relation = simple_regression(DIFF_DUAL_ACCIDENTALS_UPPER_BOUND, 1, DIFF_DUAL_ACCIDENTALS_LOWER_BOUND, 0,
+                                            relation)
+
+        return minmax(0, 1, scaled_relation)
+
+    def diff_concurrent_notes(self) -> float:
+        """Calculates the difficulty of the sequence based on the amount of concurrent notes.
+
+        Returns: A value from 0 (low difficulty) to 1 (high difficulty).
+
+        """
+        concurrent_notes = []
+        open_notes = set()
+        notes_to_open = set()
+        notes_to_close = set()
+
+        for msg in self.messages:
+            if msg.message_type == MessageType.NOTE_ON:
+                notes_to_open.add(msg.note)
+            elif msg.message_type == MessageType.NOTE_OFF:
+                notes_to_close.add(msg.note)
+            elif msg.message_type == MessageType.WAIT:
+                if len(open_notes) > 0:
+                    concurrent_notes.append(len(open_notes))
+
+                if len(notes_to_close) > 0:
+                    for note in notes_to_close:
+                        open_notes.remove(note)
+                    notes_to_close = set()
+
+                if len(notes_to_open) > 0:
+                    for note in notes_to_open:
+                        open_notes.add(note)
+                    notes_to_open = set()
+
+        # Handle end of sequence
+        if len(open_notes) > 0:
+            concurrent_notes.append(len(open_notes))
+
+        # Handle no entries
+        if len(concurrent_notes) == 0:
+            concurrent_notes.append(0)
+
+        scaled_difficulty = simple_regression(DIFF_DUAL_NOTE_CONCURRENT_UPPER_BOUND, 1,
+                                              DIFF_DUAL_NOTE_CONCURRENT_LOWER_BOUND, 0,
+                                              mean(concurrent_notes))
+
+        return minmax(0, 1, scaled_difficulty)
+
+    def diff_distances(self) -> float:
+        """Calculates the difficulty of the sequence based on the distances between notes.
+
+        Here, only the top 15% of distances are considered, in order not to disregard notes due to dilution.
+
+        Returns: A value from 0 (low difficulty) to 1 (high difficulty).
+
+        """
+        notes_played = []
+        current_notes = []
+        distances = []
+
+        for msg in self.messages:
+            if msg.message_type == MessageType.WAIT and len(current_notes) > 0:
+                notes_played.append(sorted(current_notes))
+                current_notes = []
+            elif msg.message_type == MessageType.NOTE_ON:
+                current_notes.append(msg.note)
+
+        for i in range(1, len(notes_played)):
+            distance_lower = abs(notes_played[i][0] - notes_played[i - 1][0])
+            distance_higher = abs(notes_played[i][-1] - notes_played[i - 1][-1])
+            distance = max(distance_lower, distance_higher)
+            distances.append(distance)
+
+        # If bar is empty, return easiest difficulty
+        if len(distances) == 0:
+            return 0
+
+        high_distances_mean = mean(sorted(distances, reverse=True)[0: max(1, math.ceil((len(distances) * 0.15)))])
+
+        scaled_difficulty = simple_regression(DIFF_DUAL_DISTANCES_UPPER_BOUND, 1, DIFF_DUAL_DISTANCES_LOWER_BOUND, 0,
+                                              high_distances_mean)
+
+        return minmax(0, 1, scaled_difficulty)
+
+    def diff_key(self, key: Key = None) -> float:
+        """Calculates the difficulty of the sequence based on the key it is in.
+
+        Here, a key that is further from C is considered more difficult to play, since the performer has to consider
+        more accidentals. Furthermore, if no key is specified, a key is guessed based on the amount of the induced
+        accidentals that would have to be played.
+
+        Args:
+            key: A fixed key of the sequence, will prevent the program from trying to determine one.
+
+        Returns: A value from 0 (low difficulty) to 1 (high difficulty).
+
+        """
+        key_signature = key
+
+        for msg in self.messages:
+            if msg.message_type == MessageType.KEY_SIGNATURE:
+                if key_signature is not None and key_signature is not msg.key:
+                    RelativeSequence.LOGGER.info(f"Key was {key_signature}, now is {msg.key}.")
+                    key_signature = None
+                    break
+                key_signature = msg.key
+            if msg.message_type == MessageType.WAIT:
+                break
+
+        # Have to guess key signature based on induced accidentals
+        if key_signature is None:
+            key_signature = self.get_key_signature_guess()
+
+        # Check how many accidentals this key uses
+        _, accidentals = MusicMapping.KeyNoteMapping[key_signature]
+
+        scaled_difficulty = simple_regression(7, 1, 0, 0, accidentals)
+        return minmax(0, 1, scaled_difficulty)
+
+    def diff_note_amount(self) -> float:
+        """Calculates difficulty of the sequence based on the amount of notes played.
+
+        Returns: A value from 0 (low difficulty) to 1 (high difficulty).
+
+        """
+        amount_notes_played = 0
+
+        if self.get_sequence_length_relation() == 0:
+            return 0
+
+        for msg in self.messages:
+            if msg.message_type == MessageType.NOTE_ON:
+                amount_notes_played += 1
+
+        relation = amount_notes_played / self.get_sequence_length_relation()
+
+        scaled_difficulty = simple_regression(DIFF_DUAL_NOTE_AMOUNT_UPPER_BOUND, 1, DIFF_DUAL_NOTE_AMOUNT_LOWER_BOUND,
+                                              0,
+                                              relation)
+
+        return minmax(0, 1, scaled_difficulty)
+
+    def diff_note_classes(self) -> float:
+        """Calculates difficulty of the sequence based on the amount of note classes (different notes played) in
+        relation to the overall amount of messages.
+
+        Returns: A value from 0 (low difficulty) to 1 (high difficulty).
+
+        """
+        note_classes = []
+
+        for msg in self.messages:
+            if msg.message_type == MessageType.NOTE_ON and msg.note not in note_classes:
+                note_classes.append(msg.note)
+
+        # If sequence is empty, return easiest difficulty
+        if len(note_classes) == 0:
+            return 0
+
+        relation = len(note_classes) / self.get_sequence_length_relation()
+        scaled_relation = simple_regression(DIFF_DUAL_NOTE_CLASSES_UPPER_BOUND, 1, DIFF_DUAL_NOTE_CLASSES_LOWER_BOUND,
+                                            0,
+                                            relation)
+
+        return minmax(0, 1, scaled_relation)
+
+    def diff_pattern(self) -> float:
+        """Calculates the difficulty of the sequence based on the patterns of the start messages.
+
+        If a sequence contains patterns, i.e., if a building block is reused several times, the sequence is easier to
+        play, since the player has to read fewer notes.
+
+        Returns: A value from 0 (low difficulty) to 1 (high difficulty).
+
+        """
+        notes_played = []
+        current_bin = []
+
+        for msg in self.messages:
+            if msg.message_type == MessageType.WAIT and len(current_bin) > 0:
+                notes_played.extend(sorted(current_bin, key=lambda message: message.note))
+            elif msg.message_type == MessageType.NOTE_ON:
+                notes_played.append(msg)
+
+        string_representation = ""
+
+        # Create string representation
+        for i in range(1, len(notes_played)):
+            value = notes_played[i].note - notes_played[i - 1].note
+            if value >= 0:
+                string_representation += "+"
+            else:
+                string_representation += "-"
+
+            string_representation += str(abs(value))
+
+        # Obtain patterns, switch to greedy method if pattern matching takes too long
+        try:
+            results = RelativeSequence._match_pattern(string_representation, start_time=time.time(),
+                                                      max_duration=PATTERN_SECONDS_SEARCH_DURATION)
+        except TimeoutError:
+            results = RelativeSequence._greedy_match_pattern(string_representation)
+
+        results_with_coverage = []
+
+        # Determine coverage and length of found pattern
+        for result in results:
+            uncovered = string_representation
+            length = 0
+            for match in result:
+                uncovered = uncovered.replace(match, "")
+                length += match.count("+") + match.count("-")
+            coverage = (len(string_representation) - len(uncovered)) / len(string_representation)
+            results_with_coverage.append((coverage, length, result))
+
+        # Determine best fitting result
+        if len(results_with_coverage) > 0:
+            best_fit = max(results_with_coverage, key=lambda x: x[0] / x[1])
+
+            bound_difficulty = simple_regression(DIFF_DUAL_PATTERN_COVERAGE_UPPER_BOUND, 1,
+                                                 DIFF_DUAL_PATTERN_COVERAGE_LOWER_BOUND, 0,
+                                                 best_fit[0] / best_fit[1])
+
+            return minmax(0, 1, bound_difficulty)
+        else:
+            return 1
+
+    # Static Functions
+
     @staticmethod
     def _match_pattern(current_representation, start_time, max_duration=10) -> [[str]]:
         """Finds all possible combinations of patterns for input string.
@@ -753,9 +764,9 @@ class RelativeSequence(AbstractSequence):
         input and tries to match the resulting string. Returns all possible combinations of such matches.
 
         Args:
-            current_representation: The current string to pattern-match
+            current_representation: The current string to pattern-match.
 
-        Returns: A list of lists, containing the valid patterns that can be matched, in this order, to the input string
+        Returns: A list of lists, containing the valid patterns that can be matched, in this order, to the input string.
 
         """
         if time.time() - start_time > max_duration:
@@ -803,15 +814,15 @@ class RelativeSequence(AbstractSequence):
         return results
 
     @staticmethod
-    def _greedy_match_pattern(current_representation):
+    def _greedy_match_pattern(current_representation) -> [[str]]:
         """Finds possible combinations of patterns for input string, fixing patterns greedily.
 
         Only considers the first found pattern for further matching, reducing the time needed to pattern match greatly.
 
         Args:
-            current_representation: The current string to pattern-match
+            current_representation: The current string to pattern-match.
 
-        Returns: A list of lists, containing the valid patterns that can be matched, in this order, to the input string
+        Returns: A list of lists, containing the valid patterns that can be matched, in this order, to the input string.
 
         """
         # Store matches found in this iteration

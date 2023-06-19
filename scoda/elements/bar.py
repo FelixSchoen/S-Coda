@@ -23,17 +23,17 @@ class Bar:
         self.key_signature = key
 
         # Adjust sequence
-        self.sequence.adjust_messages()
+        self.sequence.adjust()
 
         # Assert bar has correct capacity
-        if self.sequence.sequence_length_relation() > self.time_signature_numerator * PPQN / (
+        if self.sequence.get_sequence_length_relation() > self.time_signature_numerator * PPQN / (
                 self.time_signature_denominator / 4):
             raise BarException("Bar capacity exceeded")
 
         # Pad bar
-        if self.sequence.sequence_length_relation() < self.time_signature_numerator * PPQN / (
+        if self.sequence.get_sequence_length_relation() < self.time_signature_numerator * PPQN / (
                 self.time_signature_denominator / 4):
-            self.sequence.pad_sequence(self.time_signature_numerator * PPQN / (self.time_signature_denominator / 4))
+            self.sequence.pad(self.time_signature_numerator * PPQN / (self.time_signature_denominator / 4))
 
         # Assert time signature is consistent
         relative_sequence = self.sequence.rel

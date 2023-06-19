@@ -25,6 +25,8 @@ class AbsoluteSequence(AbstractSequence):
 
     LOGGER = setup_logger(__name__)
 
+    # General Methods
+
     def __init__(self) -> None:
         super().__init__()
         self.LOGGER
@@ -44,8 +46,8 @@ class AbsoluteSequence(AbstractSequence):
         if not isinstance(o, AbsoluteSequence):
             return False
 
-        self_array = self.absolute_note_array()
-        other_array = o.absolute_note_array()
+        self_array = self.get_message_time_pairings()
+        other_array = o.get_message_time_pairings()
 
         for self_pair, other_pair in zip(self_array, other_array):
             if self_pair[0].time != other_pair[0].time or \
@@ -55,58 +57,10 @@ class AbsoluteSequence(AbstractSequence):
 
         return True
 
-    def absolute_note_array(self, standard_length=PPQN, include_meta_messages: bool = False) -> [
-        [Message, Message]]:
-        """Creates an array containing tuples of messages corresponding to the opening and closing of a note.
-
-        Args:
-            standard_length: The length used for notes that have not been closed
-            include_meta_messages: Whether other message types should be added to the array. These messages are
-                represented using a tuple of length 1. Currently only includes internal and time signature messages.
-
-        Returns: An array of tuples of two messages constituting a note
-
-        """
-        self.sort()
-
-        open_messages = dict()
-        notes: [[]] = []
-        i = 0
-
-        # Collect notes
-        for msg in self.messages:
-            # Add notes to open messages
-            if msg.message_type == MessageType.NOTE_ON:
-                if msg.note in open_messages:
-                    AbsoluteSequence.LOGGER.info(f"Note {msg.note} at time {msg.time} not previously stopped, inserting stop message.")
-                    index = open_messages.pop(msg.note)
-                    notes[index].append(Message(message_type=MessageType.NOTE_OFF, note=msg.note, time=msg.time))
-
-                open_messages[msg.note] = i
-                notes.insert(i, [msg])
-                i += 1
-
-            # Add closing message to fitting open message
-            elif msg.message_type == MessageType.NOTE_OFF:
-                if msg.note not in open_messages:
-                    logger.info(f"Note {msg.note} at time {msg.time} not previously started, skipping.")
-                else:
-                    index = open_messages.pop(msg.note)
-                    notes[index].append(msg)
-
-            elif include_meta_messages and (msg.message_type == MessageType.TIME_SIGNATURE or
-                                            msg.message_type == MessageType.INTERNAL):
-                notes.insert(i, [msg])
-                i += 1
-
-        # Check unclosed notes
-        for pairing in notes:
-            if len(pairing) == 1:
-                pairing.append(Message(message_type=MessageType.NOTE_OFF, time=pairing[0].time + standard_length))
-
-        return notes
+    # Basic Methods
 
     def add_message(self, msg: Message) -> None:
+        """Adds the given message to the current sequence."""
         b_insort(self.messages, msg)
 
     def cutoff(self, maximum_length, reduced_length) -> None:
@@ -114,10 +68,10 @@ class AbsoluteSequence(AbstractSequence):
 
         Args:
             maximum_length: Maximum note length allowed in this sequence.
-            reduced_length: The length violating notes are assigned
+            reduced_length: The length violating notes are assigned.
 
         """
-        note_array = self.absolute_note_array()
+        note_array = self.get_message_time_pairings()
 
         for entry in note_array:
             if len(entry) == 1:
@@ -131,105 +85,11 @@ class AbsoluteSequence(AbstractSequence):
 
         self.sort()
 
-    def diff_note_values(self) -> float:
-        """Calculates complexity of the piece regarding the geometric mean of the note values.
-
-        Calculates the geometric mean based on all occurring notes in this sequence and then applies linear scaling
-        to it. Returns a value from 0 to 1, where 0 indicates low difficulty. If no notes exist in this sequence,
-        the lowest complexity rating is returned.
-
-        Returns: A value from 0 (low difficulty) to 1 (high difficulty)
-
-        """
-        notes = self.absolute_note_array()
-        durations = []
-
-        for pairing in notes:
-            durations.append(pairing[1].time - pairing[0].time)
-
-        if len(durations) == 0:
-            durations.append(DIFF_DUAL_NOTE_VALUES_LOWER_BOUND)
-
-        mean = geometric_mean(durations)
-        bound_mean = minmax(0, 1,
-                            simple_regression(DIFF_DUAL_NOTE_VALUES_UPPER_BOUND, 1, DIFF_DUAL_NOTE_VALUES_LOWER_BOUND,
-                                              0, mean))
-
-        return minmax(0, 1, bound_mean)
-
-    def diff_rhythm(self) -> float:
-        """Calculates difficulty based on the rhythm of the sequence.
-
-        For this calculation, note values are weighted by checking if they are normal values, dotted, or tuplet ones.
-
-        Returns: A value from 0 (low difficulty) to 1 (high difficulty)
-
-        """
-        notes = self.absolute_note_array()
-
-        # If sequence is empty, return easiest difficulty
-        if len(notes) == 0:
-            return 0
-
-        note_durations = get_note_durations(NOTE_VALUE_UPPER_BOUND, NOTE_VALUE_LOWER_BOUND)
-
-        tuplets = []
-        for tuplet_duration in VALID_TUPLETS:
-            tuplets.append(get_tuplet_durations(note_durations, tuplet_duration[0], tuplet_duration[1]))
-
-        dotted_durations = get_dotted_note_durations(note_durations, DOTTED_ITERATIONS)
-
-        notes_regular = []
-        notes_dotted = []
-        notes_tuplets = []
-
-        for note in notes:
-            duration = note[1].time - note[0].time
-
-            if duration in note_durations:
-                notes_regular.append(note)
-            elif any(duration in x for x in tuplets):
-                notes_tuplets.append(note)
-            elif duration in dotted_durations:
-                notes_dotted.append(note)
-            else:
-                AbsoluteSequence.LOGGER.info(f"Note value {duration} not in known values.")
-
-        rhythm_occurrences = 0
-
-        rhythm_occurrences += len(notes_dotted) * 0.5
-        rhythm_occurrences += len(notes_tuplets) * 1
-
-        unscaled_difficulty = minmax(0, 1, rhythm_occurrences / len(notes))
-        scaled_difficulty = regress(unscaled_difficulty, SCALE_LOGLIKE)
-
-        return minmax(0, 1, scaled_difficulty)
-
-    def get_message_timing(self, message_type: MessageType) -> [(int, Message)]:
-        """Searches for the given message type and stores the time of all matching messages in the output array.
-
-        Args:
-            message_type: Which message type to search for
-
-        Returns: An array containing the absolute points in time of occurrence of the found messages, paired with the
-            messages themselves
-
-        """
-        timings = []
-
-        for msg in self.messages:
-            if msg.message_type == message_type:
-                timings.append((msg.time, msg))
-
-        return timings
-
-    def merge(self, sequences: [AbsoluteSequence]) -> None:
+    def merge(self, sequences: list[AbsoluteSequence]) -> None:
         """Merges this sequence with all the given ones.
 
         Args:
-            sequences: The sequence to merge with this one
-
-        Returns: The sequence that contains all messages of this and the given sequence, conserving the timings
+            sequences: The sequence to merge with this one.
 
         """
         for sequence in sequences:
@@ -237,7 +97,7 @@ class AbsoluteSequence(AbstractSequence):
                 b_insort(self.messages, msg)
         self.sort()
 
-    def quantise(self, step_sizes: [int] = None) -> None:
+    def quantise(self, step_sizes: list[int] = None) -> None:
         """Quantises the sequence to a given grid.
 
         Quantises the sequence stored in this object according to the given step sizes. These step sizes determine the
@@ -252,7 +112,7 @@ class AbsoluteSequence(AbstractSequence):
         `step_sizes` array.
 
         Args:
-            step_sizes: Array of numbers corresponding to divisors of the grid length
+            step_sizes: Array of numbers corresponding to divisors of the grid length.
 
         """
         if step_sizes is None:
@@ -361,13 +221,13 @@ class AbsoluteSequence(AbstractSequence):
         only the case if the note was shorter than the smallest legal duration specified, and thus cannot be shortened.
 
         Args:
-            possible_durations: An array containing exactly the valid note durations in ticks
-            standard_length: Note length for notes which are not closed
-            do_not_extend: Determines if notes are only allowed to be shortened, e.g., for bars
+            possible_durations: An array containing exactly the valid note durations in ticks.
+            standard_length: Note length for notes which are not closed.
+            do_not_extend: Determines if notes are only allowed to be shortened, e.g., for bars.
 
         """
         # Construct current durations
-        notes = self.absolute_note_array(standard_length=standard_length)
+        notes = self.get_message_time_pairings(standard_length=standard_length)
         # Track when each type of note occurs, in order to check for possible overlaps
         note_occurrences = dict()
         quantised_messages = []
@@ -432,14 +292,6 @@ class AbsoluteSequence(AbstractSequence):
         self.messages = quantised_messages
         self.sort()
 
-    def sequence_length(self) -> float:
-        """Calculates the overall length of this sequence, given in ticks.
-
-        Returns: The length of this sequence
-
-        """
-        return self.messages[-1].time
-
     def sort(self) -> None:
         """Sorts the sequence according to the timings of the messages.
 
@@ -449,10 +301,91 @@ class AbsoluteSequence(AbstractSequence):
         """
         self.messages.sort(key=lambda x: (x.time, x.message_type, x.note))
 
+    # Misc. Methods
+
+    def get_message_time_pairings(self, message_types: list[MessageType] = None, standard_length=PPQN) -> list[
+        list[Message]]:
+        """Creates an ordered list containing lists of messages of the given types.
+        These lists contain all entries for messages that belong together, e.g., open and close note messages.
+
+        Args:
+            message_types: All message types to include.
+            standard_length: The length used for notes that have not been closed.
+
+        Returns: An array of tuples of two messages constituting a note.
+
+        """
+        if message_types is None:
+            message_types = [MessageType.NOTE_ON, MessageType.NOTE_OFF]
+
+        self.sort()
+
+        open_messages = dict()
+        notes: [[]] = []
+        i = 0
+
+        # Collect notes
+        for msg in self.messages:
+            if msg.message_type in message_types:
+                # Add notes to open messages
+                if msg.message_type == MessageType.NOTE_ON:
+                    if msg.note in open_messages:
+                        AbsoluteSequence.LOGGER.warning(f"Note {msg.note} at time {msg.time} not previously stopped.")
+                        index = open_messages.pop(msg.note)
+                        notes[index].append(Message(message_type=MessageType.NOTE_OFF, note=msg.note, time=msg.time))
+
+                    open_messages[msg.note] = i
+                    notes.insert(i, [msg])
+                    i += 1
+
+                # Add closing message to fitting open message
+                elif msg.message_type == MessageType.NOTE_OFF:
+                    if msg.note not in open_messages:
+                        AbsoluteSequence.LOGGER.info(f"Note {msg.note} at time {msg.time} not previously started.")
+                    else:
+                        index = open_messages.pop(msg.note)
+                        notes[index].append(msg)
+
+                else:
+                    notes.insert(i, [msg])
+                    i += 1
+
+        # Check unclosed notes
+        for pairing in notes:
+            if len(pairing) == 1 and pairing[0].message_type == MessageType.NOTE_ON:
+                pairing.append(Message(message_type=MessageType.NOTE_OFF, time=pairing[0].time + standard_length))
+
+        return notes
+
+    def get_message_timings_of_type(self, message_types: list[MessageType]) -> list[tuple[int, Message]]:
+        """Searches for messages that fit one of the given types.
+
+        Args:
+            message_types: Which message types to search for.
+
+        Returns: A list containing the found messages and their absolute points in time.
+
+        """
+        timings = []
+
+        for msg in self.messages:
+            if msg.message_type in message_types:
+                timings.append((msg.time, msg))
+
+        return timings
+
+    def get_sequence_length(self) -> int:
+        """Calculates the overall length of this sequence, given in ticks.
+
+        Returns: The length of this sequence.
+
+        """
+        return self.messages[-1].time
+
     def to_relative_sequence(self) -> RelativeSequence:
         """Converts this AbsoluteSequence to a RelativeSequence.
 
-        Returns: The relative representation of this sequence
+        Returns: The relative representation of this sequence.
 
         """
         from scoda.sequences.relative_sequence import RelativeSequence
@@ -473,3 +406,79 @@ class AbsoluteSequence(AbstractSequence):
                 relative_sequence.add_message(message_to_add)
 
         return relative_sequence
+
+    # Difficulty Methods
+
+    def diff_note_values(self) -> float:
+        """Calculates complexity of the piece regarding the geometric mean of the note values.
+
+        Calculates the geometric mean based on all occurring notes in this sequence and then applies linear scaling
+        to it. Returns a value from 0 to 1, where 0 indicates low difficulty. If no notes exist in this sequence,
+        the lowest complexity rating is returned.
+
+        Returns: A value from 0 (low difficulty) to 1 (high difficulty).
+
+        """
+        notes = self.get_message_time_pairings()
+        durations = []
+
+        for pairing in notes:
+            durations.append(pairing[1].time - pairing[0].time)
+
+        if len(durations) == 0:
+            durations.append(DIFF_DUAL_NOTE_VALUES_LOWER_BOUND)
+
+        mean = geometric_mean(durations)
+        bound_mean = minmax(0, 1,
+                            simple_regression(DIFF_DUAL_NOTE_VALUES_UPPER_BOUND, 1, DIFF_DUAL_NOTE_VALUES_LOWER_BOUND,
+                                              0, mean))
+
+        return minmax(0, 1, bound_mean)
+
+    def diff_rhythm(self) -> float:
+        """Calculates difficulty based on the rhythm of the sequence.
+
+        For this calculation, note values are weighted by checking if they are normal values, dotted, or tuplet ones.
+
+        Returns: A value from 0 (low difficulty) to 1 (high difficulty).
+
+        """
+        notes = self.get_message_time_pairings()
+
+        # If sequence is empty, return easiest difficulty
+        if len(notes) == 0:
+            return 0
+
+        note_durations = get_note_durations(NOTE_VALUE_UPPER_BOUND, NOTE_VALUE_LOWER_BOUND)
+
+        tuplets = []
+        for tuplet_duration in VALID_TUPLETS:
+            tuplets.append(get_tuplet_durations(note_durations, tuplet_duration[0], tuplet_duration[1]))
+
+        dotted_durations = get_dotted_note_durations(note_durations, DOTTED_ITERATIONS)
+
+        notes_regular = []
+        notes_dotted = []
+        notes_tuplets = []
+
+        for note in notes:
+            duration = note[1].time - note[0].time
+
+            if duration in note_durations:
+                notes_regular.append(note)
+            elif any(duration in x for x in tuplets):
+                notes_tuplets.append(note)
+            elif duration in dotted_durations:
+                notes_dotted.append(note)
+            else:
+                AbsoluteSequence.LOGGER.info(f"Note value {duration} not in known values.")
+
+        rhythm_occurrences = 0
+
+        rhythm_occurrences += len(notes_dotted) * 0.5
+        rhythm_occurrences += len(notes_tuplets) * 1
+
+        unscaled_difficulty = minmax(0, 1, rhythm_occurrences / len(notes))
+        scaled_difficulty = regress(unscaled_difficulty, SCALE_LOGLIKE)
+
+        return minmax(0, 1, scaled_difficulty)

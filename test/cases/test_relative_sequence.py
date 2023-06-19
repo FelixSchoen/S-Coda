@@ -10,7 +10,7 @@ def test_adjust_wait_messages():
         if msg.message_type == MessageType.WAIT:
             duration_pre += msg.time
 
-    sequence.adjust_messages()
+    sequence.adjust()
 
     duration_post = 0
     for msg in sequence.rel.messages:
@@ -34,7 +34,7 @@ def test_cutoff():
     sequence = Sequence.from_midi_file(file_path=RESOURCE_CHOPIN, track_indices=[[0]], meta_track_indices=[0])[0]
     sequence.cutoff(48, 24)
 
-    for note_pair in sequence.abs.absolute_note_array():
+    for note_pair in sequence.abs.get_message_time_pairings():
         assert note_pair[1].time - note_pair[0].time <= 48
 
 
@@ -53,7 +53,7 @@ def test_pad_sequence():
     assert sum(
         msg.time for msg in sequence.rel.messages if msg.message_type == MessageType.WAIT) < PPQN * 4 * 300
 
-    sequence.pad_sequence(PPQN * 4 * 300)
+    sequence.pad(PPQN * 4 * 300)
 
     assert sum(
         msg.time for msg in sequence.rel.messages if msg.message_type == MessageType.WAIT) >= PPQN * 4 * 300

@@ -32,7 +32,7 @@ class Sequence:
     understanding for the end-user, who does not have to concern themselves with implementational details.
     """
 
-    # === General ===
+    # General Methods
 
     def __init__(self, absolute_sequence: AbsoluteSequence = None, relative_sequence: RelativeSequence = None) -> None:
         super().__init__()
@@ -117,42 +117,292 @@ class Sequence:
             self._rel = self._abs.to_relative_sequence()
         return self._rel
 
-    # === Methods ===
+    # Basic Methods
 
     def add_absolute_message(self, msg) -> None:
-        """See `scoda.sequence.absolute_sequence.AbsoluteSequence.add_message`.
-
-        """
+        """See `scoda.sequence.absolute_sequence.AbsoluteSequence.add_message`."""
         self.abs.add_message(msg)
         self._rel_stale = True
 
     def add_relative_message(self, msg) -> None:
-        """See `scoda.sequence.relative_sequence.RelativeSequence.add_message`.
-
-        """
+        """See `scoda.sequence.relative_sequence.RelativeSequence.add_message`."""
         self.rel.add_message(msg)
         self._abs_stale = True
 
-    def adjust_messages(self) -> None:
-        """See `scoda.sequence.relative_sequence.RelativeSequence.adjust_messages`.
-
-        """
-        self.rel.adjust_messages()
+    def adjust(self) -> None:
+        """See `scoda.sequence.relative_sequence.RelativeSequence.adjust`."""
+        self.rel.adjust()
         self._abs_stale = True
 
-    def concatenate(self, sequences: [Sequence]) -> None:
-        """See `scoda.sequence.relative_sequence.RelativeSequence.concatenate`.
-
-        """
+    def concatenate(self, sequences: list[Sequence]) -> None:
+        """See `scoda.sequence.relative_sequence.RelativeSequence.concatenate`."""
         self.rel.concatenate([seq.rel for seq in sequences])
         self._abs_stale = True
 
     def cutoff(self, maximum_length, reduced_length) -> None:
-        """See `scoda.sequence.relative_sequence.AbsoluteSequence.cutoff`.
-
-        """
+        """See `scoda.sequence.relative_sequence.AbsoluteSequence.cutoff`."""
         self.abs.cutoff(maximum_length=maximum_length, reduced_length=reduced_length)
         self._rel_stale = True
+
+    def merge(self, sequences: list[Sequence]) -> None:
+        """See `scoda.sequence.absolute_sequence.AbsoluteSequence.merge`."""
+        self.abs.merge([seq.abs for seq in sequences])
+        self._rel_stale = True
+
+    def pad(self, padding_length) -> None:
+        """See `scoda.sequence.relative_sequence.RelativeSequence.pad`."""
+        self.rel.pad(padding_length)
+        self._abs_stale = True
+
+    def save(self, file_path: str) -> MidiFile:
+        """Saves the given sequence as a MIDI file.
+
+        Args:
+            file_path: Where to save the sequence to
+
+        Returns: The resulting MidiFile
+
+        """
+        return Sequence.save_sequences([self], file_path)
+
+    def split(self, capacities: list[int]) -> list[Sequence]:
+        """See `scoda.sequence.relative_sequence.RelativeSequence.split`."""
+        relative_sequences = self.rel.split(capacities)
+        sequences = [Sequence(relative_sequence=seq) for seq in relative_sequences]
+        return sequences
+
+    def scale(self, factor, meta_sequence=None, quantise_afterwards=True) -> None:
+        """See `scoda.sequence.relative_sequence.RelativeSequence.scale`."""
+        self.rel.scale(factor, meta_sequence)
+        self._abs_stale = True
+
+        if quantise_afterwards:
+            self.quantise()
+            self.quantise_note_lengths()
+
+    def transpose(self, transpose_by: int) -> bool:
+        """See `scoda.sequence.relative_sequence.RelativeSequence.transpose`."""
+        self._abs_stale = True
+        shifted = self.rel.transpose(transpose_by)
+
+        # Possible that notes overlap
+        if shifted:
+            self._diff_pattern = None
+            self.quantise_note_lengths()
+
+        if transpose_by % 12 != 0:
+            self._diff_key = None
+            self._diff_accidentals = None
+
+        return shifted
+
+    def quantise(self, step_sizes: list[int] = None) -> None:
+        """See `scoda.sequence.absolute_sequence.AbsoluteSequence.quantise`."""
+        self.abs.quantise(step_sizes)
+        self._rel_stale = True
+
+    def quantise_note_lengths(self, possible_durations=None, standard_length=PPQN, do_not_extend=False) -> None:
+        """See `scoda.sequence.absolute_sequence.AbsoluteSequence.quantise_note_lengths`."""
+        self.abs.quantise_note_lengths(possible_durations, standard_length=standard_length, do_not_extend=do_not_extend)
+        self._rel_stale = True
+
+    # Misc. Methods
+
+    def get_message_timings_of_type(self, message_types: [MessageType]) -> list[tuple[int, Message]]:
+        """See `scoda.sequence.absolute_sequence.AbsoluteSequence.get_message_timings_of_type`.
+
+        """
+        return self.abs.get_message_timings_of_type(message_types)
+
+    def get_representation(self, note_representation_type: NoteRepresentationType,
+                           temporal_representation_type: TemporalRepresentationType,
+                           adjust_wait_messages=True) -> DataFrame:
+        data = []
+
+        absolute_sequence = copy.copy(self.abs)
+        relative_sequence = copy.copy(self.rel)
+
+        if adjust_wait_messages:
+            relative_sequence.adjust()
+
+        base_note = 69  # A4, 440 Hz
+
+        if temporal_representation_type == TemporalRepresentationType.RELATIVE_TICKS:
+            current_note = base_note
+
+            for msg in relative_sequence.messages:
+                entry = dict()
+
+                if note_representation_type == NoteRepresentationType.ABSOLUTE_VALUES:
+                    Sequence._fill_dictionary_entry(entry,
+                                                    msg_type=msg.message_type.value,
+                                                    time=msg.time,
+                                                    note=msg.note,
+                                                    velocity=msg.velocity,
+                                                    control=msg.control,
+                                                    program=msg.program,
+                                                    numerator=msg.numerator,
+                                                    denominator=msg.denominator,
+                                                    key=None if msg.key is None else msg.key.value)
+                elif note_representation_type == NoteRepresentationType.RELATIVE_DISTANCES:
+                    Sequence._fill_dictionary_entry(
+                        entry,
+                        msg_type=msg.message_type.value,
+                        time=msg.time,
+                        note=msg.note,
+                        velocity=msg.velocity,
+                        control=msg.control,
+                        program=msg.program,
+                        numerator=msg.numerator,
+                        denominator=msg.denominator,
+                        key=None if msg.key is None else msg.key.value,
+                        rel_note_dist=None if msg.note is None else (
+                                msg.note - current_note),
+                        rel_note_pair_dist=None if msg.note is None else ((
+                                                                                  msg.note - current_note) % 12),
+                        rel_note_pair_oct=None if msg.note is None else ((
+                                                                                 msg.note - current_note) // 12)
+                    )
+                elif note_representation_type == NoteRepresentationType.CIRCLE_OF_FIFTHS:
+                    if msg.note is not None:
+                        distance = CircleOfFifths.get_distance(current_note, msg.note)
+
+                        Sequence._fill_dictionary_entry(
+                            entry,
+                            msg_type=msg.message_type.value,
+                            time=msg.time,
+                            note=msg.note,
+                            velocity=msg.velocity,
+                            control=msg.control,
+                            program=msg.program,
+                            numerator=msg.numerator,
+                            denominator=msg.denominator,
+                            key=None if msg.key is None else msg.key.value,
+                            rel_note_pair_dist=None if msg.note is None else distance,
+                            rel_note_pair_oct=None if msg.note is None else ((
+                                                                                     msg.note - current_note) // 12)
+                        )
+
+                if msg.note is not None:
+                    current_note = msg.note
+                data.append(entry)
+        elif temporal_representation_type == TemporalRepresentationType.NOTELIKE_REPRESENTATION:
+            current_note = base_note
+            note_and_internal_messages_array = absolute_sequence.get_message_time_pairings(
+                [MessageType.NOTE_ON, MessageType.NOTE_OFF, MessageType.TIME_SIGNATURE, MessageType.INTERNAL])
+            current_time = 0
+
+            for event_pairing in note_and_internal_messages_array:
+                entry = dict()
+
+                event_type = event_pairing[0].message_type
+                event_time = event_pairing[0].time
+                time_dif = event_time - current_time
+
+                # Insert wait messages to catch up with current note
+                while time_dif != 0:
+                    time_to_wait = PPQN
+                    if time_dif <= PPQN:
+                        time_to_wait = time_dif
+
+                    Sequence._fill_dictionary_entry(entry,
+                                                    msg_type=MessageType.WAIT,
+                                                    time=time_to_wait)
+                    time_dif -= time_to_wait
+                    data.append(entry)
+                    entry = dict()
+
+                current_time = event_time
+
+                if event_type == MessageType.NOTE_ON:
+                    if note_representation_type == NoteRepresentationType.ABSOLUTE_VALUES:
+                        Sequence._fill_dictionary_entry(entry,
+                                                        msg_type=MessageType.NOTE_ON,
+                                                        time=event_pairing[1].time - event_pairing[0].time,
+                                                        note=event_pairing[0].note,
+                                                        velocity=event_pairing[0].velocity)
+                    elif note_representation_type == NoteRepresentationType.RELATIVE_DISTANCES:
+                        Sequence._fill_dictionary_entry(entry,
+                                                        msg_type=MessageType.NOTE_ON,
+                                                        time=event_pairing[1].time - event_pairing[0].time,
+                                                        note=event_pairing[0].note,
+                                                        velocity=event_pairing[0].velocity,
+                                                        rel_note_dist=(event_pairing[0].note - current_note),
+                                                        rel_note_pair_dist=(
+                                                                (event_pairing[0].note - current_note) % 12),
+                                                        rel_note_pair_oct=(
+                                                                (event_pairing[0].note - current_note) // 12))
+                    elif note_representation_type == NoteRepresentationType.CIRCLE_OF_FIFTHS:
+                        distance = CircleOfFifths.get_distance(current_note, event_pairing[0].note)
+
+                        Sequence._fill_dictionary_entry(entry,
+                                                        msg_type=MessageType.NOTE_ON,
+                                                        time=event_pairing[1].time - event_pairing[0].time,
+                                                        note=event_pairing[0].note,
+                                                        velocity=event_pairing[0].velocity,
+                                                        rel_note_pair_dist=distance,
+                                                        rel_note_pair_oct=(event_pairing[0].note - current_note) // 12)
+
+                    current_note = event_pairing[0].note
+                    data.append(entry)
+                elif event_type == MessageType.TIME_SIGNATURE:
+                    Sequence._fill_dictionary_entry(entry,
+                                                    msg_type=MessageType.TIME_SIGNATURE,
+                                                    numerator=event_pairing[0].numerator,
+                                                    denominator=event_pairing[0].denominator)
+                    data.append(entry)
+
+        return pd.DataFrame(data)
+
+    def get_sequence_length(self) -> float:
+        """See `scoda.sequence.absolute_sequence.AbsoluteSequence.get_sequence_length`.
+
+        """
+        return self.abs.get_sequence_length()
+
+    def get_sequence_length_relation(self) -> float:
+        """See `scoda.sequence.relative_sequence.RelativeSequence.sequence_length_relation`.
+
+        """
+        return self.rel.get_sequence_length_relation()
+
+    def is_empty(self) -> bool:
+        """See `scoda.sequence.relative_sequence.RelativeSequence.is_empty`.
+
+        """
+        return self.rel.is_empty()
+
+    def to_midi_track(self) -> MidiTrack:
+        """See `scoda.sequence.relative_sequence.RelativeSequence.to_midi_track`."""
+        return self.rel.to_midi_track()
+
+    @deprecated("Use `get_representation()` instead")
+    def to_absolute_dataframe(self) -> DataFrame:
+        """Creates a `DataFrame` from the messages in this sequence.
+
+        Returns: A `DataFrame` filled with all the messages in this sequence in their textual or numeric representation
+
+        """
+        return Sequence.to_dataframe(self.abs.messages)
+
+    @deprecated("Use `get_representation()` instead")
+    def to_relative_dataframe(self, adjust_wait_messages=True) -> DataFrame:
+        """Creates a `DataFrame` from the messages in this sequence.
+
+        Args:
+            adjust_wait_messages: Whether to adjust the wait messages in this sequence or not
+
+        Returns: A `DataFrame` filled with all the messages in this sequence in their textual or numeric representation
+
+        """
+        relative_sequence = copy.copy(self.rel)
+
+        if adjust_wait_messages:
+            relative_sequence.adjust()
+
+        return Sequence.to_dataframe(relative_sequence.messages)
+
+    # Difficulty Methods
 
     def difficulty(self, key_signature: Key = None) -> float:
         # If difficulty not stale
@@ -161,10 +411,10 @@ class Sequence:
                         self._diff_pattern, self._diff_concurrent_notes]:
             return self._difficulty
 
-        self.adjust_messages()
+        self.adjust()
 
         if key_signature is None:
-            key_signature = self.rel.guess_key_signature()
+            key_signature = self.rel.get_key_signature_guess()
 
         difficulty_weights = [
             (self.diff_note_values, 0, 0.45),
@@ -250,285 +500,10 @@ class Sequence:
             self._diff_pattern = self.rel.diff_pattern()
         return self._diff_pattern
 
-    def get_message_timing(self, message_type: MessageType) -> list[tuple[int, Message]]:
-        """See `scoda.sequence.absolute_sequence.AbsoluteSequence.get_message_timing`.
-
-        """
-        return self.abs.get_message_timing(message_type)
-
-    def get_representation(self, note_representation_type: NoteRepresentationType,
-                           temporal_representation_type: TemporalRepresentationType,
-                           adjust_wait_messages=True) -> DataFrame:
-        data = []
-
-        absolute_sequence = copy.copy(self.abs)
-        relative_sequence = copy.copy(self.rel)
-
-        if adjust_wait_messages:
-            relative_sequence.adjust_messages()
-
-        base_note = 69  # A4, 440 Hz
-
-        if temporal_representation_type == TemporalRepresentationType.RELATIVE_TICKS:
-            current_note = base_note
-
-            for msg in relative_sequence.messages:
-                entry = dict()
-
-                if note_representation_type == NoteRepresentationType.ABSOLUTE_VALUES:
-                    Sequence._fill_dictionary_entry(entry,
-                                                    msg_type=msg.message_type.value,
-                                                    time=msg.time,
-                                                    note=msg.note,
-                                                    velocity=msg.velocity,
-                                                    control=msg.control,
-                                                    program=msg.program,
-                                                    numerator=msg.numerator,
-                                                    denominator=msg.denominator,
-                                                    key=None if msg.key is None else msg.key.value)
-                elif note_representation_type == NoteRepresentationType.RELATIVE_DISTANCES:
-                    Sequence._fill_dictionary_entry(
-                        entry,
-                        msg_type=msg.message_type.value,
-                        time=msg.time,
-                        note=msg.note,
-                        velocity=msg.velocity,
-                        control=msg.control,
-                        program=msg.program,
-                        numerator=msg.numerator,
-                        denominator=msg.denominator,
-                        key=None if msg.key is None else msg.key.value,
-                        rel_note_dist=None if msg.note is None else (
-                                msg.note - current_note),
-                        rel_note_pair_dist=None if msg.note is None else ((
-                                                                                  msg.note - current_note) % 12),
-                        rel_note_pair_oct=None if msg.note is None else ((
-                                                                                 msg.note - current_note) // 12)
-                    )
-                elif note_representation_type == NoteRepresentationType.CIRCLE_OF_FIFTHS:
-                    if msg.note is not None:
-                        distance = CircleOfFifths.get_distance(current_note, msg.note)
-
-                        Sequence._fill_dictionary_entry(
-                            entry,
-                            msg_type=msg.message_type.value,
-                            time=msg.time,
-                            note=msg.note,
-                            velocity=msg.velocity,
-                            control=msg.control,
-                            program=msg.program,
-                            numerator=msg.numerator,
-                            denominator=msg.denominator,
-                            key=None if msg.key is None else msg.key.value,
-                            rel_note_pair_dist=None if msg.note is None else distance,
-                            rel_note_pair_oct=None if msg.note is None else ((
-                                                                                     msg.note - current_note) // 12)
-                        )
-
-                if msg.note is not None:
-                    current_note = msg.note
-                data.append(entry)
-        elif temporal_representation_type == TemporalRepresentationType.NOTELIKE_REPRESENTATION:
-            current_note = base_note
-            note_and_internal_messages_array = absolute_sequence.absolute_note_array(include_meta_messages=True)
-            current_time = 0
-
-            for event_pairing in note_and_internal_messages_array:
-                entry = dict()
-
-                event_type = event_pairing[0].message_type
-                event_time = event_pairing[0].time
-                time_dif = event_time - current_time
-
-                # Insert wait messages to catch up with current note
-                while time_dif != 0:
-                    time_to_wait = PPQN
-                    if time_dif <= PPQN:
-                        time_to_wait = time_dif
-
-                    Sequence._fill_dictionary_entry(entry,
-                                                    msg_type=MessageType.WAIT,
-                                                    time=time_to_wait)
-                    time_dif -= time_to_wait
-                    data.append(entry)
-                    entry = dict()
-
-                current_time = event_time
-
-                if event_type == MessageType.NOTE_ON:
-                    if note_representation_type == NoteRepresentationType.ABSOLUTE_VALUES:
-                        Sequence._fill_dictionary_entry(entry,
-                                                        msg_type=MessageType.NOTE_ON,
-                                                        time=event_pairing[1].time - event_pairing[0].time,
-                                                        note=event_pairing[0].note,
-                                                        velocity=event_pairing[0].velocity)
-                    elif note_representation_type == NoteRepresentationType.RELATIVE_DISTANCES:
-                        Sequence._fill_dictionary_entry(entry,
-                                                        msg_type=MessageType.NOTE_ON,
-                                                        time=event_pairing[1].time - event_pairing[0].time,
-                                                        note=event_pairing[0].note,
-                                                        velocity=event_pairing[0].velocity,
-                                                        rel_note_dist=(event_pairing[0].note - current_note),
-                                                        rel_note_pair_dist=(
-                                                                (event_pairing[0].note - current_note) % 12),
-                                                        rel_note_pair_oct=(
-                                                                (event_pairing[0].note - current_note) // 12))
-                    elif note_representation_type == NoteRepresentationType.CIRCLE_OF_FIFTHS:
-                        distance = CircleOfFifths.get_distance(current_note, event_pairing[0].note)
-
-                        Sequence._fill_dictionary_entry(entry,
-                                                        msg_type=MessageType.NOTE_ON,
-                                                        time=event_pairing[1].time - event_pairing[0].time,
-                                                        note=event_pairing[0].note,
-                                                        velocity=event_pairing[0].velocity,
-                                                        rel_note_pair_dist=distance,
-                                                        rel_note_pair_oct=(event_pairing[0].note - current_note) // 12)
-
-                    current_note = event_pairing[0].note
-                    data.append(entry)
-                elif event_type == MessageType.TIME_SIGNATURE:
-                    Sequence._fill_dictionary_entry(entry,
-                                                    msg_type=MessageType.TIME_SIGNATURE,
-                                                    numerator=event_pairing[0].numerator,
-                                                    denominator=event_pairing[0].denominator)
-                    data.append(entry)
-
-        return pd.DataFrame(data)
-
-    def is_empty(self) -> bool:
-        """See `scoda.sequence.relative_sequence.RelativeSequence.is_empty`.
-
-        """
-        return self.rel.is_empty()
-
-    def merge(self, sequences: [Sequence]) -> None:
-        """See `scoda.sequence.absolute_sequence.AbsoluteSequence.merge`.
-
-        """
-        self.abs.merge([seq.abs for seq in sequences])
-        self._rel_stale = True
-
-    def pad_sequence(self, padding_length):
-        """See `scoda.sequence.relative_sequence.RelativeSequence.pad_sequence`.
-
-        """
-        self.rel.pad_sequence(padding_length)
-        self._abs_stale = True
-
-    def save(self, file_path: str) -> MidiFile:
-        """Saves the given sequence as a MIDI file.
-
-        Args:
-            file_path: Where to save the sequence to
-
-        Returns: The resulting MidiFile
-
-        """
-        return Sequence.save_sequences([self], file_path)
-
-    def sequence_length(self) -> float:
-        """See `scoda.sequence.absolute_sequence.AbsoluteSequence.sequence_length`.
-
-        """
-        return self.abs.sequence_length()
-
-    def sequence_length_relation(self) -> float:
-        """See `scoda.sequence.relative_sequence.RelativeSequence.sequence_length_relation`.
-
-        """
-        return self.rel.sequence_length_relation()
-
-    def split(self, capacities: [int]) -> list[Sequence]:
-        """See `scoda.sequence.relative_sequence.RelativeSequence.split`.
-
-        """
-        relative_sequences = self.rel.split(capacities)
-        sequences = [Sequence(relative_sequence=seq) for seq in relative_sequences]
-        return sequences
-
-    def scale(self, factor, meta_sequence=None, quantise_afterwards=True) -> None:
-        """See `scoda.sequence.relative_sequence.RelativeSequence.scale`.
-
-        Args:
-            quantise_afterwards: Whether to apply quantisation to the sequence after the scaling operation
-
-
-        """
-        self.rel.scale(factor, meta_sequence)
-        self._abs_stale = True
-
-        if quantise_afterwards:
-            self.quantise()
-            self.quantise_note_lengths()
-
-    def to_midi_track(self) -> MidiTrack:
-        """See `scoda.sequence.relative_sequence.RelativeSequence.to_midi_track`.
-
-        """
-        return self.rel.to_midi_track()
-
-    @deprecated("Use `get_representation()` instead")
-    def to_absolute_dataframe(self) -> DataFrame:
-        """Creates a `DataFrame` from the messages in this sequence.
-
-        Returns: A `DataFrame` filled with all the messages in this sequence in their textual or numeric representation
-
-        """
-        return Sequence.to_dataframe(self.abs.messages)
-
-    @deprecated("Use `get_representation()` instead")
-    def to_relative_dataframe(self, adjust_wait_messages=True) -> DataFrame:
-        """Creates a `DataFrame` from the messages in this sequence.
-
-        Args:
-            adjust_wait_messages: Whether to adjust the wait messages in this sequence or not
-
-        Returns: A `DataFrame` filled with all the messages in this sequence in their textual or numeric representation
-
-        """
-        relative_sequence = copy.copy(self.rel)
-
-        if adjust_wait_messages:
-            relative_sequence.adjust_messages()
-
-        return Sequence.to_dataframe(relative_sequence.messages)
-
-    def transpose(self, transpose_by: int) -> bool:
-        """See `scoda.sequence.relative_sequence.RelativeSequence.transpose`.
-
-        """
-        self._abs_stale = True
-        shifted = self.rel.transpose(transpose_by)
-
-        # Possible that notes overlap
-        if shifted:
-            self._diff_pattern = None
-            self.quantise_note_lengths()
-
-        if transpose_by % 12 != 0:
-            self._diff_key = None
-            self._diff_accidentals = None
-
-        return shifted
-
-    def quantise(self, step_sizes: [int] = None) -> None:
-        """See `scoda.sequence.absolute_sequence.AbsoluteSequence.quantise`.
-
-        """
-        self.abs.quantise(step_sizes)
-        self._rel_stale = True
-
-    def quantise_note_lengths(self, possible_durations=None, standard_length=PPQN, do_not_extend=False) -> None:
-        """See `scoda.sequence.absolute_sequence.AbsoluteSequence.quantise_note_lengths`.
-
-        """
-        self.abs.quantise_note_lengths(possible_durations, standard_length=standard_length, do_not_extend=do_not_extend)
-        self._rel_stale = True
-
-    # === Static Methods ===
+    # Static Functions
 
     @staticmethod
-    def save_sequences(sequences: [Sequence], file_path: str) -> MidiFile:
+    def save_sequences(sequences: list[Sequence], file_path: str) -> MidiFile:
         """Saves the given sequence as a MIDI file.
 
         Args:
@@ -546,8 +521,8 @@ class Sequence:
         return midi_file
 
     @staticmethod
-    def from_midi_file(file_path: str = None, midi_file: MidiFile = None, track_indices: [[int]] = None,
-                       meta_track_indices: [int] = None, target_meta_track_index: int = 0) -> list[Sequence]:
+    def from_midi_file(file_path: str = None, midi_file: MidiFile = None, track_indices: list[list[int]] = None,
+                       meta_track_indices: list[int] = None, target_meta_track_index: int = 0) -> list[Sequence]:
         """Creates `scoda.Sequence` objects from the provided MIDI file.
 
         Args:
@@ -576,7 +551,7 @@ class Sequence:
         return merged_sequences
 
     @staticmethod
-    def split_into_bars(sequences_input: [Sequence], meta_track_index=0, quantise_note_lengths=True) -> list[list[Bar]]:
+    def split_into_bars(sequences_input: list[Sequence], meta_track_index=0, quantise_note_lengths=True) -> list[list[Bar]]:
         """Splits the sequence into a lists of `scoda.Bar`, conforming to the contained time signatures.
 
         Each list of bars will correspond to one of the given sequence.
@@ -602,8 +577,8 @@ class Sequence:
 
         # Determine signature timings
         meta_track = sequences[meta_track_index]
-        time_signature_timings = meta_track.get_message_timing(MessageType.TIME_SIGNATURE)
-        key_signature_timings = meta_track.get_message_timing(MessageType.KEY_SIGNATURE)
+        time_signature_timings = meta_track.get_message_timings_of_type([MessageType.TIME_SIGNATURE])
+        key_signature_timings = meta_track.get_message_timings_of_type([MessageType.KEY_SIGNATURE])
 
         tracks_bars = [[] for _ in sequences]
 
@@ -693,8 +668,8 @@ class Sequence:
                    title: str = None,
                    x_label: str = None,
                    y_label: str = None,
-                   x_scale: [int] = None,
-                   y_scale: [int] = (NOTE_LOWER_BOUND, NOTE_UPPER_BOUND + 1),
+                   x_scale: list[int] = None,
+                   y_scale: list[int] = (NOTE_LOWER_BOUND, NOTE_UPPER_BOUND + 1),
                    show_velocity: bool = True,
                    x_tick_spacing=PPQN) -> pyplot:
         """Creates a piano roll from the given sequence.
@@ -733,7 +708,7 @@ class Sequence:
 
         # Draw notes
         for i, sequence in enumerate(sequences):
-            note_array = sequence.abs.absolute_note_array()
+            note_array = sequence.abs.get_message_time_pairings()
 
             for note in note_array:
                 start_time = note[0].time
@@ -797,7 +772,7 @@ class Sequence:
 
         return plt
 
-    # === Helper Methods ===
+    # Private Functions
 
     @staticmethod
     def _fill_dictionary_entry(entry,

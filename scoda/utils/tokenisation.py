@@ -139,7 +139,8 @@ class NotelikeTokeniser(Tokeniser):
 
     def tokenise(self, sequence: Sequence, apply_buffer: bool = True, reset_time: bool = True) -> list[int]:
         tokens = []
-        event_pairings = sequence.abs.absolute_note_array(include_meta_messages=True)
+        event_pairings = sequence.abs.get_message_time_pairings(
+            [MessageType.NOTE_ON, MessageType.NOTE_OFF, MessageType.TIME_SIGNATURE, MessageType.INTERNAL])
 
         for event_pairing in event_pairings:
             msg_type = event_pairing[0].message_type
@@ -474,7 +475,8 @@ class TransposedNotelikeTokeniser(Tokeniser):
 
     def tokenise(self, bar_seq: Sequence, apply_buffer: bool = True, reset_time: bool = True) -> list[int]:
         tokens = []
-        event_pairings = bar_seq.abs.absolute_note_array(include_meta_messages=True)
+        event_pairings = bar_seq.abs.get_message_time_pairings(
+            [MessageType.NOTE_ON, MessageType.NOTE_OFF, MessageType.TIME_SIGNATURE, MessageType.INTERNAL])
 
         event_pairings_by_note = dict()
 

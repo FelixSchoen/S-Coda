@@ -5,11 +5,11 @@ from pathlib import Path
 logger: logging.Logger = None
 
 
-def setup_logger(logger_designation: str = None):
+def setup_logger(logger_designation: str = None) -> logging.Logger:
     return _setup_logger(logger_designation)
 
 
-def _setup_logger(logger_designation: str):
+def _setup_logger(logger_designation: str) -> logging.Logger:
     if logger_designation is None:
         logger_designation = "scoda"
 

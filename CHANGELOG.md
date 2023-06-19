@@ -12,6 +12,7 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Implement `get_representation()` methods
 - Add changelog
 - Add equivalence test for absolute sequences
+- Add tokenisation support
 
 ### Changed
 
@@ -21,7 +22,9 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Adapted `Sequence.from_midi_file` to be able to use opened MIDI files
 - Deprecated `to_dataframe()` methods
 - Absolute note array will now always be sorted by time and then pitch values (lower comes first)
-- Absolute note array includes an option to include meta messages
+- Reworked logging framework
+- Reworked `get_messages_of_type()` to work with a list of message types
+- Reworked `get_message_time_pairings()` to work with a list of message types
 
 ### Fixed
 

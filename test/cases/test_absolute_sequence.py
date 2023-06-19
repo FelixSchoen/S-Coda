@@ -11,7 +11,7 @@ def test_equivalence():
 
 def test_absolute_note_array():
     sequence = util_midi_to_sequences()[0]
-    note_array = sequence.abs.absolute_note_array()
+    note_array = sequence.abs.get_message_time_pairings()
 
     for i in range(len(note_array) - 1):
         assert note_array[i][0].time <= note_array[i + 1][0].time
@@ -26,12 +26,12 @@ def test_get_timing_of_message_type():
     sequences = util_midi_to_sequences()
     sequence = sequences[0]
 
-    timings = sequence.get_message_timing(MessageType.TIME_SIGNATURE)
+    timings = sequence.get_message_timings_of_type([MessageType.TIME_SIGNATURE])
     points_in_time = [timing[0] - timings[i - 1][0] if i >= 1 else timing[0] for i, timing in enumerate(timings)]
 
     split_sequences = sequence.split(points_in_time)
 
-    assert all(len(seq.get_message_timing(MessageType.TIME_SIGNATURE)) <= 1 for seq in split_sequences)
+    assert all(len(seq.get_message_timings_of_type([MessageType.TIME_SIGNATURE])) <= 1 for seq in split_sequences)
 
 
 def test_merge_sequences():
@@ -67,11 +67,11 @@ def test_quantise_note_lengths():
     dotted_durations = get_dotted_note_durations(normal_durations, DOTTED_ITERATIONS)
     possible_durations = normal_durations + triplet_durations + dotted_durations
 
-    for note_pair in sequence.abs.absolute_note_array():
+    for note_pair in sequence.abs.get_message_time_pairings():
         assert note_pair[1].time - note_pair[0].time in possible_durations
 
 
 def test_sequence_length():
     sequences = util_midi_to_sequences()
 
-    assert all(sequence.sequence_length() == sequences[0].sequence_length() for sequence in sequences)
+    assert all(sequence.get_sequence_length() == sequences[0].get_sequence_length() for sequence in sequences)
