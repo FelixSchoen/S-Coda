@@ -20,7 +20,7 @@ from scoda.settings.settings import NOTE_LOWER_BOUND, NOTE_UPPER_BOUND, PPQN, DI
 from scoda.utils.enumerations import MessageType
 from scoda.utils.midi_wrapper import MidiTrack, MidiMessage
 from scoda.utils.music_theory import Note, Key, MusicMapping
-from scoda.utils.scoda_logging import get_logger
+from scoda.utils.scoda_logging import setup_logger
 from scoda.utils.util import minmax, simple_regression
 
 if TYPE_CHECKING:
@@ -30,6 +30,8 @@ if TYPE_CHECKING:
 class RelativeSequence(AbstractSequence):
     """Class representing a sequence with relative message timings.
     """
+
+    LOGGER = setup_logger(__name__)
 
     def __init__(self) -> None:
         super().__init__()
@@ -58,8 +60,6 @@ class RelativeSequence(AbstractSequence):
         """Consolidates and then splits up wait messages to a maximum size of `PPQN`. Removes double time signatures.
 
         """
-        logger = get_logger(__name__)
-
         open_messages = dict()
         messages_normalized = []
         wait_buffer = 0
@@ -105,7 +105,7 @@ class RelativeSequence(AbstractSequence):
             messages_normalized.append(Message(message_type=MessageType.WAIT, time=wait_buffer))
 
         if len(open_messages) > 0:
-            logger.info("The sequence contains messages that have not been closed.")
+            RelativeSequence.LOGGER.info("The sequence contains messages that have not been closed.")
 
         self.messages = messages_normalized
 
@@ -236,14 +236,12 @@ class RelativeSequence(AbstractSequence):
         Returns: A value from 0 (low difficulty) to 1 (high difficulty)
 
         """
-        logger = get_logger(__name__)
-
         key_signature = key
 
         for msg in self.messages:
             if msg.message_type == MessageType.KEY_SIGNATURE:
                 if key_signature is not None and key_signature is not msg.key:
-                    logger.info(f"Key was {key_signature}, now is {msg.key}.")
+                    RelativeSequence.LOGGER.info(f"Key was {key_signature}, now is {msg.key}.")
                     key_signature = None
                     break
                 key_signature = msg.key

@@ -21,7 +21,7 @@ from scoda.utils.enumerations import *
 # noinspection PyUnresolvedReferences
 from scoda.utils.util import *
 # noinspection PyUnresolvedReferences
-from scoda.utils.scoda_logging import get_logger
+from scoda.utils.scoda_logging import setup_logger
 # noinspection PyUnresolvedReferences
 from scoda.utils.tokenisation import *
 # noinspection PyUnresolvedReferences

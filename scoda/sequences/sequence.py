@@ -584,7 +584,7 @@ class Sequence:
         Args:
             sequences_input: The sequence to split
             meta_track_index: The index of the sequence that contains the time signature changes
-            quantise_note_lengths: Whether the note lengths of the split bar should be quantised again
+            quantise_note_lengths: Whether the note lengths of the split bar should be quantised after the split
 
         Returns: A list of bars
 
@@ -655,7 +655,7 @@ class Sequence:
                         split_up.append(Sequence())
                     sequences[i] = Sequence()
 
-                # Quantise note lengths again, in case splitting into bars affected them
+                # Quantise note lengths, in case splitting into bars affected them
                 sequence_to_add = split_up[0]
                 if quantise_note_lengths:
                     sequence_to_add.quantise_note_lengths(do_not_extend=True)

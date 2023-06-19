@@ -9,13 +9,15 @@ from scoda.elements.message import Message
 from scoda.settings.settings import PPQN
 from scoda.utils.enumerations import MessageType
 from scoda.utils.music_theory import MusicMapping
-from scoda.utils.scoda_logging import get_logger
+from scoda.utils.scoda_logging import setup_logger
 
 if TYPE_CHECKING:
     from scoda.sequences.sequence import Sequence
 
 
 class MidiFile:
+
+    LOGGER = setup_logger(__name__)
 
     def __init__(self) -> None:
         super().__init__()
@@ -35,8 +37,6 @@ class MidiFile:
 
         """
         from scoda.sequences.sequence import Sequence
-
-        logger = get_logger(__name__)
 
         # Create sequence to fill
         sequences = [[Sequence() for _ in indices] for indices in track_indices]
@@ -80,7 +80,7 @@ class MidiFile:
                 # Time Signature
                 elif msg.message_type == MessageType.TIME_SIGNATURE:
                     if i not in meta_track_indices:
-                        logger.warning("Encountered time signature change in unexpected track.")
+                        MidiFile.LOGGER.warning("Encountered time signature change in unexpected track.")
 
                     meta_sequence.add_absolute_message(
                         Message(message_type=MessageType.TIME_SIGNATURE, numerator=msg.numerator,
@@ -88,7 +88,7 @@ class MidiFile:
                 # Key Signature
                 elif msg.message_type == MessageType.KEY_SIGNATURE:
                     if i not in meta_track_indices:
-                        logger.warning("Encountered key signature change in unexpected track.")
+                        MidiFile.LOGGER.warning("Encountered key signature change in unexpected track.")
 
                     meta_sequence.add_absolute_message(
                         Message(message_type=MessageType.KEY_SIGNATURE, key=msg.key, time=rounded_point_in_time))
@@ -221,7 +221,7 @@ class MidiMessage:
             msg.message_type = MessageType.NOTE_ON
             msg.note = mido_message.note
             msg.velocity = mido_message.velocity
-        elif mido_message.type == "note_on" or mido_message.type == "note_off":
+        elif (mido_message.type == "note_on" and mido_message.velocity == 0) or mido_message.type == "note_off":
             msg.message_type = MessageType.NOTE_OFF
             msg.note = mido_message.note
             msg.velocity = mido_message.velocity
@@ -247,3 +247,7 @@ class MidiMessage:
         return MidiMessage(message_type=message.message_type, time=message.time, note=message.note,
                            velocity=message.velocity, control=message.control, numerator=message.numerator,
                            denominator=message.denominator, key=message.key, program=message.program)
+
+    def __str__(self) -> str:
+        return "MidiMessage(type={}, time={}, note={})".format(self.message_type, self.time, self.note)
+

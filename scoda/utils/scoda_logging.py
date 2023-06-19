@@ -5,7 +5,7 @@ from pathlib import Path
 logger: logging.Logger = None
 
 
-def get_logger(logger_designation: str = None):
+def setup_logger(logger_designation: str = None):
     return _setup_logger(logger_designation)
 
 

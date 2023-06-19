@@ -11,7 +11,7 @@ from scoda.settings.settings import PPQN, DIFF_DUAL_NOTE_VALUES_UPPER_BOUND, \
     DIFF_DUAL_NOTE_VALUES_LOWER_BOUND, NOTE_VALUE_UPPER_BOUND, NOTE_VALUE_LOWER_BOUND, VALID_TUPLETS, DOTTED_ITERATIONS, \
     SCALE_LOGLIKE
 from scoda.utils.enumerations import MessageType
-from scoda.utils.scoda_logging import get_logger
+from scoda.utils.scoda_logging import setup_logger
 from scoda.utils.util import b_insort, find_minimal_distance, regress, minmax, simple_regression, get_note_durations, \
     get_tuplet_durations, get_dotted_note_durations
 
@@ -23,8 +23,11 @@ class AbsoluteSequence(AbstractSequence):
     """Class representing a sequence with absolute message timings.
     """
 
+    LOGGER = setup_logger(__name__)
+
     def __init__(self) -> None:
         super().__init__()
+        self.LOGGER
 
     def __copy__(self) -> AbsoluteSequence:
         copied_messages = []
@@ -64,8 +67,6 @@ class AbsoluteSequence(AbstractSequence):
         Returns: An array of tuples of two messages constituting a note
 
         """
-        logger = get_logger(__name__)
-
         self.sort()
 
         open_messages = dict()
@@ -77,7 +78,7 @@ class AbsoluteSequence(AbstractSequence):
             # Add notes to open messages
             if msg.message_type == MessageType.NOTE_ON:
                 if msg.note in open_messages:
-                    logger.info(f"Note {msg.note} at time {msg.time} not previously stopped, inserting stop message.")
+                    AbsoluteSequence.LOGGER.info(f"Note {msg.note} at time {msg.time} not previously stopped, inserting stop message.")
                     index = open_messages.pop(msg.note)
                     notes[index].append(Message(message_type=MessageType.NOTE_OFF, note=msg.note, time=msg.time))
 
@@ -164,7 +165,6 @@ class AbsoluteSequence(AbstractSequence):
         Returns: A value from 0 (low difficulty) to 1 (high difficulty)
 
         """
-        logger = get_logger(__name__)
         notes = self.absolute_note_array()
 
         # If sequence is empty, return easiest difficulty
@@ -193,7 +193,7 @@ class AbsoluteSequence(AbstractSequence):
             elif duration in dotted_durations:
                 notes_dotted.append(note)
             else:
-                logger.info(f"Note value {duration} not in known values.")
+                AbsoluteSequence.LOGGER.info(f"Note value {duration} not in known values.")
 
         rhythm_occurrences = 0
 
@@ -255,8 +255,6 @@ class AbsoluteSequence(AbstractSequence):
             step_sizes: Array of numbers corresponding to divisors of the grid length
 
         """
-        logger = get_logger(__name__)
-
         if step_sizes is None:
             quantise_parameters = get_note_durations(1, 8)
             quantise_parameters += get_tuplet_durations(quantise_parameters, 3, 2)
@@ -287,7 +285,7 @@ class AbsoluteSequence(AbstractSequence):
 
                 # Check if note was not yet closed
                 if msg.note in open_messages:
-                    logger.info(f"Note {msg.note} not previously stopped, inserting stop message.")
+                    AbsoluteSequence.LOGGER.info(f"Note {msg.note} not previously stopped, inserting stop message.")
                     quantised_messages.append(
                         Message(message_type=MessageType.NOTE_OFF, note=msg.note, time=message_to_append.time))
                     open_messages.pop(msg.note, None)
