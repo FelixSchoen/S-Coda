@@ -16,7 +16,6 @@ if TYPE_CHECKING:
 
 
 class MidiFile:
-
     LOGGER = setup_logger(__name__)
 
     def __init__(self) -> None:
@@ -24,7 +23,8 @@ class MidiFile:
         self.tracks: [MidiTrack] = []
         self.PPQN = PPQN
 
-    def to_sequences(self, track_indices: [[int]], meta_track_indices: [int], meta_track_index: int = 0) -> list[Sequence]:
+    def to_sequences(self, track_indices: [[int]], meta_track_indices: [int], meta_track_index: int = 0) -> list[
+        Sequence]:
         """ Parses this `MidiFile` and returns a list of `scoda.Sequence`.
 
         Args:
@@ -249,5 +249,4 @@ class MidiMessage:
                            denominator=message.denominator, key=message.key, program=message.program)
 
     def __str__(self) -> str:
-        return "MidiMessage(type={}, time={}, note={})".format(self.message_type, self.time, self.note)
-
+        return f"MidiMessage(type={self.message_type}, time={self.time}, note={self.note})"

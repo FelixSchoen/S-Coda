@@ -88,6 +88,9 @@ class AbsoluteSequence(AbstractSequence):
     def merge(self, sequences: list[AbsoluteSequence]) -> None:
         """Merges this sequence with all the given ones.
 
+        In case of the creation of overlapping notes, these will be combined. The earliest start and the latest end will
+        be used for the newly created note.
+
         Args:
             sequences: The sequence to merge with this one.
 
@@ -95,6 +98,27 @@ class AbsoluteSequence(AbstractSequence):
         for sequence in sequences:
             for msg in copy.copy(sequence.messages):
                 b_insort(self.messages, msg)
+
+        self.sort()
+
+        open_messages = dict()
+
+        for msg in copy.copy(self.messages):
+            if msg.message_type == MessageType.NOTE_ON:
+                if open_messages.get(msg.note, 0) > 0:
+                    self.messages.remove(msg)
+                open_messages[msg.note] = open_messages.get(msg.note, 0) + 1
+            elif msg.message_type == MessageType.NOTE_OFF:
+                if open_messages.get(msg.note, 0) > 1:
+                    self.messages.remove(msg)
+                elif open_messages.get(msg.note, 0) < 1:
+                    AbsoluteSequence.LOGGER.warning(f"Merge: Note {msg.note} not previously started.")
+                open_messages[msg.note] = open_messages.get(msg.note, 0) - 1
+
+        for key in open_messages.keys():
+            if open_messages[key] != 0:
+                AbsoluteSequence.LOGGER.warning(f"Merge: Note {key} not properly settled.")
+
         self.sort()
 
     def quantise(self, step_sizes: list[int] = None) -> None:
@@ -145,7 +169,7 @@ class AbsoluteSequence(AbstractSequence):
 
                 # Check if note was not yet closed
                 if msg.note in open_messages:
-                    AbsoluteSequence.LOGGER.info(f"Note {msg.note} not previously stopped, inserting stop message.")
+                    AbsoluteSequence.LOGGER.warning(f"Quantisation: Note {msg.note} not previously stopped.")
                     quantised_messages.append(
                         Message(message_type=MessageType.NOTE_OFF, note=msg.note, time=message_to_append.time))
                     open_messages.pop(msg.note, None)
@@ -303,7 +327,8 @@ class AbsoluteSequence(AbstractSequence):
 
     # Misc. Methods
 
-    def get_message_time_pairings(self, message_types: list[MessageType] = None, standard_length=PPQN) -> list[
+    def get_message_time_pairings(self, message_types: list[MessageType] = None, standard_length=PPQN,
+                                  impute_notes=True) -> list[
         list[Message]]:
         """Creates an ordered list containing lists of messages of the given types.
         These lists contain all entries for messages that belong together, e.g., open and close note messages.
@@ -311,6 +336,7 @@ class AbsoluteSequence(AbstractSequence):
         Args:
             message_types: All message types to include.
             standard_length: The length used for notes that have not been closed.
+            impute_notes: If unclosed notes should be closed and unopened ones should be ignored.
 
         Returns: An array of tuples of two messages constituting a note.
 
@@ -329,8 +355,9 @@ class AbsoluteSequence(AbstractSequence):
             if msg.message_type in message_types:
                 # Add notes to open messages
                 if msg.message_type == MessageType.NOTE_ON:
-                    if msg.note in open_messages:
-                        AbsoluteSequence.LOGGER.warning(f"Note {msg.note} at time {msg.time} not previously stopped.")
+                    if msg.note in open_messages and impute_notes:
+                        AbsoluteSequence.LOGGER.warning(
+                            f"Time Pairings: Note {msg.note} at time {msg.time} not previously stopped.")
                         index = open_messages.pop(msg.note)
                         notes[index].append(Message(message_type=MessageType.NOTE_OFF, note=msg.note, time=msg.time))
 
@@ -340,8 +367,9 @@ class AbsoluteSequence(AbstractSequence):
 
                 # Add closing message to fitting open message
                 elif msg.message_type == MessageType.NOTE_OFF:
-                    if msg.note not in open_messages:
-                        AbsoluteSequence.LOGGER.info(f"Note {msg.note} at time {msg.time} not previously started.")
+                    if msg.note not in open_messages and impute_notes:
+                        AbsoluteSequence.LOGGER.warning(
+                            f"Time Pairings: Note {msg.note} at time {msg.time} not previously started.")
                     else:
                         index = open_messages.pop(msg.note)
                         notes[index].append(msg)
@@ -352,7 +380,7 @@ class AbsoluteSequence(AbstractSequence):
 
         # Check unclosed notes
         for pairing in notes:
-            if len(pairing) == 1 and pairing[0].message_type == MessageType.NOTE_ON:
+            if len(pairing) == 1 and pairing[0].message_type == MessageType.NOTE_ON and impute_notes:
                 pairing.append(Message(message_type=MessageType.NOTE_OFF, time=pairing[0].time + standard_length))
 
         return notes
@@ -471,7 +499,7 @@ class AbsoluteSequence(AbstractSequence):
             elif duration in dotted_durations:
                 notes_dotted.append(note)
             else:
-                AbsoluteSequence.LOGGER.info(f"Note value {duration} not in known values.")
+                AbsoluteSequence.LOGGER.warning(f"Difficulty Rhythm: Note value {duration} not in known values.")
 
         rhythm_occurrences = 0
 
