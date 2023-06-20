@@ -16,9 +16,8 @@ from scoda.sequences.relative_sequence import RelativeSequence
 from scoda.settings.settings import PPQN, NOTE_LOWER_BOUND, NOTE_UPPER_BOUND, VELOCITY_MAX
 from scoda.utils.decorators import deprecated
 from scoda.utils.enumerations import MessageType
-from scoda.utils.enumerations import NoteRepresentationType, TemporalRepresentationType
 from scoda.utils.midi_wrapper import MidiTrack, MidiFile
-from scoda.utils.music_theory import Key, CircleOfFifths
+from scoda.utils.music_theory import Key
 from scoda.utils.util import minmax, simple_regression
 
 if TYPE_CHECKING:
@@ -131,8 +130,8 @@ class Sequence:
         self._abs_stale = True
 
     def adjust(self) -> None:
-        """See `scoda.sequence.relative_sequence.RelativeSequence.adjust`."""
-        self.rel.adjust()
+        """See `scoda.sequence.relative_sequence.RelativeSequence.normalise_relative`."""
+        self.rel.normalise_relative()
         self._abs_stale = True
 
     def concatenate(self, sequences: list[Sequence]) -> None:
@@ -149,7 +148,7 @@ class Sequence:
         """See `scoda.sequence.absolute_sequence.AbsoluteSequence.merge`."""
         self.abs.merge([seq.abs for seq in sequences])
         self._rel_stale = True
-        self.rel.adjust()
+        self.rel.normalise_relative()
         self._abs_stale = True
 
     def pad(self, padding_length) -> None:
@@ -217,145 +216,146 @@ class Sequence:
         """
         return self.abs.get_message_timings_of_type(message_types)
 
-    def get_representation(self, note_representation_type: NoteRepresentationType,
-                           temporal_representation_type: TemporalRepresentationType,
-                           adjust_wait_messages=True) -> DataFrame:
-        data = []
-
-        absolute_sequence = copy.copy(self.abs)
-        relative_sequence = copy.copy(self.rel)
-
-        if adjust_wait_messages:
-            relative_sequence.adjust()
-
-        base_note = 69  # A4, 440 Hz
-
-        if temporal_representation_type == TemporalRepresentationType.RELATIVE_TICKS:
-            current_note = base_note
-
-            for msg in relative_sequence.messages:
-                entry = dict()
-
-                if note_representation_type == NoteRepresentationType.ABSOLUTE_VALUES:
-                    Sequence._fill_dictionary_entry(entry,
-                                                    msg_type=msg.message_type.value,
-                                                    time=msg.time,
-                                                    note=msg.note,
-                                                    velocity=msg.velocity,
-                                                    control=msg.control,
-                                                    program=msg.program,
-                                                    numerator=msg.numerator,
-                                                    denominator=msg.denominator,
-                                                    key=None if msg.key is None else msg.key.value)
-                elif note_representation_type == NoteRepresentationType.RELATIVE_DISTANCES:
-                    Sequence._fill_dictionary_entry(
-                        entry,
-                        msg_type=msg.message_type.value,
-                        time=msg.time,
-                        note=msg.note,
-                        velocity=msg.velocity,
-                        control=msg.control,
-                        program=msg.program,
-                        numerator=msg.numerator,
-                        denominator=msg.denominator,
-                        key=None if msg.key is None else msg.key.value,
-                        rel_note_dist=None if msg.note is None else (
-                                msg.note - current_note),
-                        rel_note_pair_dist=None if msg.note is None else ((
-                                                                                  msg.note - current_note) % 12),
-                        rel_note_pair_oct=None if msg.note is None else ((
-                                                                                 msg.note - current_note) // 12)
-                    )
-                elif note_representation_type == NoteRepresentationType.CIRCLE_OF_FIFTHS:
-                    if msg.note is not None:
-                        distance = CircleOfFifths.get_distance(current_note, msg.note)
-
-                        Sequence._fill_dictionary_entry(
-                            entry,
-                            msg_type=msg.message_type.value,
-                            time=msg.time,
-                            note=msg.note,
-                            velocity=msg.velocity,
-                            control=msg.control,
-                            program=msg.program,
-                            numerator=msg.numerator,
-                            denominator=msg.denominator,
-                            key=None if msg.key is None else msg.key.value,
-                            rel_note_pair_dist=None if msg.note is None else distance,
-                            rel_note_pair_oct=None if msg.note is None else ((
-                                                                                     msg.note - current_note) // 12)
-                        )
-
-                if msg.note is not None:
-                    current_note = msg.note
-                data.append(entry)
-        elif temporal_representation_type == TemporalRepresentationType.NOTELIKE_REPRESENTATION:
-            current_note = base_note
-            note_and_internal_messages_array = absolute_sequence.get_message_time_pairings(
-                [MessageType.NOTE_ON, MessageType.NOTE_OFF, MessageType.TIME_SIGNATURE, MessageType.INTERNAL])
-            current_time = 0
-
-            for event_pairing in note_and_internal_messages_array:
-                entry = dict()
-
-                event_type = event_pairing[0].message_type
-                event_time = event_pairing[0].time
-                time_dif = event_time - current_time
-
-                # Insert wait messages to catch up with current note
-                while time_dif != 0:
-                    time_to_wait = PPQN
-                    if time_dif <= PPQN:
-                        time_to_wait = time_dif
-
-                    Sequence._fill_dictionary_entry(entry,
-                                                    msg_type=MessageType.WAIT,
-                                                    time=time_to_wait)
-                    time_dif -= time_to_wait
-                    data.append(entry)
-                    entry = dict()
-
-                current_time = event_time
-
-                if event_type == MessageType.NOTE_ON:
-                    if note_representation_type == NoteRepresentationType.ABSOLUTE_VALUES:
-                        Sequence._fill_dictionary_entry(entry,
-                                                        msg_type=MessageType.NOTE_ON,
-                                                        time=event_pairing[1].time - event_pairing[0].time,
-                                                        note=event_pairing[0].note,
-                                                        velocity=event_pairing[0].velocity)
-                    elif note_representation_type == NoteRepresentationType.RELATIVE_DISTANCES:
-                        Sequence._fill_dictionary_entry(entry,
-                                                        msg_type=MessageType.NOTE_ON,
-                                                        time=event_pairing[1].time - event_pairing[0].time,
-                                                        note=event_pairing[0].note,
-                                                        velocity=event_pairing[0].velocity,
-                                                        rel_note_dist=(event_pairing[0].note - current_note),
-                                                        rel_note_pair_dist=(
-                                                                (event_pairing[0].note - current_note) % 12),
-                                                        rel_note_pair_oct=(
-                                                                (event_pairing[0].note - current_note) // 12))
-                    elif note_representation_type == NoteRepresentationType.CIRCLE_OF_FIFTHS:
-                        distance = CircleOfFifths.get_distance(current_note, event_pairing[0].note)
-
-                        Sequence._fill_dictionary_entry(entry,
-                                                        msg_type=MessageType.NOTE_ON,
-                                                        time=event_pairing[1].time - event_pairing[0].time,
-                                                        note=event_pairing[0].note,
-                                                        velocity=event_pairing[0].velocity,
-                                                        rel_note_pair_dist=distance,
-                                                        rel_note_pair_oct=(event_pairing[0].note - current_note) // 12)
-
-                    current_note = event_pairing[0].note
-                    data.append(entry)
-                elif event_type == MessageType.TIME_SIGNATURE:
-                    Sequence._fill_dictionary_entry(entry,
-                                                    msg_type=MessageType.TIME_SIGNATURE,
-                                                    numerator=event_pairing[0].numerator,
-                                                    denominator=event_pairing[0].denominator)
-                    data.append(entry)
-
-        return pd.DataFrame(data)
+    # TODO Delete
+    # def get_representation(self, note_representation_type: NoteRepresentationType,
+    #                        temporal_representation_type: TemporalRepresentationType,
+    #                        adjust_wait_messages=True) -> DataFrame:
+    #     data = []
+    #
+    #     absolute_sequence = copy.copy(self.abs)
+    #     relative_sequence = copy.copy(self.rel)
+    #
+    #     if adjust_wait_messages:
+    #         relative_sequence.normalise_relative()
+    #
+    #     base_note = 69  # A4, 440 Hz
+    #
+    #     if temporal_representation_type == TemporalRepresentationType.RELATIVE_TICKS:
+    #         current_note = base_note
+    #
+    #         for msg in relative_sequence.messages:
+    #             entry = dict()
+    #
+    #             if note_representation_type == NoteRepresentationType.ABSOLUTE_VALUES:
+    #                 Sequence._fill_dictionary_entry(entry,
+    #                                                 msg_type=msg.message_type.value,
+    #                                                 time=msg.time,
+    #                                                 note=msg.note,
+    #                                                 velocity=msg.velocity,
+    #                                                 control=msg.control,
+    #                                                 program=msg.program,
+    #                                                 numerator=msg.numerator,
+    #                                                 denominator=msg.denominator,
+    #                                                 key=None if msg.key is None else msg.key.value)
+    #             elif note_representation_type == NoteRepresentationType.RELATIVE_DISTANCES:
+    #                 Sequence._fill_dictionary_entry(
+    #                     entry,
+    #                     msg_type=msg.message_type.value,
+    #                     time=msg.time,
+    #                     note=msg.note,
+    #                     velocity=msg.velocity,
+    #                     control=msg.control,
+    #                     program=msg.program,
+    #                     numerator=msg.numerator,
+    #                     denominator=msg.denominator,
+    #                     key=None if msg.key is None else msg.key.value,
+    #                     rel_note_dist=None if msg.note is None else (
+    #                             msg.note - current_note),
+    #                     rel_note_pair_dist=None if msg.note is None else ((
+    #                                                                               msg.note - current_note) % 12),
+    #                     rel_note_pair_oct=None if msg.note is None else ((
+    #                                                                              msg.note - current_note) // 12)
+    #                 )
+    #             elif note_representation_type == NoteRepresentationType.CIRCLE_OF_FIFTHS:
+    #                 if msg.note is not None:
+    #                     distance = CircleOfFifths.get_distance(current_note, msg.note)
+    #
+    #                     Sequence._fill_dictionary_entry(
+    #                         entry,
+    #                         msg_type=msg.message_type.value,
+    #                         time=msg.time,
+    #                         note=msg.note,
+    #                         velocity=msg.velocity,
+    #                         control=msg.control,
+    #                         program=msg.program,
+    #                         numerator=msg.numerator,
+    #                         denominator=msg.denominator,
+    #                         key=None if msg.key is None else msg.key.value,
+    #                         rel_note_pair_dist=None if msg.note is None else distance,
+    #                         rel_note_pair_oct=None if msg.note is None else ((
+    #                                                                                  msg.note - current_note) // 12)
+    #                     )
+    #
+    #             if msg.note is not None:
+    #                 current_note = msg.note
+    #             data.append(entry)
+    #     elif temporal_representation_type == TemporalRepresentationType.NOTELIKE_REPRESENTATION:
+    #         current_note = base_note
+    #         note_and_internal_messages_array = absolute_sequence.get_message_time_pairings(
+    #             [MessageType.NOTE_ON, MessageType.NOTE_OFF, MessageType.TIME_SIGNATURE, MessageType.INTERNAL])
+    #         current_time = 0
+    #
+    #         for event_pairing in note_and_internal_messages_array:
+    #             entry = dict()
+    #
+    #             event_type = event_pairing[0].message_type
+    #             event_time = event_pairing[0].time
+    #             time_dif = event_time - current_time
+    #
+    #             # Insert wait messages to catch up with current note
+    #             while time_dif != 0:
+    #                 time_to_wait = PPQN
+    #                 if time_dif <= PPQN:
+    #                     time_to_wait = time_dif
+    #
+    #                 Sequence._fill_dictionary_entry(entry,
+    #                                                 msg_type=MessageType.WAIT,
+    #                                                 time=time_to_wait)
+    #                 time_dif -= time_to_wait
+    #                 data.append(entry)
+    #                 entry = dict()
+    #
+    #             current_time = event_time
+    #
+    #             if event_type == MessageType.NOTE_ON:
+    #                 if note_representation_type == NoteRepresentationType.ABSOLUTE_VALUES:
+    #                     Sequence._fill_dictionary_entry(entry,
+    #                                                     msg_type=MessageType.NOTE_ON,
+    #                                                     time=event_pairing[1].time - event_pairing[0].time,
+    #                                                     note=event_pairing[0].note,
+    #                                                     velocity=event_pairing[0].velocity)
+    #                 elif note_representation_type == NoteRepresentationType.RELATIVE_DISTANCES:
+    #                     Sequence._fill_dictionary_entry(entry,
+    #                                                     msg_type=MessageType.NOTE_ON,
+    #                                                     time=event_pairing[1].time - event_pairing[0].time,
+    #                                                     note=event_pairing[0].note,
+    #                                                     velocity=event_pairing[0].velocity,
+    #                                                     rel_note_dist=(event_pairing[0].note - current_note),
+    #                                                     rel_note_pair_dist=(
+    #                                                             (event_pairing[0].note - current_note) % 12),
+    #                                                     rel_note_pair_oct=(
+    #                                                             (event_pairing[0].note - current_note) // 12))
+    #                 elif note_representation_type == NoteRepresentationType.CIRCLE_OF_FIFTHS:
+    #                     distance = CircleOfFifths.get_distance(current_note, event_pairing[0].note)
+    #
+    #                     Sequence._fill_dictionary_entry(entry,
+    #                                                     msg_type=MessageType.NOTE_ON,
+    #                                                     time=event_pairing[1].time - event_pairing[0].time,
+    #                                                     note=event_pairing[0].note,
+    #                                                     velocity=event_pairing[0].velocity,
+    #                                                     rel_note_pair_dist=distance,
+    #                                                     rel_note_pair_oct=(event_pairing[0].note - current_note) // 12)
+    #
+    #                 current_note = event_pairing[0].note
+    #                 data.append(entry)
+    #             elif event_type == MessageType.TIME_SIGNATURE:
+    #                 Sequence._fill_dictionary_entry(entry,
+    #                                                 msg_type=MessageType.TIME_SIGNATURE,
+    #                                                 numerator=event_pairing[0].numerator,
+    #                                                 denominator=event_pairing[0].denominator)
+    #                 data.append(entry)
+    #
+    #     return pd.DataFrame(data)
 
     def get_sequence_length(self) -> float:
         """See `scoda.sequence.absolute_sequence.AbsoluteSequence.get_sequence_length`.
@@ -379,31 +379,32 @@ class Sequence:
         """See `scoda.sequence.relative_sequence.RelativeSequence.to_midi_track`."""
         return self.rel.to_midi_track()
 
-    @deprecated("Use `get_representation()` instead")
-    def to_absolute_dataframe(self) -> DataFrame:
-        """Creates a `DataFrame` from the messages in this sequence.
-
-        Returns: A `DataFrame` filled with all the messages in this sequence in their textual or numeric representation
-
-        """
-        return Sequence.to_dataframe(self.abs.messages)
-
-    @deprecated("Use `get_representation()` instead")
-    def to_relative_dataframe(self, adjust_wait_messages=True) -> DataFrame:
-        """Creates a `DataFrame` from the messages in this sequence.
-
-        Args:
-            adjust_wait_messages: Whether to adjust the wait messages in this sequence or not
-
-        Returns: A `DataFrame` filled with all the messages in this sequence in their textual or numeric representation
-
-        """
-        relative_sequence = copy.copy(self.rel)
-
-        if adjust_wait_messages:
-            relative_sequence.adjust()
-
-        return Sequence.to_dataframe(relative_sequence.messages)
+    # TODO Delete
+    # @deprecated("Use `get_representation()` instead")
+    # def to_absolute_dataframe(self) -> DataFrame:
+    #     """Creates a `DataFrame` from the messages in this sequence.
+    #
+    #     Returns: A `DataFrame` filled with all the messages in this sequence in their textual or numeric representation
+    #
+    #     """
+    #     return Sequence.to_dataframe(self.abs.messages)
+    #
+    # @deprecated("Use `get_representation()` instead")
+    # def to_relative_dataframe(self, adjust_wait_messages=True) -> DataFrame:
+    #     """Creates a `DataFrame` from the messages in this sequence.
+    #
+    #     Args:
+    #         adjust_wait_messages: Whether to adjust the wait messages in this sequence or not
+    #
+    #     Returns: A `DataFrame` filled with all the messages in this sequence in their textual or numeric representation
+    #
+    #     """
+    #     relative_sequence = copy.copy(self.rel)
+    #
+    #     if adjust_wait_messages:
+    #         relative_sequence.normalise_relative()
+    #
+    #     return Sequence.to_dataframe(relative_sequence.messages)
 
     # Difficulty Methods
 

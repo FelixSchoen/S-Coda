@@ -61,7 +61,18 @@ class RelativeSequence(AbstractSequence):
         """Adds the given message to the sequence."""
         self.messages.append(msg)
 
-    def adjust(self) -> None:
+    def concatenate(self, sequences: list[RelativeSequence]) -> None:
+        """Concatenates the sequence with the given sequences, resulting in this sequence containing the combined
+        messages of itself and the given sequences.
+
+        Args:
+            sequences: A sequence which should be appended to this sequence.
+
+        """
+        for seq in sequences:
+            self.messages.extend(seq.messages)
+
+    def normalise_relative(self) -> None:
         """Removes invalid open and close messages. Consolidates wait messages. Removes double time signatures.
 
         """
@@ -116,20 +127,10 @@ class RelativeSequence(AbstractSequence):
 
             if len(note_list) > 0:
                 for msg in note_list:
-                    messages_normalized.remove(msg)
+                    if msg in messages_normalized:
+                        messages_normalized.remove(msg)
 
         self.messages = messages_normalized
-
-    def concatenate(self, sequences: list[RelativeSequence]) -> None:
-        """Concatenates the sequence with the given sequences, resulting in this sequence containing the combined
-        messages of itself and the given sequences.
-
-        Args:
-            sequences: A sequence which should be appended to this sequence.
-
-        """
-        for seq in sequences:
-            self.messages.extend(seq.messages)
 
     def pad(self, padding_length) -> None:
         """Pads the sequence to a minimum fixed length.
@@ -311,7 +312,6 @@ class RelativeSequence(AbstractSequence):
                     bar_index += 1
 
             self.messages = modified_messages
-            self.adjust()
 
     def transpose(self, transpose_by: int) -> bool:
         """Transposes the sequence by the given amount.

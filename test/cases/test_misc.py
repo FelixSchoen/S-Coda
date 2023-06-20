@@ -81,3 +81,10 @@ def test_midi_messages():
         print(f"Track {i + 1}")
         for j, message in enumerate(track.messages):
             print(message)
+
+
+def test_subject():
+    sequences = Sequence.from_midi_file(Path(__file__).parent.parent.joinpath("res").joinpath("subject.mid"))
+    sequence = sequences[0]
+    sequence.merge(sequences[1:])
+    sequence.save("subject_out.mid")

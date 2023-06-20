@@ -1,7 +1,7 @@
 from base import *
 
 
-def test_adjust_wait_messages():
+def test_normalise_relative():
     sequences = util_midi_to_sequences()
     sequence = sequences[0]
 
@@ -10,7 +10,7 @@ def test_adjust_wait_messages():
         if msg.message_type == MessageType.WAIT:
             duration_pre += msg.time
 
-    sequence.adjust()
+    sequence.normalise_relative()
 
     duration_post = 0
     for msg in sequence.rel.messages:
