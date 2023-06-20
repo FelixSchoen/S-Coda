@@ -26,7 +26,7 @@ def test_velocity_digitised_to_correct_bin_indices():
 # MidiFile
 
 def test_midi_file_to_mido_track():
-    midi_file = MidiFile.open_midi_file(RESOURCE_BEETHOVEN)
+    midi_file = MidiFile.open(RESOURCE_BEETHOVEN)
     mido_track = midi_file.tracks[0].to_mido_track()
 
     assert isinstance(mido_track, mido.MidiTrack)
@@ -43,13 +43,13 @@ def test_logging_framework():
 
 def test_example():
     # Load sequence, choose correct track (often first track contains only meta messages)
-    sequence = Sequence.from_midi_file(file_path=RESOURCE_BEETHOVEN)[1]
+    sequence = Sequence.sequences_load(file_path=RESOURCE_BEETHOVEN)[1]
 
     # Quantise the sequence to thirty-seconds and thirty-second triplets (standard values)
     sequence.quantise()
 
     # Split the sequence into bars based on the occurring time signatures
-    bars = Sequence.split_into_bars([sequence], meta_track_index=0)[0]
+    bars = Sequence.sequences_split_bars([sequence], meta_track_index=0)[0]
 
     # Prepare tokeniser and output tokens
     tokeniser = NotelikeTokeniser(running_value=True, running_time_sig=True)

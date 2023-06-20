@@ -33,6 +33,16 @@ class Key(enum.Enum):
     G_B = "Gb"
     C_B = "Cb"
 
+    @staticmethod
+    def transpose_key(key, transpose_by):
+        if transpose_by % 12 != 0:
+            if key in MusicMapping.key_transpose_mapping:
+                key = MusicMapping.key_transpose_mapping[key]
+
+            index = MusicMapping.key_transpose_order.index(key)
+            index = (index + transpose_by) % 12
+            return MusicMapping.key_transpose_order[index]
+
 
 class CircleOfFifths:
     """Represents knowledge about the circle of fifths, note that some pitches are doubly assigned which can lead to

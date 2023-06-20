@@ -18,20 +18,23 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 - Renamed project to `scoda` (stylised as `S-Coda`)
 - Adopted `pyproject.toml`
-- Reworked settings to use `settings.json` file
-- Adapted `Sequence.from_midi_file` to be able to use opened MIDI files
+- Adapted `Sequence.from_midi_file()` to be able to use opened MIDI files
 - Deprecated `to_dataframe()` methods
-- Absolute note array will now always be sorted by time and then pitch values (lower comes first)
+- Absolute note list will now always be sorted by time and then pitch values (lower comes first)
+- Reworked settings to use `settings.json` file
 - Reworked logging framework
 - Reworked `get_messages_of_type()` to work with a list of message types
 - Reworked `get_message_time_pairings()` to work with a list of message types
 - Reworked `adjust()` to remove invalid notes and only consolidate (instead of split up to chunks of `PPQN`) wait messages
-- Rename `adjust()` to `normalise()`
+- Renamed `adjust()` to `normalise()`
+- Renamed `Sequence.from_midi_file()` to `Sequence.sequences_load()`
+- Renamed `Sequence.split_to_bars` to `Sequence.sequences_split_bars()`
 
 ### Fixed
 
 - Fix pytest configuration
 - Fix imports for project compatability
+- Fix transposing bar not transposing its key signature
 
 ## [1.0] - 2022-12-08
 

@@ -22,7 +22,7 @@ def test_midi_to_sequences():
 
 
 def test_sequence_from_file_without_parameters():
-    sequences = Sequence.from_midi_file(file_path=RESOURCE_BEETHOVEN)
+    sequences = Sequence.sequences_load(file_path=RESOURCE_BEETHOVEN)
 
     assert sequences is not None
     for sequence in sequences[:2]:
@@ -31,9 +31,9 @@ def test_sequence_from_file_without_parameters():
 
 def test_piano_rolls():
     sequences = util_midi_to_sequences()
-    bars = Sequence.split_into_bars(sequences)
+    bars = Sequence.sequences_split_bars(sequences)
 
-    plot_object = Sequence.pianorolls([bars[0][0].sequence, bars[1][0].sequence])
+    plot_object = Sequence.plot_pianorolls([bars[0][0].sequence, bars[1][0].sequence])
 
     assert plot_object is not None
 

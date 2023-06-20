@@ -73,7 +73,7 @@ class RelativeSequence(AbstractSequence):
             self.messages.extend(seq.messages)
 
     def normalise_relative(self) -> None:
-        """Removes invalid open and close messages. Consolidates wait messages. Removes double time signatures.
+        """Removes invalid open and close messages. Consolidates wait messages. Removes double time signatures and key signatures.
 
         """
         open_messages = dict()
@@ -82,6 +82,7 @@ class RelativeSequence(AbstractSequence):
 
         current_ts_numerator = None
         current_ts_denominator = None
+        current_key = None
 
         for msg in self.messages:
             if msg.message_type == MessageType.WAIT:
@@ -109,6 +110,11 @@ class RelativeSequence(AbstractSequence):
                     if msg.numerator != current_ts_numerator or msg.denominator != current_ts_denominator:
                         current_ts_numerator = msg.numerator
                         current_ts_denominator = msg.denominator
+                    else:
+                        continue
+                elif msg.message_type == MessageType.KEY_SIGNATURE:
+                    if msg.key != current_key:
+                        current_key = msg.key
                     else:
                         continue
 
@@ -272,7 +278,7 @@ class RelativeSequence(AbstractSequence):
                 meta_sequence = sequence
 
             amount_consecutive_bars = 1 / factor
-            bars = Sequence.split_into_bars(
+            bars = Sequence.sequences_split_bars(
                 [sequence, meta_sequence], meta_track_index=1, quantise_note_lengths=False)[0]
 
             bar_index = 0
@@ -339,13 +345,7 @@ class RelativeSequence(AbstractSequence):
                     had_to_shift = True
                     msg.note -= 12
             elif msg.message_type == MessageType.KEY_SIGNATURE:
-                if transpose_by % 12 != 0:
-                    if msg.key in MusicMapping.key_transpose_mapping:
-                        msg.key = MusicMapping.key_transpose_mapping[msg.key]
-
-                    index = MusicMapping.key_transpose_order.index(msg.key)
-                    index = (index + transpose_by) % 12
-                    msg.key = MusicMapping.key_transpose_order[index]
+                msg.key = Key.transpose_key(msg.key, transpose_by)
 
         return had_to_shift
 
@@ -368,6 +368,12 @@ class RelativeSequence(AbstractSequence):
         Returns: The best-fitting key for this bar.
 
         """
+        for msg in self.messages:
+            if msg.message_type == MessageType.KEY_SIGNATURE:
+                return msg.key
+            if msg.message_type == MessageType.WAIT:
+                break
+
         key_candidates = []
         for _ in MusicMapping.KeyNoteMapping:
             key_candidates.append(0)

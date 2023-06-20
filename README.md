@@ -30,13 +30,13 @@ We provide a short listing on how to use basic S-Coda functions:
 
 ```python
 # Load sequence, choose correct track (often first track contains only meta messages)
-sequence = Sequence.from_midi_file(file_path=RESOURCE_BEETHOVEN)[1]
+sequence = Sequence.sequences_load(file_path=RESOURCE_BEETHOVEN)[1]
 
 # Quantise the sequence to thirty-seconds and thirty-second triplets (standard values)
 sequence.quantise()
 
 # Split the sequence into bars based on the occurring time signatures
-bars = Sequence.split_into_bars([sequence], meta_track_index=0)[0]
+bars = Sequence.sequences_split_bars([sequence], meta_track_index=0)[0]
 
 # Prepare tokeniser and output tokens
 tokeniser = NotelikeTokeniser(running_value=True, running_time_sig=True)

@@ -83,6 +83,8 @@ class Bar:
     def transpose(self, transpose_by: int) -> bool:
         """See `scoda.sequence.relative_sequence.RelativeSequence.transpose`.
         """
+        self.key_signature = Key.transpose_key(self.key_signature, transpose_by)
+
         return self.sequence.transpose(transpose_by)
 
     @staticmethod

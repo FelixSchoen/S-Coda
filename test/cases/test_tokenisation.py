@@ -30,8 +30,8 @@ def test_roundtrip_transposed_notelike_tokenisation(path_resource, track):
 
 
 def _test_roundtrip_tokenisation(tokeniser, path_resource, track):
-    sequence = Sequence.from_midi_file(file_path=path_resource)[track]
-    bars = Sequence.split_into_bars([sequence], 0)[0]
+    sequence = Sequence.sequences_load(file_path=path_resource)[track]
+    bars = Sequence.sequences_split_bars([sequence], 0)[0]
     sequence = Sequence()
     sequence.concatenate([bar.sequence for bar in bars])
 

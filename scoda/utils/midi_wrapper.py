@@ -24,28 +24,18 @@ class MidiFile:
         self.PPQN = PPQN
 
     @staticmethod
-    def open_midi_file(filename) -> MidiFile:
+    def open(filename) -> MidiFile:
         midi_file = MidiFile()
         mido_midi_file = mido.MidiFile(filename)
-        midi_file.parse_mido_file(mido_midi_file)
+        midi_file.parse_mido(mido_midi_file)
         return midi_file
 
-    def parse_mido_file(self, mido_midi_file):
+    def parse_mido(self, mido_midi_file):
         self.PPQN = mido_midi_file.ticks_per_beat
         for mido_track in mido_midi_file.tracks:
             self.tracks.append(MidiTrack.parse_mido_track(mido_track))
 
-    def save(self, path):
-        mido_midi_file = mido.MidiFile()
-        mido_midi_file.ticks_per_beat = PPQN
-
-        for track in self.tracks:
-            mido_midi_file.tracks.append(track.to_mido_track())
-
-        mido_midi_file.save(path)
-
-    def to_sequences(self, track_indices: [[int]], meta_track_indices: [int], meta_track_index: int = 0) -> list[
-        Sequence]:
+    def convert(self, track_indices: [[int]], meta_track_indices: [int], meta_track_index: int = 0) -> list[Sequence]:
         """ Parses this `MidiFile` and returns a list of `scoda.Sequence`.
 
         Args:
@@ -101,7 +91,7 @@ class MidiFile:
                 # Time Signature
                 elif msg.message_type == MessageType.TIME_SIGNATURE:
                     if i not in meta_track_indices:
-                        MidiFile.LOGGER.warning("Encountered time signature change in unexpected track.")
+                        MidiFile.LOGGER.warning("MidiFile: Encountered time signature change in unexpected track.")
 
                     meta_sequence.add_absolute_message(
                         Message(message_type=MessageType.TIME_SIGNATURE, numerator=msg.numerator,
@@ -109,7 +99,7 @@ class MidiFile:
                 # Key Signature
                 elif msg.message_type == MessageType.KEY_SIGNATURE:
                     if i not in meta_track_indices:
-                        MidiFile.LOGGER.warning("Encountered key signature change in unexpected track.")
+                        MidiFile.LOGGER.warning("MidiFile: Encountered key signature change in unexpected track.")
 
                     meta_sequence.add_absolute_message(
                         Message(message_type=MessageType.KEY_SIGNATURE, key=msg.key, time=rounded_point_in_time))
@@ -131,7 +121,6 @@ class MidiFile:
 
         # Merge sequence according to groups
         for sequences_to_merge in sequences:
-            #
             for seq in sequences_to_merge:
                 seq.normalise()
             track = copy.copy(sequences_to_merge[0])
@@ -151,6 +140,15 @@ class MidiFile:
                 Message(message_type=MessageType.TIME_SIGNATURE, numerator=4, denominator=4, time=0))
 
         return merged_sequences
+
+    def save(self, path):
+        mido_midi_file = mido.MidiFile()
+        mido_midi_file.ticks_per_beat = PPQN
+
+        for track in self.tracks:
+            mido_midi_file.tracks.append(track.to_mido_track())
+
+        mido_midi_file.save(path)
 
 
 class MidiTrack:

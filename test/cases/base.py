@@ -47,8 +47,8 @@ def util_midi_to_sequences(file=None, lead_tracks=None, acmp_tracks=None, meta_t
     if meta_tracks is None:
         meta_tracks = [0, 3]
 
-    midi_file = MidiFile.open_midi_file(file)
-    sequences = midi_file.to_sequences([lead_tracks, acmp_tracks], meta_tracks)
+    midi_file = MidiFile.open(file)
+    sequences = midi_file.convert([lead_tracks, acmp_tracks], meta_tracks)
 
     return sequences
 
@@ -73,6 +73,6 @@ def util_split_into_bars(sequences=None):
     if sequences is None:
         sequences = util_midi_to_sequences()
 
-    bars = Sequence.split_into_bars(sequences)
+    bars = Sequence.sequences_split_bars(sequences)
 
     return bars

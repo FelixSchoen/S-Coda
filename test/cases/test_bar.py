@@ -10,7 +10,7 @@ def test_split_into_bars():
 
 def test_copy_bar():
     sequences = util_midi_to_sequences()
-    bars = Sequence.split_into_bars(sequences)
+    bars = Sequence.sequences_split_bars(sequences)
     bar = bars[0][0]
 
     bar_copy = copy.copy(bar)
@@ -23,7 +23,7 @@ def test_bars_to_sequence():
     sequence.quantise()
     sequence.quantise_note_lengths()
 
-    bars = Sequence.split_into_bars([sequence])
+    bars = Sequence.sequences_split_bars([sequence])
 
     bars_to_consolidate = bars[0]
 

@@ -30,7 +30,7 @@ def test_consolidate_sequences():
 
 
 def test_cutoff():
-    sequence = Sequence.from_midi_file(file_path=RESOURCE_CHOPIN, track_indices=[[0]], meta_track_indices=[0])[0]
+    sequence = Sequence.sequences_load(file_path=RESOURCE_CHOPIN, track_indices=[[0]], meta_track_indices=[0])[0]
     sequence.cutoff(48, 24)
 
     for note_pair in sequence.abs.get_message_time_pairings():
@@ -39,7 +39,7 @@ def test_cutoff():
 
 def test_get_valid_next_messages():
     sequences = util_midi_to_sequences()
-    bars = Sequence.split_into_bars(sequences)
+    bars = Sequence.sequences_split_bars(sequences)
     sequence = bars[0][0].sequence
 
     assert len(sequence.rel.get_valid_next_messages(2)) == 1
@@ -72,7 +72,7 @@ def test_scale():
     sequences = util_midi_to_sequences()
 
     original_sequence = sequences[0]
-    original_bars = Sequence.split_into_bars([original_sequence], quantise_note_lengths=False)[0]
+    original_bars = Sequence.sequences_split_bars([original_sequence], quantise_note_lengths=False)[0]
 
     scaled_sequence = copy.copy(original_sequence)
     scale_factor = 0.5

@@ -37,7 +37,7 @@ class Composition:
         Returns: The created composition
         """
         # Load sequence from file
-        merged_sequences = Sequence.from_midi_file(file_path=file_path,
+        merged_sequences = Sequence.sequences_load(file_path=file_path,
                                                    track_indices=track_indices,
                                                    meta_track_indices=meta_track_indices,
                                                    target_meta_track_index=meta_track_index)
@@ -53,7 +53,7 @@ class Composition:
     @staticmethod
     def from_sequences(sequences, meta_track_index: int = 0) -> Composition:
         # Split sequence into bars
-        tracks_bars = Sequence.split_into_bars(sequences, meta_track_index=meta_track_index)
+        tracks_bars = Sequence.sequences_split_bars(sequences, meta_track_index=meta_track_index)
 
         # Create tracks from bars
         tracks = []
