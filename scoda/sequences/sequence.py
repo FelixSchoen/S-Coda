@@ -149,6 +149,8 @@ class Sequence:
         """See `scoda.sequence.absolute_sequence.AbsoluteSequence.merge`."""
         self.abs.merge([seq.abs for seq in sequences])
         self._rel_stale = True
+        self.rel.adjust()
+        self._abs_stale = True
 
     def pad(self, padding_length) -> None:
         """See `scoda.sequence.relative_sequence.RelativeSequence.pad`."""

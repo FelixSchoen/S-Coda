@@ -101,26 +101,6 @@ class AbsoluteSequence(AbstractSequence):
 
         self.sort()
 
-        open_messages = dict()
-
-        for msg in copy.copy(self.messages):
-            if msg.message_type == MessageType.NOTE_ON:
-                if open_messages.get(msg.note, 0) > 0:
-                    self.messages.remove(msg)
-                open_messages[msg.note] = open_messages.get(msg.note, 0) + 1
-            elif msg.message_type == MessageType.NOTE_OFF:
-                if open_messages.get(msg.note, 0) > 1:
-                    self.messages.remove(msg)
-                elif open_messages.get(msg.note, 0) < 1:
-                    AbsoluteSequence.LOGGER.warning(f"Merge: Note {msg.note} not previously started.")
-                open_messages[msg.note] = open_messages.get(msg.note, 0) - 1
-
-        for key in open_messages.keys():
-            if open_messages[key] != 0:
-                AbsoluteSequence.LOGGER.warning(f"Merge: Note {key} not properly settled.")
-
-        self.sort()
-
     def quantise(self, step_sizes: list[int] = None) -> None:
         """Quantises the sequence to a given grid.
 

@@ -18,7 +18,6 @@ def test_adjust_wait_messages():
             duration_post += msg.time
 
     assert duration_pre == duration_post
-    assert all((not (msg.message_type == MessageType.WAIT) or msg.time <= PPQN) for msg in sequence.rel.messages)
 
 
 def test_consolidate_sequences():

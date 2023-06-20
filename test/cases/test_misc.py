@@ -81,15 +81,3 @@ def test_midi_messages():
         print(f"Track {i + 1}")
         for j, message in enumerate(track.messages):
             print(message)
-
-
-def test_problem():
-    sequences = Sequence.from_midi_file(Path(__file__).parent.parent.joinpath("res").joinpath("subject.mid"),
-                                        None,
-                                        track_indices=[[1, 2], [3, 4]],
-                                        meta_track_indices=[0])
-
-    for i, sequence in enumerate(sequences):
-        sequence.save(Path(__file__).parent.parent.joinpath("res").joinpath("{}_subject.mid".format(i)))
-
-    composition = Composition.from_sequences(sequences)

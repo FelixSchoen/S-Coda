@@ -131,6 +131,9 @@ class MidiFile:
 
         # Merge sequence according to groups
         for sequences_to_merge in sequences:
+            #
+            for seq in sequences_to_merge:
+                seq.adjust()
             track = copy.copy(sequences_to_merge[0])
             track.merge(sequences_to_merge[1:])
             merged_sequences.append(track)
