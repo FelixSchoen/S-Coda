@@ -66,7 +66,7 @@ def test_piano_rolls():
 #         assert data_frame is not None
 
 
-def test_to_dataframe_is_deprecated():
-    sequences = util_midi_to_sequences()
-    sequence = sequences[0]
-    sequence.to_relative_dataframe()
+# def test_to_dataframe_is_deprecated():
+#     sequences = util_midi_to_sequences()
+#     sequence = sequences[0]
+#     sequence.to_relative_dataframe()

@@ -26,6 +26,7 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Reworked `get_messages_of_type()` to work with a list of message types
 - Reworked `get_message_time_pairings()` to work with a list of message types
 - Reworked `adjust()` to remove invalid notes and only consolidate (instead of split up to chunks of `PPQN`) wait messages
+- Rename `adjust()` to `normalise()`
 
 ### Fixed
 

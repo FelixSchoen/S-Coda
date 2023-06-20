@@ -23,7 +23,7 @@ class Bar:
         self.key_signature = key
 
         # Adjust sequence
-        self.sequence.adjust()
+        self.sequence.normalise()
 
         # Assert bar has correct capacity
         if self.sequence.get_sequence_length_relation() > self.time_signature_numerator * PPQN / (

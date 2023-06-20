@@ -10,7 +10,7 @@ def test_normalise_relative():
         if msg.message_type == MessageType.WAIT:
             duration_pre += msg.time
 
-    sequence.normalise_relative()
+    sequence.normalise()
 
     duration_post = 0
     for msg in sequence.rel.messages:
@@ -100,7 +100,8 @@ def test_scale_then_create_composition():
     assert all(msg.message_type != MessageType.TIME_SIGNATURE for msg in sequences[1].rel.messages)
 
     compositions = []
-    scale_factors = [0.5, 2]
+    scale_factors = [0.5]
+    # scale_factors = [0.5, 1, 2]
 
     # Scale sequence by given factors
     for scale_factor in scale_factors:

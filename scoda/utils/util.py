@@ -24,7 +24,7 @@ def bin_from_velocity(velocity: int) -> int:
     return np.digitize(velocity, bins, right=True).item(-1)
 
 
-def b_insort(collection: list, message: Message) -> None:
+def binary_insort(collection: list, message: Message) -> None:
     """Sorts the given message into the correct position in the already sorted list.
 
     Args:

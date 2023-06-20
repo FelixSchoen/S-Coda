@@ -113,8 +113,9 @@ class RelativeSequence(AbstractSequence):
                         continue
 
                 # Insert consolidated wait message
-                messages_normalized.append(Message(message_type=MessageType.WAIT, time=wait_buffer))
-                wait_buffer = 0
+                if wait_buffer > 0:
+                    messages_normalized.append(Message(message_type=MessageType.WAIT, time=wait_buffer))
+                    wait_buffer = 0
 
                 messages_normalized.append(msg)
 
@@ -240,6 +241,7 @@ class RelativeSequence(AbstractSequence):
         return split_sequences
 
     def scale(self, factor, meta_sequence=None) -> None:
+        # TODO Without normalisation inserts double time signature - check why
         """Stretches the sequence by the given factor.
 
         Args:
@@ -312,6 +314,7 @@ class RelativeSequence(AbstractSequence):
                     bar_index += 1
 
             self.messages = modified_messages
+            self.normalise_relative()
 
     def transpose(self, transpose_by: int) -> bool:
         """Transposes the sequence by the given amount.
@@ -491,8 +494,10 @@ class RelativeSequence(AbstractSequence):
             else:
                 message_to_add = copy.copy(msg)
                 message_to_add.time = current_point_in_time
-                absolute_sequence.add_message(message_to_add)
+                absolute_sequence._add_message_unsorted(message_to_add)
                 cap_message_exists = True
+
+        absolute_sequence.normalise_absolute()
 
         if not cap_message_exists:
             absolute_sequence.add_message(Message(message_type=MessageType.INTERNAL, time=current_point_in_time))

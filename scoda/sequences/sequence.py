@@ -129,11 +129,6 @@ class Sequence:
         self.rel.add_message(msg)
         self._abs_stale = True
 
-    def adjust(self) -> None:
-        """See `scoda.sequence.relative_sequence.RelativeSequence.normalise_relative`."""
-        self.rel.normalise_relative()
-        self._abs_stale = True
-
     def concatenate(self, sequences: list[Sequence]) -> None:
         """See `scoda.sequence.relative_sequence.RelativeSequence.concatenate`."""
         self.rel.concatenate([seq.rel for seq in sequences])
@@ -148,6 +143,11 @@ class Sequence:
         """See `scoda.sequence.absolute_sequence.AbsoluteSequence.merge`."""
         self.abs.merge([seq.abs for seq in sequences])
         self._rel_stale = True
+        self.rel.normalise_relative()
+        self._abs_stale = True
+
+    def normalise(self) -> None:
+        """See `scoda.sequence.relative_sequence.RelativeSequence.normalise_relative`."""
         self.rel.normalise_relative()
         self._abs_stale = True
 
@@ -415,7 +415,7 @@ class Sequence:
                         self._diff_pattern, self._diff_concurrent_notes]:
             return self._difficulty
 
-        self.adjust()
+        self.normalise()
 
         if key_signature is None:
             key_signature = self.rel.get_key_signature_guess()
@@ -555,8 +555,8 @@ class Sequence:
         return merged_sequences
 
     @staticmethod
-    def split_into_bars(sequences_input: list[Sequence], meta_track_index=0, quantise_note_lengths=True) -> list[
-        list[Bar]]:
+    def split_into_bars(sequences_input: list[Sequence], meta_track_index=0, quantise_note_lengths=True) -> \
+            list[list[Bar]]:
         """Splits the sequence into a lists of `scoda.Bar`, conforming to the contained time signatures.
 
         Each list of bars will correspond to one of the given sequence.
@@ -614,7 +614,7 @@ class Sequence:
                 current_key = key_signature[1].key
 
             # Calculate length of current bar based on time signature
-            length_bar = PPQN * (current_ts_numerator / (current_ts_denominator / 4))
+            length_bar = int(PPQN * (current_ts_numerator / (current_ts_denominator / 4)))
             current_point_in_time += length_bar
 
             # Assume after this split, tracks are synchronized

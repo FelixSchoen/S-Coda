@@ -12,7 +12,8 @@ from scoda.settings.settings import PPQN, DIFF_DUAL_NOTE_VALUES_UPPER_BOUND, \
     SCALE_LOGLIKE
 from scoda.utils.enumerations import MessageType
 from scoda.utils.scoda_logging import setup_logger
-from scoda.utils.util import b_insort, find_minimal_distance, regress, minmax, simple_regression, get_note_durations, \
+from scoda.utils.util import binary_insort, find_minimal_distance, regress, minmax, simple_regression, \
+    get_note_durations, \
     get_tuplet_durations, get_dotted_note_durations
 
 if TYPE_CHECKING:
@@ -61,7 +62,11 @@ class AbsoluteSequence(AbstractSequence):
 
     def add_message(self, msg: Message) -> None:
         """Adds the given message to the current sequence."""
-        b_insort(self.messages, msg)
+        binary_insort(self.messages, msg)
+
+    def _add_message_unsorted(self, msg: Message) -> None:
+        """Adds the given message to the current sequence."""
+        self.messages.append(msg)
 
     def cutoff(self, maximum_length, reduced_length) -> None:
         """Reduces the length of all notes longer than the maximum length to this value.
@@ -76,14 +81,14 @@ class AbsoluteSequence(AbstractSequence):
         for entry in note_array:
             if len(entry) == 1:
                 if not entry[0].message_type == MessageType.NOTE_ON:
-                    raise SequenceException("Note was closed without having been opened.")
+                    raise SequenceException("Cutoff: Note was closed without having been opened.")
                 self.add_message(
                     Message(message_type=MessageType.NOTE_OFF, note=entry[0].note, time=entry[0].time + maximum_length))
             else:
                 if entry[1].time - entry[0].time > maximum_length:
                     entry[1].time = entry[0].time + reduced_length
 
-        self.sort()
+        self.normalise_absolute()
 
     def merge(self, sequences: list[AbsoluteSequence]) -> None:
         """Merges this sequence with all the given ones.
@@ -97,8 +102,11 @@ class AbsoluteSequence(AbstractSequence):
         """
         for sequence in sequences:
             for msg in copy.copy(sequence.messages):
-                b_insort(self.messages, msg)
+                self._add_message_unsorted(msg)
 
+        self.normalise_absolute()
+
+    def normalise_absolute(self) -> None:
         self.sort()
 
     def quantise(self, step_sizes: list[int] = None) -> None:
@@ -211,7 +219,7 @@ class AbsoluteSequence(AbstractSequence):
             quantised_messages.pop(index_to_remove - index_shifter)
 
         self.messages = quantised_messages
-        self.sort()
+        self.normalise_absolute()
 
     def quantise_note_lengths(self, possible_durations=None, standard_length=PPQN, do_not_extend=False) -> None:
         """Quantises the note lengths of this sequence, only affecting the ending of the notes.
@@ -294,7 +302,7 @@ class AbsoluteSequence(AbstractSequence):
                 quantised_messages.append(msg)
 
         self.messages = quantised_messages
-        self.sort()
+        self.normalise_absolute()
 
     def sort(self) -> None:
         """Sorts the sequence according to the timings of the messages.
@@ -324,7 +332,7 @@ class AbsoluteSequence(AbstractSequence):
         if message_types is None:
             message_types = [MessageType.NOTE_ON, MessageType.NOTE_OFF]
 
-        self.sort()
+        self.normalise_absolute()
 
         open_messages = dict()
         notes: [[]] = []
