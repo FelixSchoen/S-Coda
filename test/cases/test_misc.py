@@ -86,8 +86,68 @@ def test_example():
 #             print(message)
 #
 #
-# def test_subject():
-#     sequences = Sequence.from_midi_file(Path(__file__).parent.parent.joinpath("res").joinpath("subject.mid"))
-#     sequence = sequences[0]
-#     sequence.merge(sequences[1:])
-#     sequence.save("subject_out.mid")
+
+def test_subject():
+    sequences = Sequence.sequences_load(Path(__file__).parent.parent.joinpath("res").joinpath("subject.mid"))
+
+    compositions = []
+
+    for scale_factor in [1]:
+        scaled_sequences = []
+
+        for sequence in sequences:
+            scaled_sequence = copy.copy(sequence)
+
+            scaled_sequence.quantise()
+            scaled_sequence.quantise_note_lengths()
+
+            # Scale by scale factor, using first track as meta information track
+            scaled_sequence.scale(scale_factor, sequences[0])
+
+            scaled_sequences.append(scaled_sequence)
+
+        # Create composition from scaled sequences
+        composition = Composition.from_sequences(scaled_sequences)
+        compositions.append(composition)
+
+    # Extract bars
+    bars = [[track.bars for track in composition.tracks] for composition in compositions]
+
+    def _assign_difficulty(bar: Bar) -> float:
+        bar.difficulty()
+        assert bar.sequence._difficulty is not None
+        return bar.difficulty()
+
+    # Assign difficulties
+    if True:
+        for bars_composition in bars:
+            for bars_track in bars_composition:
+                for bar in bars_track:
+                    _assign_difficulty(bar)
+
+    bars_augmented = []
+
+    def _augment_transpose(bars: list[list[Bar]], assign_difficulties) -> list[list[list[Bar]]]:
+        transposed_segments = []
+
+        for transpose_by in [-5]:
+            transposed_tracks = []
+            for bars_track in bars:
+                transposed_track = []
+                for bar in bars_track:
+                    transposed_bar = copy.copy(bar)
+                    transposed_bar.transpose(transpose_by)
+                    if assign_difficulties:
+                        transposed_bar.difficulty()
+                    transposed_track.append(bar)
+                transposed_tracks.append(transposed_track)
+            transposed_segments.append(transposed_tracks)
+
+        return transposed_segments
+
+    # Augment by transposing
+    if True:
+        for bars_composition in bars:
+            bars_transposed = _augment_transpose(bars_composition, True)
+            bars_augmented.extend(bars_transposed)
+

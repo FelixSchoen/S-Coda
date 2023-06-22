@@ -185,8 +185,9 @@ class Sequence:
 
         # Possible that notes overlap
         if shifted:
-            self._diff_pattern = None
+            self.normalise()
             self.quantise_note_lengths()
+            self._diff_pattern = None
 
         if transpose_by % 12 != 0:
             self._diff_key = None
