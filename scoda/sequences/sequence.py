@@ -140,8 +140,7 @@ class Sequence:
         """See `scoda.sequence.absolute_sequence.AbsoluteSequence.merge`."""
         self.abs.merge([seq.abs for seq in sequences])
         self._rel_stale = True
-        self.rel.normalise_relative()
-        self._abs_stale = True
+        self.normalise()
 
     def normalise(self) -> None:
         """See `scoda.sequence.relative_sequence.RelativeSequence.normalise_relative`."""

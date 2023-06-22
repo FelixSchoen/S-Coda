@@ -11,7 +11,7 @@ from scoda.settings.settings import PPQN, DIFF_DUAL_NOTE_VALUES_UPPER_BOUND, \
     DIFF_DUAL_NOTE_VALUES_LOWER_BOUND, NOTE_VALUE_UPPER_BOUND, NOTE_VALUE_LOWER_BOUND, VALID_TUPLETS, DOTTED_ITERATIONS, \
     SCALE_LOGLIKE
 from scoda.utils.enumerations import MessageType
-from scoda.utils.scoda_logging import setup_logger
+from scoda.utils.scoda_logging import get_logger
 from scoda.utils.util import binary_insort, find_minimal_distance, regress, minmax, simple_regression, \
     get_note_durations, \
     get_tuplet_durations, get_dotted_note_durations
@@ -24,7 +24,7 @@ class AbsoluteSequence(AbstractSequence):
     """Class representing a sequence with absolute message timings.
     """
 
-    LOGGER = setup_logger(__name__)
+    LOGGER = get_logger(__name__)
 
     # General Methods
 

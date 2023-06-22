@@ -9,14 +9,14 @@ from scoda.elements.message import Message
 from scoda.settings.settings import PPQN
 from scoda.utils.enumerations import MessageType
 from scoda.utils.music_theory import MusicMapping
-from scoda.utils.scoda_logging import setup_logger
+from scoda.utils.scoda_logging import get_logger
 
 if TYPE_CHECKING:
     from scoda.sequences.sequence import Sequence
 
 
 class MidiFile:
-    LOGGER = setup_logger(__name__)
+    LOGGER = get_logger(__name__)
 
     def __init__(self) -> None:
         super().__init__()
@@ -91,7 +91,7 @@ class MidiFile:
                 # Time Signature
                 elif msg.message_type == MessageType.TIME_SIGNATURE:
                     if i not in meta_track_indices:
-                        MidiFile.LOGGER.warning("MidiFile: Encountered time signature change in unexpected track.")
+                        MidiFile.LOGGER.debug("MidiFile: Encountered time signature change in unexpected track.")
 
                     meta_sequence.add_absolute_message(
                         Message(message_type=MessageType.TIME_SIGNATURE, numerator=msg.numerator,
@@ -99,7 +99,7 @@ class MidiFile:
                 # Key Signature
                 elif msg.message_type == MessageType.KEY_SIGNATURE:
                     if i not in meta_track_indices:
-                        MidiFile.LOGGER.warning("MidiFile: Encountered key signature change in unexpected track.")
+                        MidiFile.LOGGER.debug("MidiFile: Encountered key signature change in unexpected track.")
 
                     meta_sequence.add_absolute_message(
                         Message(message_type=MessageType.KEY_SIGNATURE, key=msg.key, time=rounded_point_in_time))
@@ -155,6 +155,7 @@ class MidiTrack:
 
     def __init__(self) -> None:
         super().__init__()
+        self.name = ""
         self.messages: [MidiMessage] = []
 
     @staticmethod
@@ -168,6 +169,10 @@ class MidiTrack:
 
     def to_mido_track(self) -> mido.MidiTrack:
         track = mido.MidiTrack()
+
+        if self.name is not None and self.name != "":
+            track.name = self.name
+
         time_buffer = 0
 
         for msg in self.messages:

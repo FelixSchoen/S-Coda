@@ -35,8 +35,11 @@ def test_midi_file_to_mido_track():
 # Logging
 
 def test_logging_framework():
-    logger = setup_logger()
+    logger = get_logger()
     logger.info("Logging test")
+
+    logger_child = get_logger("test")
+    logger_child.info("Child test")
 
 
 # Example
