@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import copy
+
 from scoda.elements.track import Track
 from scoda.sequences.sequence import Sequence
 
@@ -13,13 +15,9 @@ class Composition:
         self.tracks = tracks
 
     def __copy__(self) -> Composition:
-        tracks = []
-
-        for track in self.tracks:
-            tracks.append(track.__copy__())
+        tracks = [copy.copy(track) for track in self.tracks]
 
         cpy = Composition(tracks)
-
         return cpy
 
     @staticmethod

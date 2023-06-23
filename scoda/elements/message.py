@@ -27,9 +27,6 @@ class Message:
                        numerator=self.numerator, denominator=self.denominator, key=self.key, time=self.time,
                        program=self.program)
 
-    def __deepcopy__(self, memodict=None) -> Message:
-        return self.__copy__()
-
     # def __eq__(self, o: object) -> bool:
     #     if not isinstance(o, Message):
     #         return False

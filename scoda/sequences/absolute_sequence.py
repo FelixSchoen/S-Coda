@@ -30,18 +30,14 @@ class AbsoluteSequence(AbstractSequence):
 
     def __init__(self) -> None:
         super().__init__()
-        self.LOGGER
 
     def __copy__(self) -> AbsoluteSequence:
-        copied_messages = []
+        cpy = AbsoluteSequence()
 
         for message in self.messages:
-            copied_messages.append(message.__copy__())
+            cpy.messages.append(copy.copy(message))
 
-        copied_sequence = AbsoluteSequence()
-        copied_sequence.messages = copied_messages
-
-        return copied_sequence
+        return cpy
 
     def __eq__(self, o: object) -> bool:
         if not isinstance(o, AbsoluteSequence):

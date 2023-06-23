@@ -75,6 +75,27 @@ def test_example():
     detokenised_sequence.save("out/generated_sequence.mid")
 
 
+# Copy
+
+def test_copy_of_elements():
+    sequences = util_midi_to_sequences()
+    sequence = sequences[0]
+    composition = Composition.from_sequences(sequences)
+
+    sequence_copy = copy.copy(sequence)
+    composition_copy = copy.copy(composition)
+
+    for msg_orig, msg_copy in zip(sequence.rel.messages, sequence_copy.rel.messages):
+        assert msg_orig.message_type == msg_copy.message_type
+        assert msg_orig != msg_copy
+
+    for track_orig, track_copy in zip(composition.tracks, composition_copy.tracks):
+        for bar_orig, bar_copy in zip(track_orig.bars, track_copy.bars):
+            for msg_orig, msg_copy in zip(bar_orig.sequence.rel.messages, bar_copy.sequence.rel.messages):
+                assert msg_orig.message_type == msg_copy.message_type
+                assert msg_orig != msg_copy
+
+
 # Debug
 
 # def test_midi_messages():
@@ -150,4 +171,3 @@ def test_subject():
         for bars_composition in bars:
             bars_transposed = _augment_transpose(bars_composition, True)
             bars_augmented.extend(bars_transposed)
-

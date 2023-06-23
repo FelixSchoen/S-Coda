@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import copy
+
 from pandas import DataFrame
 
 from scoda.elements.message import Message
@@ -57,7 +59,7 @@ class Bar:
         self.sequence._abs_stale = True
 
     def __copy__(self) -> Bar:
-        bar = Bar(self.sequence.__copy__(), self.time_signature_numerator, self.time_signature_denominator,
+        bar = Bar(copy.copy(self.sequence), self.time_signature_numerator, self.time_signature_denominator,
                   self.key_signature)
 
         return bar

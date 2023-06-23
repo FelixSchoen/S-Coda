@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import copy
+
 from scoda.elements.bar import Bar
 from scoda.exceptions.track_exception import TrackException
 from scoda.sequences.sequence import Sequence
@@ -24,12 +26,9 @@ class Track:
             self.program = program_changes[0].program
 
     def __copy__(self) -> Track:
-        bars = []
-        for bar in self.bars:
-            bars.append(bar.__copy__())
+        bars = [copy.copy(bar) for bar in self.bars]
 
         cpy = Track(bars, self.name)
-
         return cpy
 
     def to_sequence(self) -> Sequence:
