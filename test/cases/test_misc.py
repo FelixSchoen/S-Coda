@@ -1,4 +1,5 @@
 from base import *
+from scoda.midi.midi_file import MidiFile
 
 
 # Settings

@@ -9,11 +9,12 @@ from matplotlib import pyplot as plt, pyplot
 from matplotlib.patches import Rectangle
 
 from scoda.elements.message import Message
+from scoda.midi.midi_file import MidiFile
+from scoda.midi.midi_track import MidiTrack
 from scoda.sequences.absolute_sequence import AbsoluteSequence
 from scoda.sequences.relative_sequence import RelativeSequence
 from scoda.settings.settings import PPQN, NOTE_LOWER_BOUND, NOTE_UPPER_BOUND, VELOCITY_MAX
 from scoda.utils.enumerations import MessageType
-from scoda.utils.midi_wrapper import MidiTrack, MidiFile
 from scoda.utils.music_theory import Key
 from scoda.utils.util import minmax, simple_regression
 
