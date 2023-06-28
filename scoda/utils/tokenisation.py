@@ -253,7 +253,7 @@ class NotelikeTokeniser(Tokeniser):
             if not 28 <= token <= 115:
                 info.append(invalid_value)
             else:
-                info.append((invalid_value - 28 + 21) % 12)
+                info.append((token - 28 + 21) % 12)
 
         return info
 
@@ -391,7 +391,7 @@ class MIDIlikeTokeniser(Tokeniser):
             if not 27 <= token <= 114:
                 info.append(invalid_value)
             else:
-                info.append((invalid_value - 27 + 21) % 12)
+                info.append((token - 27 + 21) % 12)
 
         return info
 
@@ -556,7 +556,7 @@ class GridlikeTokeniser(Tokeniser):
             if not 28 <= token <= 115:
                 info.append(invalid_value)
             else:
-                info.append((invalid_value - 28 + 21) % 12)
+                info.append((token - 28 + 21) % 12)
 
         return info
 
@@ -590,8 +590,8 @@ class GridlikeTokeniser(Tokeniser):
 
 class TransposedNotelikeTokeniser(Tokeniser):
     """Tokeniser that uses transposed temporal representation with a note-like approach, i.e., all occurrences of a note
-    are shown first before any other note is handled. Note that input sequences are required to represent bars, as the
-    transposed representation is done on a per-bar basis.
+    are shown first before any other note is handled. Note that an input sequence is required to represent a list of bars,
+    as the transposed representation is done on a per-bar basis.
 
     [        0] ... pad
     [        1] ... start
@@ -776,3 +776,87 @@ class TransposedNotelikeTokeniser(Tokeniser):
                 raise TokenisationException(f"Encountered invalid token during detokenisation: {token}")
 
         return seq
+
+    @staticmethod
+    def get_info_notes(tokens: list[int], invalid_value: int = -1) -> list[int]:
+        info = []
+
+        prv_note = math.nan
+
+        for token in tokens:
+            if token == 3:
+                if math.isnan(prv_note):
+                    raise TokenisationException(f"Note value not initialised")
+
+                info.append(prv_note)
+            elif 30 <= token <= 117:
+                info.append(invalid_value)
+                prv_note = token - 30 + 21
+            else:
+                info.append(invalid_value)
+
+        return info
+
+    @staticmethod
+    def get_info_circle_of_fifths(tokens: list[int], invalid_value: int = -1) -> list[int]:
+        info = []
+
+        prv_note = math.nan
+
+        for token in tokens:
+            if token == 3:
+                if math.isnan(prv_note):
+                    raise TokenisationException(f"Note value not initialised")
+
+                info.append(prv_note % 12)
+            elif 30 <= token <= 117:
+                info.append(invalid_value)
+                prv_note = token - 30 + 21
+            else:
+                info.append(invalid_value)
+
+        return info
+
+    @staticmethod
+    def get_info_elapsed_ticks(tokens: list[int]) -> list[int]:
+        info = []
+
+        time_bar_start = 0
+        cur_time_bar = 0
+
+        prv_type = None
+        prv_value = math.nan
+        prv_numerator = math.nan
+
+        for token in tokens:
+            info.append(time_bar_start + cur_time_bar)
+
+            if token == 4:
+                cur_time_bar += prv_value
+
+                prv_type = MessageType.WAIT
+            elif token == 5:
+                time_bar_start += prv_numerator * PPQN / 2
+                cur_time_bar = 0
+
+                prv_type = "bar_border"
+            elif 6 <= token <= 29:
+                if prv_type == "value_definition":
+                    prv_value += token - 5
+                else:
+                    prv_value = token - 5
+
+                prv_type = "value_definition"
+            elif 30 <= token <= 117:
+                cur_time_bar = 0
+
+                prv_type = "note_definition"
+            elif 118 <= token <= 132:
+                numerator = token - 118 + 2
+
+                prv_type = MessageType.TIME_SIGNATURE
+                prv_numerator = numerator
+            else:
+                prv_type = "general_message"
+
+        return info
