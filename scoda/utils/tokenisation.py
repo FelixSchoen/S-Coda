@@ -241,7 +241,7 @@ class NotelikeTokeniser(Tokeniser):
             if not 28 <= token <= 115:
                 info.append(invalid_value)
             else:
-                info.append(token - 28)
+                info.append(token - 28 + 21)
 
         return info
 
@@ -370,6 +370,43 @@ class MIDIlikeTokeniser(Tokeniser):
                     Message(message_type=MessageType.TIME_SIGNATURE, numerator=token - 203 + 2, denominator=8))
 
         return seq
+
+    @staticmethod
+    def get_info_notes(tokens: list[int], invalid_value: int = -1) -> list[int]:
+        info = []
+
+        for token in tokens:
+            if not 27 <= token <= 114:
+                info.append(invalid_value)
+            else:
+                info.append(token - 27 + 21)
+
+        return info
+
+    @staticmethod
+    def get_info_circle_of_fifths(tokens: list[int], invalid_value: int = -1) -> list[int]:
+        info = []
+
+        for token in tokens:
+            if not 27 <= token <= 114:
+                info.append(invalid_value)
+            else:
+                info.append((invalid_value - 27 + 21) % 12)
+
+        return info
+
+    @staticmethod
+    def get_info_elapsed_ticks(tokens: list[int]) -> list[int]:
+        info = []
+        cur_time = 0
+
+        for token in tokens:
+            info.append(cur_time)
+
+            if 3 <= token <= 26:
+                cur_time += token - 2
+
+        return info
 
 
 class GridlikeTokeniser(Tokeniser):
