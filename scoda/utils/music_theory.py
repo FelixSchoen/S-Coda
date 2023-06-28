@@ -58,7 +58,6 @@ class CircleOfFifths:
         to_pos = CircleOfFifths.circle_of_fifths_order.index(Note(to_note_val % 12)) - 5
 
         to_pos = (to_pos - from_pos) % 12
-        from_pos = 0
 
         distance_right = to_pos
         distance_left = 12 - distance_right
