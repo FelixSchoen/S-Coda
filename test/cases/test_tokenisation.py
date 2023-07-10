@@ -56,11 +56,15 @@ def _test_roundtrip_tokenisation(tokeniser, path_resource, track):
 
 def _test_valid_tokens(tokeniser, path_resource, track):
     tokens = _test_roundtrip_tokenisation(tokeniser, path_resource, track)
+    tokens.insert(0, 1)
+    tokens.append(2)
 
     valid_tokens, previous_state = tokeniser.get_valid_tokens([])
-    for i in range(0, len(tokens)):
+    assert tokens[0] in valid_tokens
+
+    for i in range(0, len(tokens) - 1):
         valid_tokens, previous_state = tokeniser.get_valid_tokens([tokens[i]], previous_state=previous_state)
-        assert tokens[i+1] in valid_tokens
+        assert tokens[i + 1] in valid_tokens
 
 # def test_tokenisation_single():
 #     tokeniser = NotelikeTokeniser(running_value=True, running_time_sig=True)

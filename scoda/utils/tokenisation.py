@@ -283,13 +283,15 @@ class NotelikeTokeniser(Tokeniser):
 
     @staticmethod
     def get_valid_tokens(tokens: list[int], min_bars: int = -1, bar_limit_hard: bool = False,
-                         previous_state: dict = None) -> list[int]:
+                         previous_state: dict = None) -> (list[int], dict[str, int]):
         cur_bar_index = 0
         cur_bar_capacity = 4 * PPQN
         cur_time = 0
         cur_bar_time = 0
         prv_type = None
         prv_value = math.nan
+        seq_started = 1 in tokens
+        seq_stopped = 2 in tokens
 
         if previous_state is not None:
             cur_bar_index = previous_state["cur_bar_index"]
@@ -298,6 +300,8 @@ class NotelikeTokeniser(Tokeniser):
             cur_bar_time = previous_state["cur_bar_time"]
             prv_type = previous_state["prv_type"]
             prv_value = previous_state["prv_value"]
+            seq_started |= previous_state["seq_started"]
+            seq_stopped |= previous_state["seq_stopped"]
 
         for token in tokens:
             if token <= 2:
@@ -326,37 +330,37 @@ class NotelikeTokeniser(Tokeniser):
                 raise TokenisationException(f"Encountered invalid token during validity check: {token}")
 
         valid_tokens = []
-        started = 1 in tokens
-        stopped = 2 in tokens
 
         # padding TODO
-        if started and stopped:
+        if seq_started and seq_stopped:
             valid_tokens.append(0)
         # start
-        if len(tokens) == 0:
+        if not seq_started:
             valid_tokens.append(1)
         # stop
-        if started and not stopped and (min_bars == -1 or cur_bar_index == min_bars - 1):
+        if seq_started and not seq_stopped and (min_bars == -1 or cur_bar_index == min_bars - 1):
             valid_tokens.append(2)
         # wait
-        if started and not stopped \
-                or not bar_limit_hard \
-                or cur_bar_time + prv_value <= cur_bar_capacity \
-                or cur_bar_index + 1 + (prv_value - (cur_bar_capacity - cur_bar_time)) // cur_bar_capacity < min_bars:
+        if seq_started and not seq_stopped \
+                and (not bar_limit_hard
+                     or cur_bar_time + prv_value <= cur_bar_capacity
+                     or cur_bar_index + 1 + (
+                             prv_value - (cur_bar_capacity - cur_bar_time)) // cur_bar_capacity < min_bars):
             valid_tokens.append(3)
         # value definition
-        if started and not stopped:
+        if seq_started and not seq_stopped:
             for t in range(4, 27 + 1):
                 valid_tokens.append(t)
         # note
-        if started and not stopped \
-                or not bar_limit_hard \
-                or cur_bar_time + prv_value <= cur_bar_capacity \
-                or cur_bar_index + 1 + (prv_value - (cur_bar_capacity - cur_bar_time)) // cur_bar_capacity < min_bars:
+        if seq_started and not seq_stopped \
+                and (not bar_limit_hard
+                     or cur_bar_time + prv_value <= cur_bar_capacity
+                     or cur_bar_index + 1 + (
+                             prv_value - (cur_bar_capacity - cur_bar_time)) // cur_bar_capacity < min_bars):
             for t in range(28, 115 + 1):
                 valid_tokens.append(t)
         # time signature
-        if started and not stopped and cur_bar_time == 0:
+        if seq_started and not seq_stopped and cur_bar_time == 0:
             for t in range(116, 130 + 1):
                 valid_tokens.append(t)
 
@@ -365,7 +369,9 @@ class NotelikeTokeniser(Tokeniser):
                  "cur_time": cur_time,
                  "cur_bar_time": cur_bar_time,
                  "prv_type": prv_type,
-                 "prv_value": prv_value}
+                 "prv_value": prv_value,
+                 "seq_started": seq_started,
+                 "seq_stopped": seq_stopped}
 
         return valid_tokens, state
 
