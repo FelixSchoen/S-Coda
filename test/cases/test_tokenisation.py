@@ -9,6 +9,13 @@ def test_roundtrip_notelike_tokenisation(path_resource, track):
 
 
 @pytest.mark.parametrize("path_resource, track", zip(RESOURCES, [0, 0, 1, 1]))
+def test_valid_tokens_notelike_tokenisation(path_resource, track):
+    tokeniser = NotelikeTokeniser(running_value=True, running_time_sig=True)
+
+    _test_valid_tokens(tokeniser, path_resource, track)
+
+
+@pytest.mark.parametrize("path_resource, track", zip(RESOURCES, [0, 0, 1, 1]))
 def test_roundtrip_midilike_tokenisation(path_resource, track):
     tokeniser = MIDIlikeTokeniser(running_time_sig=True)
 
@@ -44,6 +51,16 @@ def _test_roundtrip_tokenisation(tokeniser, path_resource, track):
 
     assert sequence == sequence_roundtrip
 
+    return tokens
+
+
+def _test_valid_tokens(tokeniser, path_resource, track):
+    tokens = _test_roundtrip_tokenisation(tokeniser, path_resource, track)
+
+    valid_tokens, previous_state = tokeniser.get_valid_tokens([])
+    for i in range(0, len(tokens)):
+        valid_tokens, previous_state = tokeniser.get_valid_tokens([tokens[i]], previous_state=previous_state)
+        assert tokens[i+1] in valid_tokens
 
 # def test_tokenisation_single():
 #     tokeniser = NotelikeTokeniser(running_value=True, running_time_sig=True)

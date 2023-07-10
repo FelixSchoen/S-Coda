@@ -281,6 +281,94 @@ class NotelikeTokeniser(Tokeniser):
 
         return info
 
+    @staticmethod
+    def get_valid_tokens(tokens: list[int], min_bars: int = -1, bar_limit_hard: bool = False,
+                         previous_state: dict = None) -> list[int]:
+        cur_bar_index = 0
+        cur_bar_capacity = 4 * PPQN
+        cur_time = 0
+        cur_bar_time = 0
+        prv_type = None
+        prv_value = math.nan
+
+        if previous_state is not None:
+            cur_bar_index = previous_state["cur_bar_index"]
+            cur_bar_capacity = previous_state["cur_bar_capacity"]
+            cur_time = previous_state["cur_time"]
+            cur_bar_time = previous_state["cur_bar_time"]
+            prv_type = previous_state["prv_type"]
+            prv_value = previous_state["prv_value"]
+
+        for token in tokens:
+            if token <= 2:
+                prv_type = "sequence_control"
+            elif token == 3:
+                cur_time += prv_value
+                cur_bar_time += prv_value
+
+                while cur_bar_time > cur_bar_capacity:
+                    cur_bar_time -= cur_bar_capacity
+                    cur_bar_index += 1
+
+                prv_type = MessageType.WAIT
+            elif 4 <= token <= 27:
+                if prv_type == MessageType.INTERNAL:
+                    prv_value += token - 3
+                else:
+                    prv_value = token - 3
+                prv_type = MessageType.INTERNAL
+            elif 28 <= token <= 115:
+                prv_type = MessageType.NOTE_ON
+            elif 116 <= token <= 130:
+                cur_bar_capacity = int(((token - 116 + 2) / 8) * PPQN)
+                prv_type = MessageType.TIME_SIGNATURE
+            else:
+                raise TokenisationException(f"Encountered invalid token during validity check: {token}")
+
+        valid_tokens = []
+        started = 1 in tokens
+        stopped = 2 in tokens
+
+        # padding TODO
+        if started and stopped:
+            valid_tokens.append(0)
+        # start
+        if len(tokens) == 0:
+            valid_tokens.append(1)
+        # stop
+        if started and not stopped and (min_bars == -1 or cur_bar_index == min_bars - 1):
+            valid_tokens.append(2)
+        # wait
+        if started and not stopped \
+                or not bar_limit_hard \
+                or cur_bar_time + prv_value <= cur_bar_capacity \
+                or cur_bar_index + 1 + (prv_value - (cur_bar_capacity - cur_bar_time)) // cur_bar_capacity < min_bars:
+            valid_tokens.append(3)
+        # value definition
+        if started and not stopped:
+            for t in range(4, 27 + 1):
+                valid_tokens.append(t)
+        # note
+        if started and not stopped \
+                or not bar_limit_hard \
+                or cur_bar_time + prv_value <= cur_bar_capacity \
+                or cur_bar_index + 1 + (prv_value - (cur_bar_capacity - cur_bar_time)) // cur_bar_capacity < min_bars:
+            for t in range(28, 115 + 1):
+                valid_tokens.append(t)
+        # time signature
+        if started and not stopped and cur_bar_time == 0:
+            for t in range(116, 130 + 1):
+                valid_tokens.append(t)
+
+        state = {"cur_bar_index": cur_bar_index,
+                 "cur_bar_capacity": cur_bar_capacity,
+                 "cur_time": cur_time,
+                 "cur_bar_time": cur_bar_time,
+                 "prv_type": prv_type,
+                 "prv_value": prv_value}
+
+        return valid_tokens, state
+
 
 class MIDIlikeTokeniser(Tokeniser):
     """Tokeniser that uses note-like temporal representation.
