@@ -3,7 +3,7 @@ from __future__ import annotations
 import enum
 
 
-class Tokeniser(enum.Enum):
+class TokeniserType(enum.Enum):
     NOTELIKE_TOKENISER = "notelike_tokeniser"
     MIDILIKE_TOKENISER = "midilike_tokeniser"
     GRIDLIKE_TOKENISER = "gridlike_tokeniser"
