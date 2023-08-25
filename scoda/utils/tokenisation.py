@@ -115,7 +115,7 @@ class Tokeniser(ABC):
 
         if not 2 <= scaled <= 16:
             raise TokenisationException(
-                f"Invalid time signature numerator: {int(numerator)}")
+                f"Invalid time signature numerator: {scaled}")
 
         return int(scaled)
 
