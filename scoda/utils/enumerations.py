@@ -3,16 +3,11 @@ from __future__ import annotations
 import enum
 
 
-class NoteRepresentationType(enum.Enum):
-    ABSOLUTE_VALUES = 0
-    RELATIVE_DISTANCES = 1
-    CIRCLE_OF_FIFTHS = 2
-    SCALE = 3
-
-
-class TemporalRepresentationType(enum.Enum):
-    RELATIVE_TICKS = 0
-    NOTELIKE_REPRESENTATION = 1
+class Tokeniser(enum.Enum):
+    NOTELIKE_TOKENISER = "notelike_tokeniser"
+    MIDILIKE_TOKENISER = "midilike_tokeniser"
+    GRIDLIKE_TOKENISER = "gridlike_tokeniser"
+    TRANSPOSED_NOTELIKE_TOKENISER = "transposed_notelike_tokeniser"
 
 
 class MessageType(enum.Enum):
