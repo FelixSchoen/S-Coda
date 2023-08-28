@@ -97,7 +97,7 @@ class Tokeniser(ABC):
         return tokens
 
     @abstractmethod
-    def tokenise(self, sequence: Sequence) -> list[int]:
+    def tokenise(self, sequence: Sequence, insert_border_tokens: bool = False) -> list[int]:
         pass
 
     @staticmethod
@@ -137,7 +137,7 @@ class NotelikeTokeniser(Tokeniser):
 
         self.flags[Flags.RUNNING_VALUE] = running_value
 
-    def tokenise(self, sequence: Sequence, apply_buffer: bool = True, reset_time: bool = True) -> list[int]:
+    def tokenise(self, sequence: Sequence, apply_buffer: bool = True, reset_time: bool = True, insert_border_tokens: bool = False) -> list[int]:
         tokens = []
         event_pairings = sequence.abs.get_message_time_pairings(
             [MessageType.NOTE_ON, MessageType.NOTE_OFF, MessageType.TIME_SIGNATURE, MessageType.INTERNAL])
@@ -193,6 +193,10 @@ class NotelikeTokeniser(Tokeniser):
 
         if reset_time:
             self.reset_time()
+
+        if insert_border_tokens:
+            tokens.insert(0, 1)
+            tokens.append(2)
 
         return tokens
 
@@ -391,7 +395,7 @@ class MIDIlikeTokeniser(Tokeniser):
     def __init__(self, running_time_sig: bool) -> None:
         super().__init__(running_time_sig)
 
-    def tokenise(self, sequence: Sequence, apply_buffer: bool = True) -> list[int]:
+    def tokenise(self, sequence: Sequence, apply_buffer: bool = True, insert_border_tokens: bool = False) -> list[int]:
         tokens = []
 
         for message in sequence.rel.messages:
@@ -443,6 +447,10 @@ class MIDIlikeTokeniser(Tokeniser):
         if apply_buffer and self.cur_rest_buffer > 0:
             tokens.extend(self._general_tokenise_flush_time_buffer(time=self.cur_rest_buffer, value_shift=2))
             self.cur_rest_buffer = 0
+
+        if insert_border_tokens:
+            tokens.insert(0, 1)
+            tokens.append(2)
 
         return tokens
 
@@ -520,7 +528,7 @@ class GridlikeTokeniser(Tokeniser):
     def __init__(self, running_time_sig: bool) -> None:
         super().__init__(running_time_sig)
 
-    def tokenise(self, bar_seq: Sequence, apply_buffer: bool = True) -> list[int]:
+    def tokenise(self, bar_seq: Sequence, apply_buffer: bool = True, insert_border_tokens: bool = False) -> list[int]:
         tokens = []
         min_grid_size = self.set_max_rest_value
 
@@ -588,6 +596,10 @@ class GridlikeTokeniser(Tokeniser):
 
         if apply_buffer and self.cur_rest_buffer > 0:
             tokens.extend(self._gridlike_tokenise_flush_grid_buffer(min_grid_size=min_grid_size, wait_token=3))
+
+        if insert_border_tokens:
+            tokens.insert(0, 1)
+            tokens.append(2)
 
         return tokens
 
@@ -703,7 +715,7 @@ class TransposedNotelikeTokeniser(Tokeniser):
 
         self.flags[Flags.RUNNING_VALUE] = running_value
 
-    def tokenise(self, bar_seq: Sequence, apply_buffer: bool = True, reset_time: bool = True) -> list[int]:
+    def tokenise(self, bar_seq: Sequence, apply_buffer: bool = True, reset_time: bool = True, insert_border_tokens: bool = False) -> list[int]:
         tokens = []
         event_pairings = bar_seq.abs.get_message_time_pairings(
             [MessageType.NOTE_ON, MessageType.NOTE_OFF, MessageType.TIME_SIGNATURE, MessageType.INTERNAL])
@@ -808,6 +820,10 @@ class TransposedNotelikeTokeniser(Tokeniser):
 
         # Insert bar border mark
         tokens.append(5)
+
+        if insert_border_tokens:
+            tokens.insert(0, 1)
+            tokens.append(2)
 
         return tokens
 
