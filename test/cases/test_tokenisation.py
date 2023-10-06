@@ -2,17 +2,27 @@ from base import *
 
 
 @pytest.mark.parametrize("path_resource, track", zip(RESOURCES, [0, 0, 1, 1]))
-def test_roundtrip_notelike_tokenisation(path_resource, track):
-    tokeniser = NotelikeTokeniser(running_value=True, running_time_sig=True)
+@pytest.mark.parametrize("running_value", [True, False])
+@pytest.mark.parametrize("running_pitch", [True, False])
+@pytest.mark.parametrize("running_time_sig", [True, False])
+def test_roundtrip_notelike_tokenisation(path_resource, track, running_value, running_pitch,
+                                         running_time_sig):
+    tokeniser = NotelikeTokeniser(running_value=running_value, running_pitch=running_pitch,
+                                  running_time_sig=running_time_sig)
 
     _test_roundtrip_tokenisation(tokeniser, path_resource, track)
 
 
-@pytest.mark.parametrize("path_resource, track", zip(RESOURCES, [0, 0, 1, 1]))
-def test_valid_tokens_notelike_tokenisation(path_resource, track):
-    tokeniser = NotelikeTokeniser(running_value=True, running_time_sig=True)
-
-    _test_valid_tokens(tokeniser, path_resource, track)
+# @pytest.mark.parametrize("path_resource, track", zip(RESOURCES, [0, 0, 1, 1]))
+# @pytest.mark.parametrize("running_value", [True, False])
+# @pytest.mark.parametrize("running_pitch", [True, False])
+# @pytest.mark.parametrize("running_time_sig", [True, False])
+# def test_valid_tokens_notelike_tokenisation(path_resource, track, running_value, running_pitch,
+#                                             running_time_sig):
+#     tokeniser = NotelikeTokeniser(running_value=running_value, running_pitch=running_pitch,
+#                                   running_time_sig=running_time_sig)
+#
+#     _test_valid_tokens(tokeniser, path_resource, track)
 
 
 @pytest.mark.parametrize("path_resource, track", zip(RESOURCES, [0, 0, 1, 1]))

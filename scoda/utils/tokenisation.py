@@ -21,6 +21,7 @@ class Tokeniser(ABC):
         self.cur_rest_buffer = None
 
         self.prv_type = None
+        self.prv_note = None
         self.prv_value = None
         self.prv_numerator = None
 
@@ -130,14 +131,17 @@ class NotelikeTokeniser(Tokeniser):
     [  4 -  27] ... value definition
     [ 28 - 115] ... note
     [116 - 130] ... time signature numerator in eights from 2/8 to 16/8
+    [      131] ... note with previous pitch (running pitch only)
     """
 
-    def __init__(self, running_value: bool, running_time_sig: bool) -> None:
+    def __init__(self, running_value: bool, running_pitch: bool, running_time_sig: bool) -> None:
         super().__init__(running_time_sig)
 
         self.flags[Flags.RUNNING_VALUE] = running_value
+        self.flags[Flags.RUNNING_PITCH] = running_pitch
 
-    def tokenise(self, sequence: Sequence, apply_buffer: bool = True, reset_time: bool = True, insert_border_tokens: bool = False) -> list[int]:
+    def tokenise(self, sequence: Sequence, apply_buffer: bool = True, reset_time: bool = True,
+                 insert_border_tokens: bool = False) -> list[int]:
         tokens = []
         event_pairings = sequence.abs.get_message_time_pairings(
             [MessageType.NOTE_ON, MessageType.NOTE_OFF, MessageType.TIME_SIGNATURE, MessageType.INTERNAL])
@@ -163,10 +167,15 @@ class NotelikeTokeniser(Tokeniser):
                 if not (self.prv_value == msg_value and self.flags.get(Flags.RUNNING_VALUE, False)):
                     tokens.extend(self._general_tokenise_flush_time_buffer(msg_value, value_shift=3))
 
-                tokens.append(msg_note - 21 + 28)
+                # Check if pitch of note has to be defined
+                if not (self.prv_note == msg_note and self.flags.get(Flags.RUNNING_PITCH, False)):
+                    tokens.append(msg_note - 21 + 28)
+                else:
+                    tokens.append(131)
 
                 self.cur_time_target = max(self.cur_time_target, self.cur_time + msg_value)
                 self.prv_type = MessageType.NOTE_ON
+                self.prv_note = msg_note
                 self.prv_value = msg_value
             elif msg_type == MessageType.TIME_SIGNATURE:
                 msg_numerator = event_pairing[0].numerator
@@ -205,6 +214,7 @@ class NotelikeTokeniser(Tokeniser):
         seq = Sequence()
         cur_time = 0
         prv_type = None
+        prv_note = None
         prv_value = math.nan
 
         for token in tokens:
@@ -226,12 +236,19 @@ class NotelikeTokeniser(Tokeniser):
                     Message(message_type=MessageType.NOTE_OFF, note=token - 28 + 21,
                             time=cur_time + prv_value))
                 prv_type = MessageType.NOTE_ON
+                prv_note = token - 28 + 21
             elif 116 <= token <= 130:
                 seq.add_absolute_message(
                     Message(message_type=MessageType.TIME_SIGNATURE, time=cur_time,
                             numerator=token - 116 + 2, denominator=8)
                 )
                 prv_type = MessageType.TIME_SIGNATURE
+            elif token == 131:
+                seq.add_absolute_message(
+                    Message(message_type=MessageType.NOTE_ON, note=prv_note, time=cur_time))
+                seq.add_absolute_message(
+                    Message(message_type=MessageType.NOTE_OFF, note=prv_note, time=cur_time + prv_value))
+                prv_type = MessageType.NOTE_ON
             else:
                 raise TokenisationException(f"Encountered invalid token during detokenisation: {token}")
 
@@ -240,24 +257,32 @@ class NotelikeTokeniser(Tokeniser):
     @staticmethod
     def get_info_notes(tokens: list[int], invalid_value: int = -1) -> list[int]:
         info = []
+        prv_note = None
 
         for token in tokens:
-            if not 28 <= token <= 115:
+            if token == 131:
+                info.append(prv_note)
+            elif not 28 <= token <= 115:
                 info.append(invalid_value)
             else:
                 info.append(token - 28 + 21)
+                prv_note = token - 28 + 21
 
         return info
 
     @staticmethod
     def get_info_circle_of_fifths(tokens: list[int], invalid_value: int = -1) -> list[int]:
         info = []
+        prv_note = None
 
         for token in tokens:
-            if not 28 <= token <= 115:
+            if token == 131:
+                info.append(prv_note % 12)
+            elif not 28 <= token <= 115:
                 info.append(invalid_value)
             else:
                 info.append((token - 28 + 21) % 12)
+                prv_note = token - 28 + 21
 
         return info
 
@@ -287,12 +312,30 @@ class NotelikeTokeniser(Tokeniser):
 
     @staticmethod
     def get_valid_tokens(tokens: list[int], min_bars: int = -1, bar_limit_hard: bool = False,
-                         previous_state: dict = None) -> (list[int], dict[str, int]):
+                         previous_state: dict = None, running_value: bool = False, running_pitch: bool = False,
+                         running_time_sig: bool = False) -> (list[int], dict[str, int]):
+        """
+
+        Args:
+            tokens: Tokens to create valid messages for
+            min_bars: Minimum amount of bars to generate
+            bar_limit_hard: If the minimum amount is also an exact amount
+            previous_state: The previous allowed messages for performance reasons
+            running_value: If running values are allowed
+            running_pitch: If running pitches are allowed
+            running_time_sig: If running time signatures are allowed
+
+        Returns: A list of valid tokens and the current state
+
+        """
+        # TODO Check everything before actual implementation
+        # TODO Implement running values
         cur_bar_index = 0
         cur_bar_capacity = 4 * PPQN
         cur_time = 0
         cur_bar_time = 0
         prv_type = None
+        prv_note = None
         prv_value = math.nan
         seq_started = 1 in tokens
         seq_stopped = 2 in tokens
@@ -327,9 +370,12 @@ class NotelikeTokeniser(Tokeniser):
                 prv_type = MessageType.INTERNAL
             elif 28 <= token <= 115:
                 prv_type = MessageType.NOTE_ON
+                prv_note = token - 28 + 21
             elif 116 <= token <= 130:
                 cur_bar_capacity = int(((token - 116 + 2) / 8) * PPQN)
                 prv_type = MessageType.TIME_SIGNATURE
+            elif token == 131:
+                prv_type = MessageType.NOTE_ON
             else:
                 raise TokenisationException(f"Encountered invalid token during validity check: {token}")
 
@@ -715,7 +761,8 @@ class TransposedNotelikeTokeniser(Tokeniser):
 
         self.flags[Flags.RUNNING_VALUE] = running_value
 
-    def tokenise(self, bar_seq: Sequence, apply_buffer: bool = True, reset_time: bool = True, insert_border_tokens: bool = False) -> list[int]:
+    def tokenise(self, bar_seq: Sequence, apply_buffer: bool = True, reset_time: bool = True,
+                 insert_border_tokens: bool = False) -> list[int]:
         tokens = []
         event_pairings = bar_seq.abs.get_message_time_pairings(
             [MessageType.NOTE_ON, MessageType.NOTE_OFF, MessageType.TIME_SIGNATURE, MessageType.INTERNAL])

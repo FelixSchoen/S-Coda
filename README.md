@@ -23,6 +23,8 @@ For information about how to use S-Coda we refer to chapter 5 of the [thesis](ht
 
 ## Changelog
 
+See `CHANGELOG.md` for a detailed changelog.
+
 ## Usage
 
 We refer to the aforementioned thesis for a more in-depth guide on how to use S-Coda.
@@ -55,6 +57,5 @@ tokens = tokens
 detokenised_sequence = tokeniser.detokenise(tokens)
 
 # Save sequence
-Sequence.save = lambda *args: None
 detokenised_sequence.save("out/generated_sequence.mid")
 ```
