@@ -15,9 +15,11 @@ def test_roundtrip_notelike_tokenisation(path_resource, track, running_value, ru
 
 @pytest.mark.parametrize("path_resource, track", zip(RESOURCES, [0, 0, 1, 1]))
 @pytest.mark.parametrize("running_value", [True, False])
+@pytest.mark.parametrize("running_octave", [True, False])
 @pytest.mark.parametrize("running_time_sig", [True, False])
-def test_cof_roundtrip_notelike_tokenisation(path_resource, track, running_value, running_time_sig):
-    tokeniser = CoFNotelikeTokeniser(running_value=running_value, running_time_sig=running_time_sig)
+def test_cof_roundtrip_notelike_tokenisation(path_resource, track, running_value, running_octave, running_time_sig):
+    tokeniser = CoFNotelikeTokeniser(running_value=running_value, running_octave=running_octave,
+                                     running_time_sig=running_time_sig)
 
     _test_roundtrip_tokenisation(tokeniser, path_resource, track)
 
@@ -85,22 +87,23 @@ def _test_valid_tokens(tokeniser, path_resource, track):
         valid_tokens, previous_state = tokeniser.get_valid_tokens([tokens[i]], previous_state=previous_state)
         assert tokens[i + 1] in valid_tokens
 
-# def test_tokenisation_single():
-#     tokeniser = NotelikeTokeniser(running_value=True, running_time_sig=True)
-#     sequence = Sequence.from_midi_file(file_path=RESOURCE_SWEEP)[0]
-#     bars = Sequence.split_into_bars([sequence], 0)[0]
-#     sequence = Sequence()
-#     sequence.concatenate([bar.sequence for bar in bars])
-#
-#     tokens = []
-#
-#     for i, bar in enumerate(bars):
-#         bar_tokens = tokeniser.tokenise(bar.sequence)
-#         print(bar_tokens)
-#         tokens.extend(bar_tokens)
-#
-#     sequence_roundtrip = tokeniser.detokenise(tokens)
-#
-#     sequence_roundtrip.save("res/out.mid")
-#
-#     assert sequence == sequence_roundtrip
+
+def test_tokenisation_single():
+    tokeniser = CoFNotelikeTokeniser(running_value=True, running_octave=True, running_time_sig=True)
+    sequence = Sequence.sequences_load(file_path=RESOURCE_SWEEP)[0]
+    bars = Sequence.sequences_split_bars([sequence], meta_track_index=0)[0]
+    sequence = Sequence()
+    sequence.concatenate([bar.sequence for bar in bars])
+
+    tokens = []
+
+    for i, bar in enumerate(bars):
+        bar_tokens = tokeniser.tokenise(bar.sequence)
+        print(bar_tokens)
+        tokens.extend(bar_tokens)
+
+    sequence_roundtrip = tokeniser.detokenise(tokens)
+
+    sequence_roundtrip.save("res/out.mid")
+
+    assert sequence == sequence_roundtrip
