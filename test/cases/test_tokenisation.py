@@ -13,6 +13,15 @@ def test_roundtrip_notelike_tokenisation(path_resource, track, running_value, ru
     _test_roundtrip_tokenisation(tokeniser, path_resource, track)
 
 
+@pytest.mark.parametrize("path_resource, track", zip(RESOURCES, [0, 0, 1, 1]))
+@pytest.mark.parametrize("running_value", [True, False])
+@pytest.mark.parametrize("running_time_sig", [True, False])
+def test_cof_roundtrip_notelike_tokenisation(path_resource, track, running_value, running_time_sig):
+    tokeniser = CoFNotelikeTokeniser(running_value=running_value, running_time_sig=running_time_sig)
+
+    _test_roundtrip_tokenisation(tokeniser, path_resource, track)
+
+
 # @pytest.mark.parametrize("path_resource, track", zip(RESOURCES, [0, 0, 1, 1]))
 # @pytest.mark.parametrize("running_value", [True, False])
 # @pytest.mark.parametrize("running_pitch", [True, False])

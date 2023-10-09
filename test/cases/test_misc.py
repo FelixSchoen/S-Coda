@@ -56,7 +56,7 @@ def test_example():
     bars = Sequence.sequences_split_bars([sequence], meta_track_index=0)[0]
 
     # Prepare tokeniser and output tokens
-    tokeniser = NotelikeTokeniser(running_value=True, running_time_sig=True)
+    tokeniser = NotelikeTokeniser(running_value=True, running_pitch=True, running_time_sig=True)
     tokens = []
     difficulties = []
 

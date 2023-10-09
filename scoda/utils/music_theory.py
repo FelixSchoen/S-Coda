@@ -61,13 +61,23 @@ class CircleOfFifths:
 
         distance_right = to_pos
         distance_left = 12 - distance_right
+        distance = None
 
         if distance_left == distance_right:
-            return distance_right
+            distance = distance_right
         elif distance_right < distance_left:
-            return distance_right
+            distance = distance_right
         else:
-            return -distance_left
+            distance = -distance_left
+
+        assert -5 <= distance <= 6
+
+        return distance
+
+    @staticmethod
+    def from_distance(base_note_val: int, cof_distance: int):
+        base_pos = CircleOfFifths.circle_of_fifths_order.index(Note(base_note_val % 12))
+        return CircleOfFifths.circle_of_fifths_order[(base_pos + cof_distance) % 12].value
 
 
 class MusicMapping:
