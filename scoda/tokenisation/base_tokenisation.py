@@ -6,7 +6,7 @@ from scoda.settings.settings import PPQN
 from scoda.utils.enumerations import Flags
 
 
-class Tokeniser(ABC):
+class BaseTokeniser(ABC):
 
     def __init__(self, running_time_sig: bool) -> None:
         super().__init__()
@@ -118,10 +118,3 @@ class Tokeniser(ABC):
                 f"Invalid time signature numerator: {scaled}")
 
         return int(scaled)
-
-
-
-
-
-
-

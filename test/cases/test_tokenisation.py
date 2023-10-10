@@ -1,4 +1,8 @@
 from base import *
+from scoda.tokenisation.gridlike_tokenisation import GridlikeTokeniser
+from scoda.tokenisation.midilike_tokenisation import MidilikeTokeniser
+from scoda.tokenisation.notelike_tokenisation import CoFNotelikeTokeniser, StandardNotelikeTokeniser
+from scoda.tokenisation.transposed_gridlike_tokenisation import TransposedNotelikeTokeniser
 
 
 @pytest.mark.parametrize("path_resource, track", zip(RESOURCES, [0, 0, 1, 1]))
@@ -7,8 +11,8 @@ from base import *
 @pytest.mark.parametrize("running_time_sig", [True, False])
 def test_roundtrip_notelike_tokenisation(path_resource, track, running_value, running_pitch,
                                          running_time_sig):
-    tokeniser = NotelikeTokeniser(running_value=running_value, running_pitch=running_pitch,
-                                  running_time_sig=running_time_sig)
+    tokeniser = StandardNotelikeTokeniser(running_value=running_value, running_pitch=running_pitch,
+                                          running_time_sig=running_time_sig)
 
     _test_roundtrip_tokenisation(tokeniser, path_resource, track)
 
@@ -38,7 +42,7 @@ def test_cof_roundtrip_notelike_tokenisation(path_resource, track, running_value
 
 @pytest.mark.parametrize("path_resource, track", zip(RESOURCES, [0, 0, 1, 1]))
 def test_roundtrip_midilike_tokenisation(path_resource, track):
-    tokeniser = MIDIlikeTokeniser(running_time_sig=True)
+    tokeniser = MidilikeTokeniser(running_time_sig=True)
 
     _test_roundtrip_tokenisation(tokeniser, path_resource, track)
 
