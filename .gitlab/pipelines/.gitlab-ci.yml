@@ -1,0 +1,13 @@
+stages:
+  - test
+
+pytest:
+  stage: test
+  image: python:3.10
+  script:
+    - apt-get update -qy
+    - apt-get install -y python-pip
+    - pip install --upgrade pip
+    - pip install .
+    - pip install .[test]
+    - pytest test/
