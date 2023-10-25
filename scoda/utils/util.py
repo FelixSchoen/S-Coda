@@ -160,14 +160,11 @@ def get_dotted_note_durations(note_durations, dotted_iterations) -> [int]:
     """
     dotted_durations = []
 
-    for dotted_note_iteration in range(1, dotted_iterations + 1):
-        for i, entry in enumerate(note_durations):
-            if i + dotted_note_iteration < len(note_durations):
-                resulting_value = note_durations[i]
-                for iteration in range(1, dotted_note_iteration + 1):
-                    resulting_value += note_durations[i + iteration] / 2
-                if resulting_value.is_integer():
-                    dotted_durations.append(int(resulting_value))
+    for dotted_note_iteration in range(dotted_iterations):
+        for note_duration in note_durations:
+            candidate_duration = note_duration * (1 + (1 - 1 / (2 ** (dotted_note_iteration + 1))))
+            if candidate_duration.is_integer():
+                dotted_durations.append(int(candidate_duration))
 
     return dotted_durations
 

@@ -47,11 +47,11 @@ class BaseTokeniser(ABC):
         tokens = []
 
         while time > self.set_max_rest_value:
-            tokens.append(self.set_max_rest_value + value_shift)
+            tokens.append(int(self.set_max_rest_value + value_shift))
             time -= self.set_max_rest_value
 
         if time > 0:
-            tokens.append(time + value_shift)
+            tokens.append(int(time + value_shift))
 
         return tokens
 
@@ -64,7 +64,7 @@ class BaseTokeniser(ABC):
                 tokens.append(int(self.set_max_rest_value + value_shift))
                 self.prv_value = self.set_max_rest_value
 
-            tokens.append(wait_token)
+            tokens.append(int(wait_token))
             self.cur_time += self.set_max_rest_value
             self.cur_rest_buffer -= self.set_max_rest_value
 
@@ -73,7 +73,7 @@ class BaseTokeniser(ABC):
             if not (self.prv_value == self.cur_rest_buffer and self.flags.get(Flags.RUNNING_VALUE, False)):
                 tokens.append(int(self.cur_rest_buffer + value_shift))
                 self.prv_value = self.cur_rest_buffer
-            tokens.append(wait_token)
+            tokens.append(int(wait_token))
 
         self.cur_time += self.cur_rest_buffer
         self.cur_rest_buffer = 0

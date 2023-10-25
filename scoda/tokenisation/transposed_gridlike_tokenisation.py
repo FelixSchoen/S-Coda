@@ -17,7 +17,7 @@ class BaseGridlikeTokeniser(BaseTokeniser, ABC):
 
 class TransposedNotelikeTokeniser(BaseGridlikeTokeniser):
     """Tokeniser that uses transposed temporal representation with a note-like approach, i.e., all occurrences of a note
-    are shown first before any other note is handled. Note that an input sequence is required to represent a list of bars,
+    are shown first before any other note is handled. Note that input sequences are expected to represent bars,
     as the transposed representation is done on a per-bar basis.
 
     [        0] ... pad

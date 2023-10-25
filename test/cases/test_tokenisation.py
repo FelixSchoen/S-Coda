@@ -1,7 +1,8 @@
 from base import *
 from scoda.tokenisation.gridlike_tokenisation import GridlikeTokeniser
 from scoda.tokenisation.midilike_tokenisation import MidilikeTokeniser
-from scoda.tokenisation.notelike_tokenisation import CoFNotelikeTokeniser, StandardNotelikeTokeniser
+from scoda.tokenisation.notelike_tokenisation import CoFNotelikeTokeniser, StandardNotelikeTokeniser, \
+    LargeDictionaryNotelikeTokeniser
 from scoda.tokenisation.transposed_gridlike_tokenisation import TransposedNotelikeTokeniser
 
 
@@ -21,11 +22,19 @@ def test_roundtrip_notelike_tokenisation(path_resource, track, running_value, ru
 @pytest.mark.parametrize("running_value", [True, False])
 @pytest.mark.parametrize("running_octave", [True, False])
 @pytest.mark.parametrize("running_time_sig", [True, False])
-def test_cof_roundtrip_notelike_tokenisation(path_resource, track, running_value, running_octave, running_time_sig):
+def test_roundtrip_cof_notelike_tokenisation(path_resource, track, running_value, running_octave, running_time_sig):
     tokeniser = CoFNotelikeTokeniser(running_value=running_value, running_octave=running_octave,
                                      running_time_sig=running_time_sig)
 
     _test_roundtrip_tokenisation(tokeniser, path_resource, track)
+
+
+@pytest.mark.parametrize("path_resource, track", zip(RESOURCES, [0, 0, 1, 1]))
+@pytest.mark.parametrize("running_time_sig", [True, False])
+def test_roundtrip_large_dictionary_notelike_tokenisation(path_resource, track, running_time_sig):
+    tokeniser = LargeDictionaryNotelikeTokeniser(running_time_sig=running_time_sig)
+
+    _test_roundtrip_tokenisation(tokeniser, path_resource, track, quantise=True)
 
 
 # @pytest.mark.parametrize("path_resource, track", zip(RESOURCES, [0, 0, 1, 1]))
@@ -61,9 +70,22 @@ def test_roundtrip_transposed_notelike_tokenisation(path_resource, track):
     _test_roundtrip_tokenisation(tokeniser, path_resource, track)
 
 
-def _test_roundtrip_tokenisation(tokeniser, path_resource, track):
+def _test_roundtrip_tokenisation(tokeniser, path_resource, track, quantise=False):
     sequence = Sequence.sequences_load(file_path=path_resource)[track]
     bars = Sequence.sequences_split_bars([sequence], 0)[0]
+
+    if quantise:
+        normal_durations = get_note_durations(NOTE_VALUE_UPPER_BOUND, NOTE_VALUE_LOWER_BOUND)
+        triplet_durations = []
+        for valid_tuplet in VALID_TUPLETS:
+            triplet_durations.extend(get_tuplet_durations(normal_durations, valid_tuplet[0], valid_tuplet[1]))
+        possible_durations = normal_durations + triplet_durations
+
+        for bar in bars:
+            bar.sequence.quantise()
+            bar.sequence.cutoff(48, 48)
+            bar.sequence.quantise_note_lengths()
+
     sequence = Sequence()
     sequence.concatenate([bar.sequence for bar in bars])
 
@@ -93,9 +115,24 @@ def _test_valid_tokens(tokeniser, path_resource, track):
 
 
 def test_tokenisation_single():
-    tokeniser = CoFNotelikeTokeniser(running_value=True, running_octave=True, running_time_sig=True)
-    sequence = Sequence.sequences_load(file_path=RESOURCE_SWEEP)[0]
+    quantise = True
+
+    tokeniser = LargeDictionaryNotelikeTokeniser(running_time_sig=True)
+    sequence = Sequence.sequences_load(file_path=RESOURCE_CHOPIN)[1]
     bars = Sequence.sequences_split_bars([sequence], meta_track_index=0)[0]
+
+    if quantise:
+        normal_durations = get_note_durations(NOTE_VALUE_UPPER_BOUND, NOTE_VALUE_LOWER_BOUND)
+        triplet_durations = []
+        for valid_tuplet in VALID_TUPLETS:
+            triplet_durations.extend(get_tuplet_durations(normal_durations, valid_tuplet[0], valid_tuplet[1]))
+        possible_durations = normal_durations + triplet_durations
+
+        for bar in bars:
+            bar.sequence.quantise()
+            bar.sequence.cutoff(48, 48)
+            bar.sequence.quantise_note_lengths(possible_durations=None)
+
     sequence = Sequence()
     sequence.concatenate([bar.sequence for bar in bars])
 

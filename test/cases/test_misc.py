@@ -1,5 +1,6 @@
 from base import *
 from scoda.midi.midi_file import MidiFile
+from scoda.tokenisation.notelike_tokenisation import StandardNotelikeTokeniser
 
 
 # Settings
@@ -22,6 +23,14 @@ def test_velocity_digitised_to_correct_bin_indices():
 
     for pair in values_to_digitise:
         assert bin_from_velocity(pair[0]) == pair[1]
+
+
+def test_dotted_note_values():
+    values_to_dot = [48, 24, 12]
+
+    assert get_dotted_note_durations(values_to_dot, dotted_iterations=1) == [72, 36, 18]
+
+    assert get_dotted_note_durations(values_to_dot, dotted_iterations=2) == [72, 36, 18, 84, 42, 21]
 
 
 # MidiFile
@@ -56,7 +65,7 @@ def test_example():
     bars = Sequence.sequences_split_bars([sequence], meta_track_index=0)[0]
 
     # Prepare tokeniser and output tokens
-    tokeniser = NotelikeTokeniser(running_value=True, running_pitch=True, running_time_sig=True)
+    tokeniser = StandardNotelikeTokeniser(running_value=True, running_pitch=True, running_time_sig=True)
     tokens = []
     difficulties = []
 
