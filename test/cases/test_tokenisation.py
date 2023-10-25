@@ -75,12 +75,6 @@ def _test_roundtrip_tokenisation(tokeniser, path_resource, track, quantise=False
     bars = Sequence.sequences_split_bars([sequence], 0)[0]
 
     if quantise:
-        normal_durations = get_note_durations(NOTE_VALUE_UPPER_BOUND, NOTE_VALUE_LOWER_BOUND)
-        triplet_durations = []
-        for valid_tuplet in VALID_TUPLETS:
-            triplet_durations.extend(get_tuplet_durations(normal_durations, valid_tuplet[0], valid_tuplet[1]))
-        possible_durations = normal_durations + triplet_durations
-
         for bar in bars:
             bar.sequence.quantise()
             bar.sequence.cutoff(48, 48)
@@ -122,16 +116,10 @@ def test_tokenisation_single():
     bars = Sequence.sequences_split_bars([sequence], meta_track_index=0)[0]
 
     if quantise:
-        normal_durations = get_note_durations(NOTE_VALUE_UPPER_BOUND, NOTE_VALUE_LOWER_BOUND)
-        triplet_durations = []
-        for valid_tuplet in VALID_TUPLETS:
-            triplet_durations.extend(get_tuplet_durations(normal_durations, valid_tuplet[0], valid_tuplet[1]))
-        possible_durations = normal_durations + triplet_durations
-
         for bar in bars:
             bar.sequence.quantise()
             bar.sequence.cutoff(48, 48)
-            bar.sequence.quantise_note_lengths(possible_durations=None)
+            bar.sequence.quantise_note_lengths()
 
     sequence = Sequence()
     sequence.concatenate([bar.sequence for bar in bars])

@@ -538,15 +538,19 @@ class LargeDictionaryNotelikeTokeniser(BaseNotelikeTokeniser):
     [203 - 290] ... notes with duration of 4 ticks
     [291 - 378] ... notes with duration of 6 ticks
     [379 - 466] ... notes with duration of 8 ticks
-    [467 - 554] ... notes with duration of 12 ticks
-    [555 - 642] ... notes with duration of 16 ticks
-    [643 - 730] ... notes with duration of 24 ticks
-    [115 - 818] ... notes with duration of 32 ticks
-    [819 - 906] ... notes with duration of 48 ticks
-    [907 - 921] ... time signature numerator in eights from 2/8 to 16/8
+    [467 - 554] ... notes with duration of 9 ticks
+    [555 - 642] ... notes with duration of 12 ticks
+    [643 - 730] ... notes with duration of 16 ticks
+    [731 - 818] ... notes with duration of 18 ticks
+    [819 - 906] ... notes with duration of 24 ticks
+    [907 - 994] ... notes with duration of 32 ticks
+    [995 -1082] ... notes with duration of 36 ticks
+    [1083-1170] ... notes with duration of 48 ticks
+    [1171-1258] ... notes with duration of 72 ticks
+    [1259-1273] ... time signature numerator in eights from 2/8 to 16/8
     """
 
-    SUPPORTED_VALUES = [2, 3, 4, 6, 8, 12, 16, 24, 32, 48]
+    SUPPORTED_VALUES = [2, 3, 4, 6, 8, 9, 12, 16, 18, 24, 32, 36, 48, 72]
 
     def __init__(self, running_time_sig: bool) -> None:
         super().__init__(False, running_time_sig)
@@ -596,7 +600,7 @@ class LargeDictionaryNotelikeTokeniser(BaseNotelikeTokeniser):
                         self._general_tokenise_flush_time_buffer(time=self.cur_rest_buffer, value_shift=2))
                     self.cur_time += self.cur_rest_buffer
                     self.cur_rest_buffer = 0
-                    tokens.append(numerator - 2 + 907)
+                    tokens.append(numerator - 2 + 1259)
 
                 self.prv_numerator = numerator
             elif msg_type == MessageType.INTERNAL:
@@ -628,7 +632,7 @@ class LargeDictionaryNotelikeTokeniser(BaseNotelikeTokeniser):
                 pass
             elif 3 <= token <= 26:
                 cur_time += token - 2
-            elif 27 <= token <= 906:
+            elif 27 <= token <= 1258:
                 note_pitch = (token - 27) % 88 + 21
                 note_value = LargeDictionaryNotelikeTokeniser.SUPPORTED_VALUES[(token - 27) // 88]
 
@@ -636,9 +640,9 @@ class LargeDictionaryNotelikeTokeniser(BaseNotelikeTokeniser):
                     Message(message_type=MessageType.NOTE_ON, note=note_pitch, time=cur_time))
                 seq.add_absolute_message(
                     Message(message_type=MessageType.NOTE_OFF, note=note_pitch, time=cur_time + note_value))
-            elif 907 <= token <= 927:
+            elif 1259 <= token <= 1273:
                 seq.add_absolute_message(
-                    Message(message_type=MessageType.TIME_SIGNATURE, time=cur_time, numerator=token - 907 + 2,
+                    Message(message_type=MessageType.TIME_SIGNATURE, time=cur_time, numerator=token - 1259 + 2,
                             denominator=8)
                 )
             else:
