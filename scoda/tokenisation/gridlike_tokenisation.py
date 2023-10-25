@@ -6,7 +6,6 @@ from scoda.exceptions.tokenisation_exception import TokenisationException
 from scoda.sequences.sequence import Sequence
 from scoda.tokenisation.base_tokenisation import BaseTokeniser
 from scoda.utils.enumerations import MessageType, Flags
-from scoda.utils.tokenisation import Tokeniser
 
 
 class BaseGridlikeTokeniser(BaseTokeniser, ABC):
@@ -15,7 +14,7 @@ class BaseGridlikeTokeniser(BaseTokeniser, ABC):
         super().__init__(running_time_sig)
 
 
-class GridlikeTokeniser(Tokeniser):
+class GridlikeTokeniser(BaseGridlikeTokeniser):
     """Tokeniser that uses grid-like temporal representation. Note that input sequences are expected to represent bars,
     as the grid size definition is redone for each input sequence.
 
