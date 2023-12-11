@@ -3,7 +3,7 @@ from scoda.tokenisation.gridlike_tokenisation import GridlikeTokeniser
 from scoda.tokenisation.midilike_tokenisation import MidilikeTokeniser
 from scoda.tokenisation.notelike_tokenisation import CoFNotelikeTokeniser, StandardNotelikeTokeniser, \
     LargeDictionaryNotelikeTokeniser
-from scoda.tokenisation.transposed_gridlike_tokenisation import TransposedNotelikeTokeniser
+from scoda.tokenisation.transposed_notelike_tokenisation import TransposedNotelikeTokeniser
 
 
 @pytest.mark.parametrize("path_resource, track", zip(RESOURCES, [0, 0, 1, 1]))

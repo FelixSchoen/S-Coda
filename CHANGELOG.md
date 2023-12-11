@@ -12,7 +12,10 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Implement `get_representation()` methods
 - Add changelog
 - Add equivalence test for absolute sequences
-- Add tokenisation support
+- Add support for MIDI-like tokenisation
+- Add support for note-like tokenisation (standard, circle of fifths, and large dictionary)
+- Add support for gridlike tokenisation
+- Add support for transposed gridlike tokenisation
 
 ### Changed
 
@@ -35,6 +38,7 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Fix pytest configuration
 - Fix imports for project compatability
 - Fix transposing bar not transposing its key signature
+- Fix calculation of dotted note values
 
 ## [1.0] - 2022-12-08
 

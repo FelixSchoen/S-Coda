@@ -9,13 +9,13 @@ from scoda.tokenisation.base_tokenisation import BaseTokeniser
 from scoda.utils.enumerations import Flags, MessageType
 
 
-class BaseGridlikeTokeniser(BaseTokeniser, ABC):
+class BaseTransposedNotelikeTokeniser(BaseTokeniser, ABC):
 
     def __init__(self, running_time_sig: bool) -> None:
         super().__init__(running_time_sig)
 
 
-class TransposedNotelikeTokeniser(BaseGridlikeTokeniser):
+class TransposedNotelikeTokeniser(BaseTransposedNotelikeTokeniser):
     """Tokeniser that uses transposed temporal representation with a note-like approach, i.e., all occurrences of a note
     are shown first before any other note is handled. Note that input sequences are expected to represent bars,
     as the transposed representation is done on a per-bar basis.
