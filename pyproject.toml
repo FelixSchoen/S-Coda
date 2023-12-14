@@ -25,7 +25,7 @@ test = [
     "coverage",
     "pytest-cov"
 ]
-dev = [
+deploy = [
     "build >= 1.0.3",
     "twine >= 4.0.2",
     "pdoc3 >= 0.10.0"

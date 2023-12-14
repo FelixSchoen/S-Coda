@@ -1,7 +1,8 @@
 stages:
   - test
+  - deploy
 
-pytest:
+test_pytest:
   stage: test
   image: python:3.10
   script:
@@ -17,3 +18,18 @@ pytest:
     paths:
       - "htmlcov/"
     expire_in: 1 week
+
+deploy_pypi:
+  stage: deploy
+  image: python:3.10
+  only:
+    - tags
+  except:
+    - branches
+  script:
+    - apt-get update -qy
+    - apt-get install -y python3-pip
+    - pip install --upgrade pip
+    - pip install .[deploy]
+    - python -m build
+    - twine upload dist/*
