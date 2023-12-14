@@ -12,6 +12,7 @@ pytest:
     - pip install .[test]
     - coverage run -m pytest test/
     - coverage report -m
+    - coverage html -d htmlcov/
   artifacts:
     paths:
       - "htmlcov/"
