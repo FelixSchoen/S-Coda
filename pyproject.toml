@@ -1,6 +1,6 @@
 [project]
 name = "scoda"
-version = "2.0-beta.1"
+version = "2.0-beta.2"
 authors = [{ name = "Felix Schön", email = "schoen@kr.tuwien.ac.at" }]
 description = "A MIDI and music data manipulation library"
 readme = "README.md"
@@ -8,10 +8,9 @@ requires-python = ">= 3.10"
 keywords = ["midi", "music"]
 license = { file = "LICENSE.md" }
 dependencies = [
-    "matplotlib >= 3.7.1",
-    "pandas >= 2.0.0",
-    "numpy >= 1.24.3",
-    "mido >= 1.2.10"
+    "matplotlib >= 3.8",
+    "numpy >= 1.26",
+    "mido >= 1.3"
 ]
 
 [project.urls]
@@ -22,8 +21,8 @@ dependencies = [
 test = [
     "pytest >= 7.3.1",
     "pytest-xdist >= 3.2.1",
-    "coverage",
-    "pytest-cov"
+    "pytest-cov",
+    "coverage"
 ]
 deploy = [
     "build >= 1.0.3",

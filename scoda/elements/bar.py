@@ -2,8 +2,6 @@ from __future__ import annotations
 
 import copy
 
-from pandas import DataFrame
-
 from scoda.elements.message import Message
 from scoda.exceptions.bar_exception import BarException
 from scoda.sequences.sequence import Sequence
@@ -71,16 +69,6 @@ class Bar:
 
     def is_empty(self) -> bool:
         return self.sequence.is_empty()
-
-    def to_absolute_dataframe(self) -> DataFrame:
-        """See `scoda.sequence.sequence.Sequence.to_absolute_dataframe`.
-        """
-        return self.sequence.to_absolute_dataframe()
-
-    def to_relative_dataframe(self) -> DataFrame:
-        """See `scoda.sequence.sequence.Sequence.to_relative_dataframe`.
-        """
-        return self.sequence.to_relative_dataframe()
 
     def transpose(self, transpose_by: int) -> bool:
         """See `scoda.sequence.relative_sequence.RelativeSequence.transpose`.
