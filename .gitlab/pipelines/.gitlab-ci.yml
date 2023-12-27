@@ -1,7 +1,8 @@
 stages:
   - test
+  - deploy
 
-pytest:
+test_pytest:
   stage: test
   image: python:3.10
   script:
@@ -10,4 +11,28 @@ pytest:
     - pip install --upgrade pip
     - pip install .
     - pip install .[test]
-    - pytest test/
+    - pytest --cov=./ test/cases/
+    - coverage xml -o coverage.xml
+  coverage: '/(?i)total.*? (100(?:\.0+)?\%|[1-9]?\d(?:\.\d+)?\%)$/'
+  artifacts:
+    reports:
+      coverage_report:
+        coverage_format: cobertura
+        path: coverage.xml
+
+deploy_pypi:
+  stage: deploy
+  image: python:3.10
+  only:
+    - tags
+  except:
+    - branches
+  script:
+    - apt-get update -qy
+    - apt-get install -y python3-pip
+    - pip install --upgrade pip
+    - pip install .[deploy]
+    - python -m build
+    - export TWINE_USERNAME=__token__
+    - export TWINE_PASSWORD=$TWINE_PASSWORD
+    - twine upload dist/*
