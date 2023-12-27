@@ -1,10 +1,12 @@
 # S-Coda
 
-[![Python](https://img.shields.io/badge/Python-3.10-blue)](
-https://pypi.org/project/s-coda)
-[![DOI](https://img.shields.io/badge/DOI-10.34726%2Fhss.2023.103585-blue)](
-https://doi.org/10.34726/hss.2023.103585)
-[![Test Suite](https://github.com/FelixSchoen/S-Coda/actions/workflows/pytest.yml/badge.svg?event=push)](https://github.com/FelixSchoen/S-Coda/actions/workflows/pytest.yml)
+[![Latest Release](https://gitlab.com/FelixSchoen/S-Coda/-/badges/release.svg?value_width=75)](https://pypi.org/project/scoda)
+[![Pipeline](https://gitlab.com/FelixSchoen/S-Coda/badges/main/pipeline.svg?key_text=Pipeline)](https://gitlab.com/FelixSchoen/S-Coda/-/pipelines)
+[![Coverage](https://gitlab.com/FelixSchoen/S-Coda/badges/main/coverage.svg?key_text=Coverage)](https://gitlab.com/FelixSchoen/S-Coda/-/pipelines)
+[![Python Version](https://img.shields.io/badge/Python%20Version-3.10-blue)](https://www.python.org/downloads/release/python-31013)
+
+[![DOI](https://img.shields.io/badge/DOI-10.34726%2Fhss.2023.103585-blue)](https://doi.org/10.34726/hss.2023.103585)
+[![DOI](https://img.shields.io/badge/DOI-10.1007%2F978--3--031--47546--7_19-blue)](https://doi.org/10.1007/978-3-031-47546-7_19)
 
 ## Overview
 

@@ -11,7 +11,7 @@ test_pytest:
     - pip install --upgrade pip
     - pip install .
     - pip install .[test]
-    - pytest --cov=./ test/
+    - pytest --cov=./ test/cases/
     - coverage xml -o coverage.xml
   coverage: '/(?i)total.*? (100(?:\.0+)?\%|[1-9]?\d(?:\.\d+)?\%)$/'
   artifacts:
