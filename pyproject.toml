@@ -1,6 +1,6 @@
 [project]
 name = "scoda"
-version = "2.0-beta.1"
+version = "2.0-beta.2"
 authors = [{ name = "Felix Schön", email = "schoen@kr.tuwien.ac.at" }]
 description = "A MIDI and music data manipulation library"
 readme = "README.md"
@@ -19,15 +19,15 @@ dependencies = [
 
 [project.optional-dependencies]
 test = [
-    "pytest >= 7.3.1",
-    "pytest-xdist >= 3.2.1",
-    "pytest-cov",
-    "coverage"
+    "pytest >= 7.4",
+    "pytest-xdist >= 3.5",
+    "pytest-cov >= 4.1",
+    "coverage >= 7.3"
 ]
 deploy = [
-    "build >= 1.0.3",
-    "twine >= 4.0.2",
-    "pdoc3 >= 0.10.0"
+    "build >= 1.0",
+    "twine >= 4.0",
+    "pdoc3 >= 0.10"
 ]
 
 [build-system]
