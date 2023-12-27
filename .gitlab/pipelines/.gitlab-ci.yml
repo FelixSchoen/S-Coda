@@ -11,13 +11,7 @@ test_pytest:
     - pip install --upgrade pip
     - pip install .
     - pip install .[test]
-    - coverage run -m pytest test/
-    - coverage report -m
-    - coverage html -d htmlcov/
-  artifacts:
-    paths:
-      - "htmlcov/"
-    expire_in: 1 week
+    - pytest test/
 
 deploy_pypi:
   stage: deploy
@@ -32,4 +26,6 @@ deploy_pypi:
     - pip install --upgrade pip
     - pip install .[deploy]
     - python -m build
+    - export TWINE_USERNAME=__token__
+    - export TWINE_PASSWORD=$TWINE_PASSWORD
     - twine upload dist/*
