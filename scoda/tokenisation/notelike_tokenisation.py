@@ -646,7 +646,8 @@ class LargeDictionaryNotelikeTokeniser(BaseNotelikeTokeniser):
                     Message(message_type=MessageType.NOTE_OFF, note=note_pitch, time=cur_time + note_value))
             elif boundary_token_ts <= token <= boundary_token_ts + 14:
                 seq.add_absolute_message(
-                    Message(message_type=MessageType.TIME_SIGNATURE, time=cur_time, numerator=token - 1259 + 2,
+                    Message(message_type=MessageType.TIME_SIGNATURE, time=cur_time,
+                            numerator=token - boundary_token_ts + 2,
                             denominator=8)
                 )
             else:
