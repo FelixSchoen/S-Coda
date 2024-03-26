@@ -1,6 +1,7 @@
 # S-Coda
 
 [![Latest Release](https://gitlab.com/FelixSchoen/S-Coda/-/badges/release.svg?value_width=75)](https://pypi.org/project/scoda)
+[![S-Coda Test](https://github.com/FelixSchoen/S-Coda/actions/workflows/scoda_test.yml/badge.svg)](https://github.com/FelixSchoen/S-Coda/actions/workflows/scoda_test.yml)
 [![Pipeline](https://gitlab.com/FelixSchoen/S-Coda/badges/main/pipeline.svg?key_text=Pipeline)](https://gitlab.com/FelixSchoen/S-Coda/-/pipelines)
 [![Coverage](https://gitlab.com/FelixSchoen/S-Coda/badges/main/coverage.svg?key_text=Coverage)](https://gitlab.com/FelixSchoen/S-Coda/-/pipelines)
 [![Python Version](https://img.shields.io/badge/Python%20Version-3.10-blue)](https://www.python.org/downloads/release/python-31013)

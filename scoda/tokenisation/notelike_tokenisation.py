@@ -25,10 +25,11 @@ class StandardNotelikeTokeniser(BaseNotelikeTokeniser):
     [        1] ... start
     [        2] ... stop
     [        3] ... wait
-    [  4 -  27] ... value definition
-    [ 28 - 115] ... note
-    [116 - 130] ... time signature numerator in eights from 2/8 to 16/8
-    [      131] ... note with previous pitch (running pitch only)
+    [        4] ... bar seperator
+    [  5 -  28] ... value definition
+    [ 29 - 116] ... note
+    [117 - 131] ... time signature numerator in eights from 2/8 to 16/8
+    [      132] ... note with previous pitch (running pitch only)
     """
 
     def __init__(self, running_value: bool, running_pitch: bool, running_time_sig: bool) -> None:
@@ -57,17 +58,17 @@ class StandardNotelikeTokeniser(BaseNotelikeTokeniser):
                 if not self.cur_time == msg_time:
                     self.cur_rest_buffer += msg_time - self.cur_time
                     tokens.extend(
-                        self._notelike_tokenise_flush_rest_buffer(apply_target=False, wait_token=3, value_shift=3))
+                        self._notelike_tokenise_flush_rest_buffer(apply_target=False, wait_token=3, value_shift=4))
 
                 # Check if value of note has to be defined
                 if not (self.prv_value == msg_value and self.flags.get(Flags.RUNNING_VALUE, False)):
-                    tokens.extend(self._general_tokenise_flush_time_buffer(msg_value, value_shift=3))
+                    tokens.extend(self._general_tokenise_flush_time_buffer(msg_value, value_shift=4))
 
                 # Check if pitch of note has to be defined
                 if not (self.prv_note == msg_note and self.flags.get(Flags.RUNNING_PITCH, False)):
-                    tokens.append(msg_note - 21 + 28)
+                    tokens.append(msg_note - 21 + 29)
                 else:
-                    tokens.append(131)
+                    tokens.append(132)
 
                 self.cur_time_target = max(self.cur_time_target, self.cur_time + msg_value)
                 self.prv_type = MessageType.NOTE_ON
@@ -84,7 +85,7 @@ class StandardNotelikeTokeniser(BaseNotelikeTokeniser):
                     self.cur_rest_buffer += msg_time - self.cur_time
                     tokens.extend(
                         self._notelike_tokenise_flush_rest_buffer(apply_target=False, wait_token=3, value_shift=3))
-                    tokens.append(numerator - 2 + 116)
+                    tokens.append(numerator - 2 + 117)
 
                 self.prv_type = MessageType.TIME_SIGNATURE
                 self.prv_numerator = numerator
@@ -94,7 +95,7 @@ class StandardNotelikeTokeniser(BaseNotelikeTokeniser):
 
         if apply_buffer:
             tokens.extend(
-                self._notelike_tokenise_flush_rest_buffer(apply_target=True, wait_token=3, value_shift=3))
+                self._notelike_tokenise_flush_rest_buffer(apply_target=True, wait_token=3, value_shift=4))
 
         if reset_time:
             self.reset_time()
@@ -119,27 +120,29 @@ class StandardNotelikeTokeniser(BaseNotelikeTokeniser):
             elif token == 3:
                 cur_time += prv_value
                 prv_type = MessageType.WAIT
-            elif 4 <= token <= 27:
+            elif token == 4:
+                prv_type = "sequence_control"
+            elif 5 <= token <= 28:
                 if prv_type == MessageType.INTERNAL:
-                    prv_value += token - 3
+                    prv_value += token - 4
                 else:
-                    prv_value = token - 3
+                    prv_value = token - 4
                 prv_type = MessageType.INTERNAL
-            elif 28 <= token <= 115:
+            elif 29 <= token <= 116:
                 seq.add_absolute_message(
-                    Message(message_type=MessageType.NOTE_ON, note=token - 28 + 21, time=cur_time))
+                    Message(message_type=MessageType.NOTE_ON, note=token - 29 + 21, time=cur_time))
                 seq.add_absolute_message(
-                    Message(message_type=MessageType.NOTE_OFF, note=token - 28 + 21,
+                    Message(message_type=MessageType.NOTE_OFF, note=token - 29 + 21,
                             time=cur_time + prv_value))
                 prv_type = MessageType.NOTE_ON
-                prv_note = token - 28 + 21
-            elif 116 <= token <= 130:
+                prv_note = token - 29 + 21
+            elif 117 <= token <= 131:
                 seq.add_absolute_message(
                     Message(message_type=MessageType.TIME_SIGNATURE, time=cur_time,
-                            numerator=token - 116 + 2, denominator=8)
+                            numerator=token - 117 + 2, denominator=8)
                 )
                 prv_type = MessageType.TIME_SIGNATURE
-            elif token == 131:
+            elif token == 132:
                 seq.add_absolute_message(
                     Message(message_type=MessageType.NOTE_ON, note=prv_note, time=cur_time))
                 seq.add_absolute_message(
@@ -156,13 +159,13 @@ class StandardNotelikeTokeniser(BaseNotelikeTokeniser):
         prv_note = None
 
         for token in tokens:
-            if token == 131:
+            if token == 132:
                 info.append(prv_note)
-            elif not 28 <= token <= 115:
+            elif not 29 <= token <= 116:
                 info.append(invalid_value)
             else:
-                info.append(token - 28 + 21)
-                prv_note = token - 28 + 21
+                info.append(token - 29 + 21)
+                prv_note = token - 29 + 21
 
         return info
 
@@ -172,13 +175,13 @@ class StandardNotelikeTokeniser(BaseNotelikeTokeniser):
         prv_note = None
 
         for token in tokens:
-            if token == 131:
+            if token == 132:
                 info.append(prv_note % 12)
-            elif not 28 <= token <= 115:
+            elif not 29 <= token <= 116:
                 info.append(invalid_value)
             else:
-                info.append((token - 28 + 21) % 12)
-                prv_note = token - 28 + 21
+                info.append((token - 29 + 21) % 12)
+                prv_note = token - 29 + 21
 
         return info
 
@@ -195,11 +198,11 @@ class StandardNotelikeTokeniser(BaseNotelikeTokeniser):
             if token == 3:
                 cur_time += prv_value
                 prv_type = MessageType.WAIT
-            elif 4 <= token <= 27:
+            elif 5 <= token <= 28:
                 if prv_type == MessageType.INTERNAL:
-                    prv_value += token - 3
+                    prv_value += token - 4
                 else:
-                    prv_value = token - 3
+                    prv_value = token - 4
                 prv_type = MessageType.INTERNAL
             else:
                 prv_type = "general_message"
@@ -226,6 +229,7 @@ class StandardNotelikeTokeniser(BaseNotelikeTokeniser):
         """
         # TODO Check everything before actual implementation
         # TODO Implement running values
+        # TODO Implement bar seperator
         cur_bar_index = 0
         cur_bar_capacity = 4 * PPQN
         cur_time = 0
@@ -258,19 +262,21 @@ class StandardNotelikeTokeniser(BaseNotelikeTokeniser):
                     cur_bar_index += 1
 
                 prv_type = MessageType.WAIT
-            elif 4 <= token <= 27:
+            elif token == 4:
+                prv_type = "sequence_control"
+            elif 5 <= token <= 28:
                 if prv_type == MessageType.INTERNAL:
-                    prv_value += token - 3
+                    prv_value += token - 4
                 else:
-                    prv_value = token - 3
+                    prv_value = token - 4
                 prv_type = MessageType.INTERNAL
-            elif 28 <= token <= 115:
+            elif 29 <= token <= 116:
                 prv_type = MessageType.NOTE_ON
-                prv_note = token - 28 + 21
-            elif 116 <= token <= 130:
-                cur_bar_capacity = int(((token - 116 + 2) / 8) * PPQN)
+                prv_note = token - 29 + 21
+            elif 117 <= token <= 131:
+                cur_bar_capacity = int(((token - 117 + 2) / 8) * PPQN)
                 prv_type = MessageType.TIME_SIGNATURE
-            elif token == 131:
+            elif token == 132:
                 prv_type = MessageType.NOTE_ON
             else:
                 raise TokenisationException(f"Encountered invalid token during validity check: {token}")
@@ -295,7 +301,7 @@ class StandardNotelikeTokeniser(BaseNotelikeTokeniser):
             valid_tokens.append(3)
         # value definition
         if seq_started and not seq_stopped:
-            for t in range(4, 27 + 1):
+            for t in range(5, 28 + 1):
                 valid_tokens.append(t)
         # note
         if seq_started and not seq_stopped \
@@ -303,11 +309,11 @@ class StandardNotelikeTokeniser(BaseNotelikeTokeniser):
                      or cur_bar_time + prv_value <= cur_bar_capacity
                      or cur_bar_index + 1 + (
                              prv_value - (cur_bar_capacity - cur_bar_time)) // cur_bar_capacity < min_bars):
-            for t in range(28, 115 + 1):
+            for t in range(29, 116 + 1):
                 valid_tokens.append(t)
         # time signature
         if seq_started and not seq_stopped and cur_bar_time == 0:
-            for t in range(116, 130 + 1):
+            for t in range(117, 131 + 1):
                 valid_tokens.append(t)
 
         state = {"cur_bar_index": cur_bar_index,
