@@ -19,7 +19,10 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install .[deploy]
+          pip install build
+
+      - name: Build package
+        run: python -m build
 
       - name: Publish package
         uses: pypa/gh-action-pypi-publish@release/v1
