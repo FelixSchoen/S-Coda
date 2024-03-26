@@ -538,24 +538,25 @@ class LargeDictionaryNotelikeTokeniser(BaseNotelikeTokeniser):
     [        0] ... pad
     [        1] ... start
     [        2] ... stop
-    [  3 -  26] ... wait
-    [ 27 - 114] ... notes with duration of 2 ticks
-    [115 - 202] ... notes with duration of 3 ticks
-    [203 - 290] ... notes with duration of 4 ticks
-    [291 - 378] ... notes with duration of 6 ticks
-    [379 - 466] ... notes with duration of 8 ticks
-    [467 - 554] ... notes with duration of 9 ticks
-    [555 - 642] ... notes with duration of 12 ticks
-    [643 - 730] ... notes with duration of 16 ticks
-    [731 - 818] ... notes with duration of 18 ticks
-    [819 - 906] ... notes with duration of 24 ticks
-    [907 - 994] ... notes with duration of 32 ticks
-    [995 -1082] ... notes with duration of 36 ticks
-    [1083-1170] ... notes with duration of 48 ticks
-    [1171-1258] ... notes with duration of 64 ticks
-    [1259-1346] ... notes with duration of 72 ticks
-    [1347-1434] ... notes with duration of 96 ticks
-    [1435-1449] ... time signature numerator in eights from 2/8 to 16/8
+    [        3] ... bar seperator
+    [  4 -  27] ... wait
+    [ 28 - 115] ... notes with duration of 2 ticks
+    [116 - 203] ... notes with duration of 3 ticks
+    [204 - 291] ... notes with duration of 4 ticks
+    [292 - 379] ... notes with duration of 6 ticks
+    [380 - 467] ... notes with duration of 8 ticks
+    [468 - 555] ... notes with duration of 9 ticks
+    [556 - 643] ... notes with duration of 12 ticks
+    [644 - 731] ... notes with duration of 16 ticks
+    [732 - 819] ... notes with duration of 18 ticks
+    [820 - 907] ... notes with duration of 24 ticks
+    [908 - 995] ... notes with duration of 32 ticks
+    [996 -1083] ... notes with duration of 36 ticks
+    [1084-1171] ... notes with duration of 48 ticks
+    [1172-1259] ... notes with duration of 64 ticks
+    [1260-1347] ... notes with duration of 72 ticks
+    [1348-1435] ... notes with duration of 96 ticks
+    [1436-1450] ... time signature numerator in eights from 2/8 to 16/8
     """
 
     SUPPORTED_VALUES = [2, 3, 4, 6, 8, 9, 12, 16, 18, 24, 32, 36, 48, 64, 72, 96]
@@ -586,13 +587,13 @@ class LargeDictionaryNotelikeTokeniser(BaseNotelikeTokeniser):
                 if not self.cur_time == msg_time:
                     self.cur_rest_buffer += msg_time - self.cur_time
                     tokens.extend(
-                        self._general_tokenise_flush_time_buffer(time=self.cur_rest_buffer, value_shift=2))
+                        self._general_tokenise_flush_time_buffer(time=self.cur_rest_buffer, value_shift=3))
                     self.cur_time += self.cur_rest_buffer
                     self.cur_rest_buffer = 0
 
                 # Add token representing pitch and value
                 tokens.append(
-                    msg_note - 21 + 27 + LargeDictionaryNotelikeTokeniser.SUPPORTED_VALUES.index(msg_value) * 88)
+                    msg_note - 21 + 28 + LargeDictionaryNotelikeTokeniser.SUPPORTED_VALUES.index(msg_value) * 88)
 
                 self.cur_time_target = max(self.cur_time_target, self.cur_time + msg_value)
             elif msg_type == MessageType.TIME_SIGNATURE:
@@ -605,10 +606,10 @@ class LargeDictionaryNotelikeTokeniser(BaseNotelikeTokeniser):
                 if not (self.prv_numerator == numerator and self.flags.get(Flags.RUNNING_TIME_SIG, False)):
                     self.cur_rest_buffer += msg_time - self.cur_time
                     tokens.extend(
-                        self._general_tokenise_flush_time_buffer(time=self.cur_rest_buffer, value_shift=2))
+                        self._general_tokenise_flush_time_buffer(time=self.cur_rest_buffer, value_shift=3))
                     self.cur_time += self.cur_rest_buffer
                     self.cur_rest_buffer = 0
-                    tokens.append(numerator - 2 + len(LargeDictionaryNotelikeTokeniser.SUPPORTED_VALUES) * 88 + 3 + 24)
+                    tokens.append(numerator - 2 + len(LargeDictionaryNotelikeTokeniser.SUPPORTED_VALUES) * 88 + 4 + 24)
 
                 self.prv_numerator = numerator
             elif msg_type == MessageType.INTERNAL:
@@ -617,7 +618,7 @@ class LargeDictionaryNotelikeTokeniser(BaseNotelikeTokeniser):
         if apply_buffer:
             self.cur_rest_buffer = max(self.cur_time_target - self.cur_time, self.cur_rest_buffer)
             tokens.extend(
-                self._general_tokenise_flush_time_buffer(time=self.cur_rest_buffer, value_shift=2))
+                self._general_tokenise_flush_time_buffer(time=self.cur_rest_buffer, value_shift=3))
             self.cur_time += self.cur_rest_buffer
             self.cur_rest_buffer = 0
 
@@ -635,16 +636,16 @@ class LargeDictionaryNotelikeTokeniser(BaseNotelikeTokeniser):
         seq = Sequence()
         cur_time = 0
 
-        boundary_token_ts = len(LargeDictionaryNotelikeTokeniser.SUPPORTED_VALUES) * 88 + 3 + 24
+        boundary_token_ts = len(LargeDictionaryNotelikeTokeniser.SUPPORTED_VALUES) * 88 + 4 + 24
 
         for token in tokens:
             if token <= 2:
                 pass
-            elif 3 <= token <= 26:
-                cur_time += token - 2
-            elif 27 <= token <= boundary_token_ts - 1:
-                note_pitch = (token - 27) % 88 + 21
-                note_value = LargeDictionaryNotelikeTokeniser.SUPPORTED_VALUES[(token - 27) // 88]
+            elif 4 <= token <= 27:
+                cur_time += token - 3
+            elif 28 <= token <= boundary_token_ts - 1:
+                note_pitch = (token - 28) % 88 + 21
+                note_value = LargeDictionaryNotelikeTokeniser.SUPPORTED_VALUES[(token - 28) // 88]
 
                 seq.add_absolute_message(
                     Message(message_type=MessageType.NOTE_ON, note=note_pitch, time=cur_time))
