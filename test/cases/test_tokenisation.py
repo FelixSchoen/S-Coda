@@ -10,8 +10,8 @@ from scoda.tokenisation.transposed_notelike_tokenisation import TransposedNoteli
 @pytest.mark.parametrize("running_value", [True, False])
 @pytest.mark.parametrize("running_pitch", [True, False])
 @pytest.mark.parametrize("running_time_sig", [True, False])
-def test_roundtrip_notelike_tokenisation(path_resource, track, running_value, running_pitch,
-                                         running_time_sig):
+def test_roundtrip_standard_notelike_tokenisation(path_resource, track, running_value, running_pitch,
+                                                  running_time_sig):
     tokeniser = StandardNotelikeTokeniser(running_value=running_value, running_pitch=running_pitch,
                                           running_time_sig=running_time_sig)
 

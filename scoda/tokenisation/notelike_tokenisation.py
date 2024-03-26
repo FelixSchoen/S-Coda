@@ -25,10 +25,11 @@ class StandardNotelikeTokeniser(BaseNotelikeTokeniser):
     [        1] ... start
     [        2] ... stop
     [        3] ... wait
-    [  4 -  27] ... value definition
-    [ 28 - 115] ... note
-    [116 - 130] ... time signature numerator in eights from 2/8 to 16/8
-    [      131] ... note with previous pitch (running pitch only)
+    [        4] ... bar separator
+    [  5 -  28] ... value definition
+    [ 29 - 116] ... note
+    [117 - 131] ... time signature numerator in eights from 2/8 to 16/8
+    [      132] ... note with previous pitch (running pitch only)
     """
 
     def __init__(self, running_value: bool, running_pitch: bool, running_time_sig: bool) -> None:
@@ -57,17 +58,17 @@ class StandardNotelikeTokeniser(BaseNotelikeTokeniser):
                 if not self.cur_time == msg_time:
                     self.cur_rest_buffer += msg_time - self.cur_time
                     tokens.extend(
-                        self._notelike_tokenise_flush_rest_buffer(apply_target=False, wait_token=3, value_shift=3))
+                        self._notelike_tokenise_flush_rest_buffer(apply_target=False, wait_token=3, value_shift=4))
 
                 # Check if value of note has to be defined
                 if not (self.prv_value == msg_value and self.flags.get(Flags.RUNNING_VALUE, False)):
-                    tokens.extend(self._general_tokenise_flush_time_buffer(msg_value, value_shift=3))
+                    tokens.extend(self._general_tokenise_flush_time_buffer(msg_value, value_shift=4))
 
                 # Check if pitch of note has to be defined
                 if not (self.prv_note == msg_note and self.flags.get(Flags.RUNNING_PITCH, False)):
-                    tokens.append(msg_note - 21 + 28)
+                    tokens.append(msg_note - 21 + 29)
                 else:
-                    tokens.append(131)
+                    tokens.append(132)
 
                 self.cur_time_target = max(self.cur_time_target, self.cur_time + msg_value)
                 self.prv_type = MessageType.NOTE_ON
@@ -84,7 +85,7 @@ class StandardNotelikeTokeniser(BaseNotelikeTokeniser):
                     self.cur_rest_buffer += msg_time - self.cur_time
                     tokens.extend(
                         self._notelike_tokenise_flush_rest_buffer(apply_target=False, wait_token=3, value_shift=3))
-                    tokens.append(numerator - 2 + 116)
+                    tokens.append(numerator - 2 + 117)
 
                 self.prv_type = MessageType.TIME_SIGNATURE
                 self.prv_numerator = numerator
@@ -94,7 +95,7 @@ class StandardNotelikeTokeniser(BaseNotelikeTokeniser):
 
         if apply_buffer:
             tokens.extend(
-                self._notelike_tokenise_flush_rest_buffer(apply_target=True, wait_token=3, value_shift=3))
+                self._notelike_tokenise_flush_rest_buffer(apply_target=True, wait_token=3, value_shift=4))
 
         if reset_time:
             self.reset_time()
@@ -119,27 +120,29 @@ class StandardNotelikeTokeniser(BaseNotelikeTokeniser):
             elif token == 3:
                 cur_time += prv_value
                 prv_type = MessageType.WAIT
-            elif 4 <= token <= 27:
+            elif token == 4:
+                prv_type = "sequence_control"
+            elif 5 <= token <= 28:
                 if prv_type == MessageType.INTERNAL:
-                    prv_value += token - 3
+                    prv_value += token - 4
                 else:
-                    prv_value = token - 3
+                    prv_value = token - 4
                 prv_type = MessageType.INTERNAL
-            elif 28 <= token <= 115:
+            elif 29 <= token <= 116:
                 seq.add_absolute_message(
-                    Message(message_type=MessageType.NOTE_ON, note=token - 28 + 21, time=cur_time))
+                    Message(message_type=MessageType.NOTE_ON, note=token - 29 + 21, time=cur_time))
                 seq.add_absolute_message(
-                    Message(message_type=MessageType.NOTE_OFF, note=token - 28 + 21,
+                    Message(message_type=MessageType.NOTE_OFF, note=token - 29 + 21,
                             time=cur_time + prv_value))
                 prv_type = MessageType.NOTE_ON
-                prv_note = token - 28 + 21
-            elif 116 <= token <= 130:
+                prv_note = token - 29 + 21
+            elif 117 <= token <= 131:
                 seq.add_absolute_message(
                     Message(message_type=MessageType.TIME_SIGNATURE, time=cur_time,
-                            numerator=token - 116 + 2, denominator=8)
+                            numerator=token - 117 + 2, denominator=8)
                 )
                 prv_type = MessageType.TIME_SIGNATURE
-            elif token == 131:
+            elif token == 132:
                 seq.add_absolute_message(
                     Message(message_type=MessageType.NOTE_ON, note=prv_note, time=cur_time))
                 seq.add_absolute_message(
@@ -156,13 +159,13 @@ class StandardNotelikeTokeniser(BaseNotelikeTokeniser):
         prv_note = None
 
         for token in tokens:
-            if token == 131:
+            if token == 132:
                 info.append(prv_note)
-            elif not 28 <= token <= 115:
+            elif not 29 <= token <= 116:
                 info.append(invalid_value)
             else:
-                info.append(token - 28 + 21)
-                prv_note = token - 28 + 21
+                info.append(token - 29 + 21)
+                prv_note = token - 29 + 21
 
         return info
 
@@ -172,13 +175,13 @@ class StandardNotelikeTokeniser(BaseNotelikeTokeniser):
         prv_note = None
 
         for token in tokens:
-            if token == 131:
+            if token == 132:
                 info.append(prv_note % 12)
-            elif not 28 <= token <= 115:
+            elif not 29 <= token <= 116:
                 info.append(invalid_value)
             else:
-                info.append((token - 28 + 21) % 12)
-                prv_note = token - 28 + 21
+                info.append((token - 29 + 21) % 12)
+                prv_note = token - 29 + 21
 
         return info
 
@@ -195,11 +198,11 @@ class StandardNotelikeTokeniser(BaseNotelikeTokeniser):
             if token == 3:
                 cur_time += prv_value
                 prv_type = MessageType.WAIT
-            elif 4 <= token <= 27:
+            elif 5 <= token <= 28:
                 if prv_type == MessageType.INTERNAL:
-                    prv_value += token - 3
+                    prv_value += token - 4
                 else:
-                    prv_value = token - 3
+                    prv_value = token - 4
                 prv_type = MessageType.INTERNAL
             else:
                 prv_type = "general_message"
@@ -226,6 +229,7 @@ class StandardNotelikeTokeniser(BaseNotelikeTokeniser):
         """
         # TODO Check everything before actual implementation
         # TODO Implement running values
+        # TODO Implement bar separator
         cur_bar_index = 0
         cur_bar_capacity = 4 * PPQN
         cur_time = 0
@@ -258,19 +262,21 @@ class StandardNotelikeTokeniser(BaseNotelikeTokeniser):
                     cur_bar_index += 1
 
                 prv_type = MessageType.WAIT
-            elif 4 <= token <= 27:
+            elif token == 4:
+                prv_type = "sequence_control"
+            elif 5 <= token <= 28:
                 if prv_type == MessageType.INTERNAL:
-                    prv_value += token - 3
+                    prv_value += token - 4
                 else:
-                    prv_value = token - 3
+                    prv_value = token - 4
                 prv_type = MessageType.INTERNAL
-            elif 28 <= token <= 115:
+            elif 29 <= token <= 116:
                 prv_type = MessageType.NOTE_ON
-                prv_note = token - 28 + 21
-            elif 116 <= token <= 130:
-                cur_bar_capacity = int(((token - 116 + 2) / 8) * PPQN)
+                prv_note = token - 29 + 21
+            elif 117 <= token <= 131:
+                cur_bar_capacity = int(((token - 117 + 2) / 8) * PPQN)
                 prv_type = MessageType.TIME_SIGNATURE
-            elif token == 131:
+            elif token == 132:
                 prv_type = MessageType.NOTE_ON
             else:
                 raise TokenisationException(f"Encountered invalid token during validity check: {token}")
@@ -295,7 +301,7 @@ class StandardNotelikeTokeniser(BaseNotelikeTokeniser):
             valid_tokens.append(3)
         # value definition
         if seq_started and not seq_stopped:
-            for t in range(4, 27 + 1):
+            for t in range(5, 28 + 1):
                 valid_tokens.append(t)
         # note
         if seq_started and not seq_stopped \
@@ -303,11 +309,11 @@ class StandardNotelikeTokeniser(BaseNotelikeTokeniser):
                      or cur_bar_time + prv_value <= cur_bar_capacity
                      or cur_bar_index + 1 + (
                              prv_value - (cur_bar_capacity - cur_bar_time)) // cur_bar_capacity < min_bars):
-            for t in range(28, 115 + 1):
+            for t in range(29, 116 + 1):
                 valid_tokens.append(t)
         # time signature
         if seq_started and not seq_stopped and cur_bar_time == 0:
-            for t in range(116, 130 + 1):
+            for t in range(117, 131 + 1):
                 valid_tokens.append(t)
 
         state = {"cur_bar_index": cur_bar_index,
@@ -329,10 +335,11 @@ class CoFNotelikeTokeniser(BaseNotelikeTokeniser):
     [        1] ... start
     [        2] ... stop
     [        3] ... wait
-    [  4 -  27] ... value definition
-    [ 28 -  44] ... octave shift between notes
-    [ 45 -  56] ... note without octave in distance on the circle of fifths
-    [ 57 -  72] ... time signature numerator in eights from 2/8 to 16/8
+    [        4] ... separator
+    [  5 -  28] ... value definition
+    [ 29 -  45] ... octave shift between notes
+    [ 46 -  57] ... note without octave in distance on the circle of fifths
+    [ 58 -  73] ... time signature numerator in eights from 2/8 to 16/8
     """
 
     def __init__(self, running_value: bool, running_octave: bool, running_time_sig: bool) -> None:
@@ -370,11 +377,11 @@ class CoFNotelikeTokeniser(BaseNotelikeTokeniser):
                 if not self.cur_time == msg_time:
                     self.cur_rest_buffer += msg_time - self.cur_time
                     tokens.extend(
-                        self._notelike_tokenise_flush_rest_buffer(apply_target=False, wait_token=3, value_shift=3))
+                        self._notelike_tokenise_flush_rest_buffer(apply_target=False, wait_token=3, value_shift=4))
 
                 # Check if value of note has to be defined
                 if not (self.prv_value == msg_value and self.flags.get(Flags.RUNNING_VALUE, False)):
-                    tokens.extend(self._general_tokenise_flush_time_buffer(msg_value, value_shift=3))
+                    tokens.extend(self._general_tokenise_flush_time_buffer(msg_value, value_shift=4))
 
                 # Check if octave of note hast to be defined
                 octave_tgt = msg_note // 12 - 1
@@ -382,11 +389,11 @@ class CoFNotelikeTokeniser(BaseNotelikeTokeniser):
                     octave_src = self.prv_note // 12 - 1
                     octave_shift = octave_tgt - octave_src
                     assert -8 <= octave_shift <= 8
-                    tokens.append((octave_shift + 8) + 28)
+                    tokens.append((octave_shift + 8) + 29)
 
                 cof_dist = CircleOfFifths.get_distance(self.prv_note, msg_note)
 
-                tokens.append((cof_dist + 5) + 45)
+                tokens.append((cof_dist + 5) + 46)
 
                 self.cur_time_target = max(self.cur_time_target, self.cur_time + msg_value)
                 self.prv_type = MessageType.NOTE_ON
@@ -403,8 +410,8 @@ class CoFNotelikeTokeniser(BaseNotelikeTokeniser):
                 if not (self.prv_numerator == numerator and self.flags.get(Flags.RUNNING_TIME_SIG, False)):
                     self.cur_rest_buffer += msg_time - self.cur_time
                     tokens.extend(
-                        self._notelike_tokenise_flush_rest_buffer(apply_target=False, wait_token=3, value_shift=3))
-                    tokens.append(numerator - 2 + 57)
+                        self._notelike_tokenise_flush_rest_buffer(apply_target=False, wait_token=3, value_shift=4))
+                    tokens.append(numerator - 2 + 58)
 
                 self.prv_type = MessageType.TIME_SIGNATURE
                 self.prv_numerator = numerator
@@ -414,7 +421,7 @@ class CoFNotelikeTokeniser(BaseNotelikeTokeniser):
 
         if apply_buffer:
             tokens.extend(
-                self._notelike_tokenise_flush_rest_buffer(apply_target=True, wait_token=3, value_shift=3))
+                self._notelike_tokenise_flush_rest_buffer(apply_target=True, wait_token=3, value_shift=4))
 
         if reset_time:
             self.reset_time()
@@ -440,16 +447,18 @@ class CoFNotelikeTokeniser(BaseNotelikeTokeniser):
             elif token == 3:
                 cur_time += prv_value
                 prv_type = MessageType.WAIT
-            elif 4 <= token <= 27:
+            elif token == 4:
+                prv_type = "sequence_control"
+            elif 5 <= token <= 28:
                 if prv_type == MessageType.INTERNAL:
-                    prv_value += token - 3
+                    prv_value += token - 4
                 else:
-                    prv_value = token - 3
+                    prv_value = token - 4
                 prv_type = MessageType.INTERNAL
-            elif 28 <= token <= 44:
-                prv_octave += token - 28 - 8
-            elif 45 <= token <= 56:
-                note_base = CircleOfFifths.from_distance(prv_note, (token - 45) - 5)
+            elif 29 <= token <= 45:
+                prv_octave += token - 29 - 8
+            elif 46 <= token <= 57:
+                note_base = CircleOfFifths.from_distance(prv_note, (token - 46) - 5)
                 note = note_base + prv_octave * 12 + 12
 
                 seq.add_absolute_message(
@@ -458,10 +467,10 @@ class CoFNotelikeTokeniser(BaseNotelikeTokeniser):
                     Message(message_type=MessageType.NOTE_OFF, note=note, time=cur_time + prv_value))
                 prv_type = MessageType.NOTE_ON
                 prv_note = note
-            elif 57 <= token <= 72:
+            elif 58 <= token <= 73:
                 seq.add_absolute_message(
                     Message(message_type=MessageType.TIME_SIGNATURE, time=cur_time,
-                            numerator=token - 57 + 2, denominator=8)
+                            numerator=token - 58 + 2, denominator=8)
                 )
                 prv_type = MessageType.TIME_SIGNATURE
             else:
@@ -471,59 +480,15 @@ class CoFNotelikeTokeniser(BaseNotelikeTokeniser):
 
     @staticmethod
     def get_info_notes(tokens: list[int], invalid_value: int = -1) -> list[int]:
-        info = []
-        prv_note = None
-
-        for token in tokens:
-            if token == 131:
-                info.append(prv_note)
-            elif not 28 <= token <= 115:
-                info.append(invalid_value)
-            else:
-                info.append(token - 28 + 21)
-                prv_note = token - 28 + 21
-
-        return info
+        raise NotImplementedError
 
     @staticmethod
     def get_info_circle_of_fifths(tokens: list[int], invalid_value: int = -1) -> list[int]:
-        info = []
-        prv_note = None
-
-        for token in tokens:
-            if token == 131:
-                info.append(prv_note % 12)
-            elif not 28 <= token <= 115:
-                info.append(invalid_value)
-            else:
-                info.append((token - 28 + 21) % 12)
-                prv_note = token - 28 + 21
-
-        return info
+        raise NotImplementedError
 
     @staticmethod
     def get_info_elapsed_ticks(tokens: list[int]) -> list[int]:
-        info = []
-        cur_time = 0
-        prv_type = None
-        prv_value = math.nan
-
-        for token in tokens:
-            info.append(cur_time)
-
-            if token == 3:
-                cur_time += prv_value
-                prv_type = MessageType.WAIT
-            elif 4 <= token <= 27:
-                if prv_type == MessageType.INTERNAL:
-                    prv_value += token - 3
-                else:
-                    prv_value = token - 3
-                prv_type = MessageType.INTERNAL
-            else:
-                prv_type = "general_message"
-
-        return info
+        raise NotImplementedError
 
 
 class LargeDictionaryNotelikeTokeniser(BaseNotelikeTokeniser):
@@ -532,24 +497,25 @@ class LargeDictionaryNotelikeTokeniser(BaseNotelikeTokeniser):
     [        0] ... pad
     [        1] ... start
     [        2] ... stop
-    [  3 -  26] ... wait
-    [ 27 - 114] ... notes with duration of 2 ticks
-    [115 - 202] ... notes with duration of 3 ticks
-    [203 - 290] ... notes with duration of 4 ticks
-    [291 - 378] ... notes with duration of 6 ticks
-    [379 - 466] ... notes with duration of 8 ticks
-    [467 - 554] ... notes with duration of 9 ticks
-    [555 - 642] ... notes with duration of 12 ticks
-    [643 - 730] ... notes with duration of 16 ticks
-    [731 - 818] ... notes with duration of 18 ticks
-    [819 - 906] ... notes with duration of 24 ticks
-    [907 - 994] ... notes with duration of 32 ticks
-    [995 -1082] ... notes with duration of 36 ticks
-    [1083-1170] ... notes with duration of 48 ticks
-    [1171-1258] ... notes with duration of 64 ticks
-    [1259-1346] ... notes with duration of 72 ticks
-    [1347-1434] ... notes with duration of 96 ticks
-    [1435-1449] ... time signature numerator in eights from 2/8 to 16/8
+    [        3] ... bar separator
+    [  4 -  27] ... wait
+    [ 28 - 115] ... notes with duration of 2 ticks
+    [116 - 203] ... notes with duration of 3 ticks
+    [204 - 291] ... notes with duration of 4 ticks
+    [292 - 379] ... notes with duration of 6 ticks
+    [380 - 467] ... notes with duration of 8 ticks
+    [468 - 555] ... notes with duration of 9 ticks
+    [556 - 643] ... notes with duration of 12 ticks
+    [644 - 731] ... notes with duration of 16 ticks
+    [732 - 819] ... notes with duration of 18 ticks
+    [820 - 907] ... notes with duration of 24 ticks
+    [908 - 995] ... notes with duration of 32 ticks
+    [996 -1083] ... notes with duration of 36 ticks
+    [1084-1171] ... notes with duration of 48 ticks
+    [1172-1259] ... notes with duration of 64 ticks
+    [1260-1347] ... notes with duration of 72 ticks
+    [1348-1435] ... notes with duration of 96 ticks
+    [1436-1450] ... time signature numerator in eights from 2/8 to 16/8
     """
 
     SUPPORTED_VALUES = [2, 3, 4, 6, 8, 9, 12, 16, 18, 24, 32, 36, 48, 64, 72, 96]
@@ -580,13 +546,13 @@ class LargeDictionaryNotelikeTokeniser(BaseNotelikeTokeniser):
                 if not self.cur_time == msg_time:
                     self.cur_rest_buffer += msg_time - self.cur_time
                     tokens.extend(
-                        self._general_tokenise_flush_time_buffer(time=self.cur_rest_buffer, value_shift=2))
+                        self._general_tokenise_flush_time_buffer(time=self.cur_rest_buffer, value_shift=3))
                     self.cur_time += self.cur_rest_buffer
                     self.cur_rest_buffer = 0
 
                 # Add token representing pitch and value
                 tokens.append(
-                    msg_note - 21 + 27 + LargeDictionaryNotelikeTokeniser.SUPPORTED_VALUES.index(msg_value) * 88)
+                    msg_note - 21 + 28 + LargeDictionaryNotelikeTokeniser.SUPPORTED_VALUES.index(msg_value) * 88)
 
                 self.cur_time_target = max(self.cur_time_target, self.cur_time + msg_value)
             elif msg_type == MessageType.TIME_SIGNATURE:
@@ -599,10 +565,10 @@ class LargeDictionaryNotelikeTokeniser(BaseNotelikeTokeniser):
                 if not (self.prv_numerator == numerator and self.flags.get(Flags.RUNNING_TIME_SIG, False)):
                     self.cur_rest_buffer += msg_time - self.cur_time
                     tokens.extend(
-                        self._general_tokenise_flush_time_buffer(time=self.cur_rest_buffer, value_shift=2))
+                        self._general_tokenise_flush_time_buffer(time=self.cur_rest_buffer, value_shift=3))
                     self.cur_time += self.cur_rest_buffer
                     self.cur_rest_buffer = 0
-                    tokens.append(numerator - 2 + len(LargeDictionaryNotelikeTokeniser.SUPPORTED_VALUES) * 88 + 3 + 24)
+                    tokens.append(numerator - 2 + len(LargeDictionaryNotelikeTokeniser.SUPPORTED_VALUES) * 88 + 4 + 24)
 
                 self.prv_numerator = numerator
             elif msg_type == MessageType.INTERNAL:
@@ -611,7 +577,7 @@ class LargeDictionaryNotelikeTokeniser(BaseNotelikeTokeniser):
         if apply_buffer:
             self.cur_rest_buffer = max(self.cur_time_target - self.cur_time, self.cur_rest_buffer)
             tokens.extend(
-                self._general_tokenise_flush_time_buffer(time=self.cur_rest_buffer, value_shift=2))
+                self._general_tokenise_flush_time_buffer(time=self.cur_rest_buffer, value_shift=3))
             self.cur_time += self.cur_rest_buffer
             self.cur_rest_buffer = 0
 
@@ -629,16 +595,16 @@ class LargeDictionaryNotelikeTokeniser(BaseNotelikeTokeniser):
         seq = Sequence()
         cur_time = 0
 
-        boundary_token_ts = len(LargeDictionaryNotelikeTokeniser.SUPPORTED_VALUES) * 88 + 3 + 24
+        boundary_token_ts = len(LargeDictionaryNotelikeTokeniser.SUPPORTED_VALUES) * 88 + 4 + 24
 
         for token in tokens:
             if token <= 2:
                 pass
-            elif 3 <= token <= 26:
-                cur_time += token - 2
-            elif 27 <= token <= boundary_token_ts - 1:
-                note_pitch = (token - 27) % 88 + 21
-                note_value = LargeDictionaryNotelikeTokeniser.SUPPORTED_VALUES[(token - 27) // 88]
+            elif 4 <= token <= 27:
+                cur_time += token - 3
+            elif 28 <= token <= boundary_token_ts - 1:
+                note_pitch = (token - 28) % 88 + 21
+                note_value = LargeDictionaryNotelikeTokeniser.SUPPORTED_VALUES[(token - 28) // 88]
 
                 seq.add_absolute_message(
                     Message(message_type=MessageType.NOTE_ON, note=note_pitch, time=cur_time))
@@ -646,7 +612,8 @@ class LargeDictionaryNotelikeTokeniser(BaseNotelikeTokeniser):
                     Message(message_type=MessageType.NOTE_OFF, note=note_pitch, time=cur_time + note_value))
             elif boundary_token_ts <= token <= boundary_token_ts + 14:
                 seq.add_absolute_message(
-                    Message(message_type=MessageType.TIME_SIGNATURE, time=cur_time, numerator=token - 1259 + 2,
+                    Message(message_type=MessageType.TIME_SIGNATURE, time=cur_time,
+                            numerator=token - boundary_token_ts + 2,
                             denominator=8)
                 )
             else:
