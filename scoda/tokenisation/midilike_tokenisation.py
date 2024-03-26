@@ -19,10 +19,11 @@ class MidilikeTokeniser(BaseMidilikeTokeniser):
     [        0] ... pad
     [        1] ... start
     [        2] ... stop
-    [  3 -  26] ... wait
-    [ 27 - 114] ... note on
-    [115 - 202] ... note off
-    [203 - 217] ... time signature numerator in eights from 2/8 to 16/8
+    [        3] ... bar separator
+    [  4 -  27] ... wait
+    [ 28 - 115] ... note on
+    [116 - 203] ... note off
+    [204 - 218] ... time signature numerator in eights from 2/8 to 16/8
     """
 
     def __init__(self, running_time_sig: bool) -> None:
@@ -44,10 +45,10 @@ class MidilikeTokeniser(BaseMidilikeTokeniser):
                 if not (21 <= msg_note <= 108):
                     raise TokenisationException(f"Invalid note: {msg_note}")
 
-                tokens.extend(self._general_tokenise_flush_time_buffer(time=self.cur_rest_buffer, value_shift=2))
+                tokens.extend(self._general_tokenise_flush_time_buffer(time=self.cur_rest_buffer, value_shift=3))
                 self.cur_rest_buffer = 0
 
-                tokens.append(msg_note - 21 + 27)
+                tokens.append(msg_note - 21 + 28)
 
                 self.prv_type = MessageType.NOTE_ON
             elif msg_type == MessageType.NOTE_OFF:
@@ -56,10 +57,10 @@ class MidilikeTokeniser(BaseMidilikeTokeniser):
                 if not (21 <= msg_note <= 108):
                     raise TokenisationException(f"Invalid note: {msg_note}")
 
-                tokens.extend(self._general_tokenise_flush_time_buffer(time=self.cur_rest_buffer, value_shift=2))
+                tokens.extend(self._general_tokenise_flush_time_buffer(time=self.cur_rest_buffer, value_shift=3))
                 self.cur_rest_buffer = 0
 
-                tokens.append(msg_note - 21 + 115)
+                tokens.append(msg_note - 21 + 116)
 
                 self.prv_type = MessageType.NOTE_OFF
             elif msg_type == MessageType.TIME_SIGNATURE:
@@ -69,16 +70,16 @@ class MidilikeTokeniser(BaseMidilikeTokeniser):
                 numerator = self._time_signature_to_eights(msg_numerator, msg_denominator)
 
                 if not (self.prv_numerator == numerator and self.flags.get(Flags.RUNNING_TIME_SIG, False)):
-                    tokens.extend(self._general_tokenise_flush_time_buffer(time=self.cur_rest_buffer, value_shift=2))
+                    tokens.extend(self._general_tokenise_flush_time_buffer(time=self.cur_rest_buffer, value_shift=3))
                     self.cur_rest_buffer = 0
 
-                    tokens.append(numerator - 2 + 203)
+                    tokens.append(numerator - 2 + 204)
 
                 self.prv_type = MessageType.TIME_SIGNATURE
                 self.prv_numerator = numerator
 
         if apply_buffer and self.cur_rest_buffer > 0:
-            tokens.extend(self._general_tokenise_flush_time_buffer(time=self.cur_rest_buffer, value_shift=2))
+            tokens.extend(self._general_tokenise_flush_time_buffer(time=self.cur_rest_buffer, value_shift=3))
             self.cur_rest_buffer = 0
 
         if insert_border_tokens:
@@ -92,17 +93,17 @@ class MidilikeTokeniser(BaseMidilikeTokeniser):
         seq = Sequence()
 
         for token in tokens:
-            if token <= 2:
+            if token <= 3:
                 pass
-            elif 3 <= token <= 26:
-                seq.rel.add_message(Message(message_type=MessageType.WAIT, time=token - 2))
-            elif 27 <= token <= 114:
-                seq.rel.add_message(Message(message_type=MessageType.NOTE_ON, note=token - 27 + 21))
-            elif 115 <= token <= 202:
-                seq.rel.add_message(Message(message_type=MessageType.NOTE_OFF, note=token - 115 + 21))
-            elif 203 <= token <= 217:
+            elif 4 <= token <= 27:
+                seq.rel.add_message(Message(message_type=MessageType.WAIT, time=token - 3))
+            elif 28 <= token <= 115:
+                seq.rel.add_message(Message(message_type=MessageType.NOTE_ON, note=token - 28 + 21))
+            elif 116 <= token <= 203:
+                seq.rel.add_message(Message(message_type=MessageType.NOTE_OFF, note=token - 116 + 21))
+            elif 204 <= token <= 218:
                 seq.rel.add_message(
-                    Message(message_type=MessageType.TIME_SIGNATURE, numerator=token - 203 + 2, denominator=8))
+                    Message(message_type=MessageType.TIME_SIGNATURE, numerator=token - 204 + 2, denominator=8))
 
         return seq
 
@@ -111,10 +112,10 @@ class MidilikeTokeniser(BaseMidilikeTokeniser):
         info = []
 
         for token in tokens:
-            if not 27 <= token <= 114:
+            if not 28 <= token <= 115:
                 info.append(invalid_value)
             else:
-                info.append(token - 27 + 21)
+                info.append(token - 28 + 21)
 
         return info
 
@@ -123,10 +124,10 @@ class MidilikeTokeniser(BaseMidilikeTokeniser):
         info = []
 
         for token in tokens:
-            if not 27 <= token <= 114:
+            if not 28 <= token <= 115:
                 info.append(invalid_value)
             else:
-                info.append((token - 27 + 21) % 12)
+                info.append((token - 28 + 21) % 12)
 
         return info
 
@@ -138,7 +139,7 @@ class MidilikeTokeniser(BaseMidilikeTokeniser):
         for token in tokens:
             info.append(cur_time)
 
-            if 3 <= token <= 26:
-                cur_time += token - 2
+            if 4 <= token <= 27:
+                cur_time += token - 3
 
         return info

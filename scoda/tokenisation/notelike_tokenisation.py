@@ -25,7 +25,7 @@ class StandardNotelikeTokeniser(BaseNotelikeTokeniser):
     [        1] ... start
     [        2] ... stop
     [        3] ... wait
-    [        4] ... bar seperator
+    [        4] ... bar separator
     [  5 -  28] ... value definition
     [ 29 - 116] ... note
     [117 - 131] ... time signature numerator in eights from 2/8 to 16/8
@@ -229,7 +229,7 @@ class StandardNotelikeTokeniser(BaseNotelikeTokeniser):
         """
         # TODO Check everything before actual implementation
         # TODO Implement running values
-        # TODO Implement bar seperator
+        # TODO Implement bar separator
         cur_bar_index = 0
         cur_bar_capacity = 4 * PPQN
         cur_time = 0
@@ -538,7 +538,7 @@ class LargeDictionaryNotelikeTokeniser(BaseNotelikeTokeniser):
     [        0] ... pad
     [        1] ... start
     [        2] ... stop
-    [        3] ... bar seperator
+    [        3] ... bar separator
     [  4 -  27] ... wait
     [ 28 - 115] ... notes with duration of 2 ticks
     [116 - 203] ... notes with duration of 3 ticks
