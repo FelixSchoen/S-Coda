@@ -3,9 +3,9 @@ from abc import ABC
 
 from scoda.elements.message import Message
 from scoda.exceptions.tokenisation_exception import TokenisationException
+from scoda.misc.enumerations import MessageType, Flags
 from scoda.sequences.sequence import Sequence
 from scoda.tokenisation.base_tokenisation import BaseTokeniser
-from scoda.utils.enumerations import MessageType, Flags
 
 
 class BaseGridlikeTokeniser(BaseTokeniser, ABC):

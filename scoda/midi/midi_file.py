@@ -7,9 +7,9 @@ import mido
 
 from scoda.elements.message import Message
 from scoda.midi.midi_track import MidiTrack
+from scoda.misc.enumerations import MessageType
+from scoda.misc.scoda_logging import get_logger
 from scoda.settings.settings import PPQN
-from scoda.utils.enumerations import MessageType
-from scoda.utils.scoda_logging import get_logger
 
 if TYPE_CHECKING:
     from scoda.sequences.sequence import Sequence

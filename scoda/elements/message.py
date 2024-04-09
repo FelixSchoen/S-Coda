@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-from scoda.utils.enumerations import MessageType
-from scoda.utils.music_theory import Key
+from scoda.misc.enumerations import MessageType
+from scoda.misc.music_theory import Key
 
 
 class Message:
