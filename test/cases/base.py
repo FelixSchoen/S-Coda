@@ -15,13 +15,13 @@ from scoda.sequences.sequence import *
 # noinspection PyUnresolvedReferences
 from scoda.settings.settings import *
 # noinspection PyUnresolvedReferences
-from scoda.utils.music_theory import *
+from scoda.misc.music_theory import *
 # noinspection PyUnresolvedReferences
-from scoda.utils.enumerations import *
+from scoda.misc.enumerations import *
 # noinspection PyUnresolvedReferences
-from scoda.utils.util import *
+from scoda.misc.util import *
 # noinspection PyUnresolvedReferences
-from scoda.utils.scoda_logging import get_logger
+from scoda.misc.scoda_logging import get_logger
 # noinspection PyUnresolvedReferences
 import mido
 # noinspection PyUnresolvedReferences

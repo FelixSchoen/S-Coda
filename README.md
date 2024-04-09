@@ -2,7 +2,7 @@
 
 [![GitHub Release](https://img.shields.io/github/v/release/FelixSchoen/S-Coda?include_prereleases&label=Latest%20Release)](https://github.com/FelixSchoen/S-Coda/releases)
 [![GitHub Actions Workflow Status](https://img.shields.io/github/actions/workflow/status/FelixSchoen/S-Coda/scoda_test.yml?label=Build)](https://github.com/FelixSchoen/S-Coda/actions/workflows/scoda_test.yml)
-[![Python Version](https://img.shields.io/badge/Python%20Version-3.10-blue)](https://www.python.org/downloads/release/python-31013)
+[![Python Version](https://img.shields.io/badge/Python%20Version-3.11-blue)](https://www.python.org/downloads/release/python-3119)
 
 [![DOI](https://img.shields.io/badge/DOI-10.34726%2Fhss.2023.103585-blue)](https://doi.org/10.34726/hss.2023.103585)
 [![DOI](https://img.shields.io/badge/DOI-10.1007%2F978--3--031--47546--7_19-blue)](https://doi.org/10.1007/978-3-031-47546-7_19)
@@ -24,13 +24,13 @@ For information about how to use S-Coda we refer to chapter 5 of the [thesis](ht
 
 ## Installation
 
-We recommend installing S-Coda from PyPI using pip:
+We recommend installing S-Coda from [PyPI](https://pypi.org/project/scoda/) using pip:
 
 ```pip install scoda```
 
 ## Changelog
 
-See `CHANGELOG.md` for a detailed changelog.
+See [`CHANGELOG.md`](https://github.com/FelixSchoen/S-Coda/blob/main/CHANGELOG.md) for a detailed changelog.
 
 ## Usage
 

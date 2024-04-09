@@ -4,10 +4,10 @@ import copy
 
 from scoda.elements.message import Message
 from scoda.exceptions.bar_exception import BarException
+from scoda.misc.enumerations import MessageType
+from scoda.misc.music_theory import Key
 from scoda.sequences.sequence import Sequence
 from scoda.settings.settings import PPQN
-from scoda.utils.enumerations import MessageType
-from scoda.utils.music_theory import Key
 
 
 class Bar:

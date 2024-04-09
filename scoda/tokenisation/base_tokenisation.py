@@ -1,9 +1,9 @@
 from abc import ABC, abstractmethod
 
 from scoda.exceptions.tokenisation_exception import TokenisationException
+from scoda.misc.enumerations import Flags
 from scoda.sequences.sequence import Sequence
 from scoda.settings.settings import PPQN
-from scoda.utils.enumerations import Flags
 
 
 class BaseTokeniser(ABC):

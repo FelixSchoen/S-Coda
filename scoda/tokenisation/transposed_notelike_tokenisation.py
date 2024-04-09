@@ -3,10 +3,10 @@ from abc import ABC
 
 from scoda.elements.message import Message
 from scoda.exceptions.tokenisation_exception import TokenisationException
+from scoda.misc.enumerations import Flags, MessageType
 from scoda.sequences.sequence import Sequence
 from scoda.settings.settings import PPQN
 from scoda.tokenisation.base_tokenisation import BaseTokeniser
-from scoda.utils.enumerations import Flags, MessageType
 
 
 class BaseTransposedNotelikeTokeniser(BaseTokeniser, ABC):

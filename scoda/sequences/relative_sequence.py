@@ -11,6 +11,10 @@ from scoda.elements.message import Message
 from scoda.exceptions.sequence_exception import SequenceException
 from scoda.midi.midi_message import MidiMessage
 from scoda.midi.midi_track import MidiTrack
+from scoda.misc.enumerations import MessageType
+from scoda.misc.music_theory import Note, Key, MusicMapping
+from scoda.misc.scoda_logging import get_logger
+from scoda.misc.util import minmax, simple_regression
 from scoda.sequences.abstract_sequence import AbstractSequence
 from scoda.settings.settings import NOTE_LOWER_BOUND, NOTE_UPPER_BOUND, PPQN, DIFF_DUAL_DISTANCES_UPPER_BOUND, \
     DIFF_DUAL_DISTANCES_LOWER_BOUND, DIFF_DUAL_PATTERN_COVERAGE_UPPER_BOUND, DIFF_DUAL_PATTERN_COVERAGE_LOWER_BOUND, \
@@ -19,10 +23,6 @@ from scoda.settings.settings import NOTE_LOWER_BOUND, NOTE_UPPER_BOUND, PPQN, DI
     DIFF_DUAL_NOTE_AMOUNT_UPPER_BOUND, DIFF_DUAL_NOTE_AMOUNT_LOWER_BOUND, PATTERN_SECONDS_SEARCH_DURATION, \
     DIFF_DUAL_NOTE_CONCURRENT_UPPER_BOUND, DIFF_DUAL_NOTE_CONCURRENT_LOWER_BOUND, DIFF_DUAL_ACCIDENTALS_UPPER_BOUND, \
     DIFF_DUAL_ACCIDENTALS_LOWER_BOUND
-from scoda.utils.enumerations import MessageType
-from scoda.utils.music_theory import Note, Key, MusicMapping
-from scoda.utils.scoda_logging import get_logger
-from scoda.utils.util import minmax, simple_regression
 
 if TYPE_CHECKING:
     from scoda.sequences.absolute_sequence import AbsoluteSequence

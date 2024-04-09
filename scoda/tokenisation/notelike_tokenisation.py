@@ -3,11 +3,11 @@ from abc import ABC
 
 from scoda.elements.message import Message
 from scoda.exceptions.tokenisation_exception import TokenisationException
+from scoda.misc.enumerations import Flags, MessageType
+from scoda.misc.music_theory import CircleOfFifths
 from scoda.sequences.sequence import Sequence
 from scoda.settings.settings import PPQN
 from scoda.tokenisation.base_tokenisation import BaseTokeniser
-from scoda.utils.enumerations import Flags, MessageType
-from scoda.utils.music_theory import CircleOfFifths
 
 
 class BaseNotelikeTokeniser(BaseTokeniser, ABC):
@@ -38,7 +38,7 @@ class StandardNotelikeTokeniser(BaseNotelikeTokeniser):
         self.flags[Flags.RUNNING_PITCH] = running_pitch
 
     def tokenise(self, sequence: Sequence, apply_buffer: bool = True, reset_time: bool = True,
-                 insert_border_tokens: bool = False) -> list[int]:
+                 insert_trailing_separator_token: bool = True, insert_border_tokens: bool = False) -> list[int]:
         tokens = []
         event_pairings = sequence.abs.get_message_time_pairings(
             [MessageType.NOTE_ON, MessageType.NOTE_OFF, MessageType.TIME_SIGNATURE, MessageType.INTERNAL])
@@ -99,6 +99,9 @@ class StandardNotelikeTokeniser(BaseNotelikeTokeniser):
 
         if reset_time:
             self.reset_time()
+
+        if insert_trailing_separator_token:
+            tokens.append(4)
 
         if insert_border_tokens:
             tokens.insert(0, 1)

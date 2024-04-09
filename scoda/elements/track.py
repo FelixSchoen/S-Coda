@@ -4,8 +4,8 @@ import copy
 
 from scoda.elements.bar import Bar
 from scoda.exceptions.track_exception import TrackException
+from scoda.misc.enumerations import MessageType
 from scoda.sequences.sequence import Sequence
-from scoda.utils.enumerations import MessageType
 
 
 class Track:
