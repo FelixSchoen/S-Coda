@@ -76,9 +76,7 @@ def _test_roundtrip_tokenisation(tokeniser, path_resource, track, quantise=False
 
     if quantise:
         for bar in bars:
-            bar.sequence.quantise()
-            bar.sequence.cutoff(48, 48)
-            bar.sequence.quantise_note_lengths()
+            bar.sequence.quantise_and_normalise()
 
     sequence = Sequence()
     sequence.concatenate([bar.sequence for bar in bars])
@@ -117,9 +115,7 @@ def test_tokenisation_single():
 
     if quantise:
         for bar in bars:
-            bar.sequence.quantise()
-            bar.sequence.cutoff(48, 48)
-            bar.sequence.quantise_note_lengths()
+            bar.sequence.quantise_and_normalise()
 
     sequence = Sequence()
     sequence.concatenate([bar.sequence for bar in bars])

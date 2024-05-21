@@ -57,8 +57,7 @@ def test_quantise_note_lengths():
     sequences = util_midi_to_sequences()
     sequence = sequences[0]
 
-    sequence.quantise([PPQN])
-    sequence.quantise_note_lengths()
+    sequence.quantise_and_normalise()
 
     normal_durations = get_note_durations(NOTE_VALUE_UPPER_BOUND, NOTE_VALUE_LOWER_BOUND)
     triplet_durations = []

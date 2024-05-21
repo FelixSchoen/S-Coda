@@ -77,8 +77,7 @@ def test_scale():
     scaled_sequence = copy.copy(original_sequence)
     scale_factor = 0.5
     scaled_sequence.scale(scale_factor)
-    scaled_sequence.quantise()
-    scaled_sequence.quantise_note_lengths()
+    scaled_sequence.quantise_and_normalise()
 
     original_duration = 0
     for bar in original_bars:
@@ -110,8 +109,7 @@ def test_scale_then_create_composition():
         for i, sequence in enumerate(sequences):
             scaled_sequence = copy.copy(sequence)
 
-            scaled_sequence.quantise()
-            scaled_sequence.quantise_note_lengths()
+            scaled_sequence.quantise_and_normalise()
 
             scaled_sequence.scale(scale_factor, meta_sequence=sequences[0])
 

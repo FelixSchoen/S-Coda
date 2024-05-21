@@ -42,8 +42,7 @@ class Composition:
 
         # Quantisation
         for sequence in merged_sequences:
-            sequence.quantise()
-            sequence.quantise_note_lengths()
+            sequence.quantise_and_normalise()
 
         # Load composition from sequence
         return Composition.from_sequences(merged_sequences, meta_track_index)
