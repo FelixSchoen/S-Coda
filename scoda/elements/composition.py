@@ -42,8 +42,7 @@ class Composition:
 
         # Quantisation
         for sequence in merged_sequences:
-            sequence.quantise()
-            sequence.quantise_note_lengths()
+            sequence.quantise_and_normalise()
 
         # Load composition from sequence
         return Composition.from_sequences(merged_sequences, meta_track_index)
@@ -62,3 +61,13 @@ class Composition:
         # Create composition from tracks
         composition = Composition(tracks)
         return composition
+
+    def to_sequences(self):
+        sequences = []
+        for track in self.tracks:
+            sequences.append(track.to_sequence())
+        return sequences
+
+    def save(self, file_path: str):
+        sequences = self.to_sequences()
+        Sequence.sequences_save(sequences, file_path)

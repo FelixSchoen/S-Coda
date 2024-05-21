@@ -59,7 +59,7 @@ def test_example():
     sequence = Sequence.sequences_load(file_path=RESOURCE_BEETHOVEN)[1]
 
     # Quantise the sequence to thirty-seconds and thirty-second triplets (standard values)
-    sequence.quantise()
+    sequence.quantise_and_normalise()
 
     # Split the sequence into bars based on the occurring time signatures
     bars = Sequence.sequences_split_bars([sequence], meta_track_index=0)[0]
@@ -129,8 +129,7 @@ def test_subject():
         for sequence in sequences:
             scaled_sequence = copy.copy(sequence)
 
-            scaled_sequence.quantise()
-            scaled_sequence.quantise_note_lengths()
+            scaled_sequence.quantise_and_normalise()
 
             # Scale by scale factor, using first track as meta information track
             scaled_sequence.scale(scale_factor, sequences[0])

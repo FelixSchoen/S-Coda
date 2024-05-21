@@ -176,8 +176,7 @@ class Sequence:
         self._abs_stale = True
 
         if quantise_afterwards:
-            self.quantise()
-            self.quantise_note_lengths()
+            self.quantise_and_normalise()
 
     def transpose(self, transpose_by: int) -> bool:
         """See `scoda.sequence.relative_sequence.RelativeSequence.transpose`."""
@@ -205,6 +204,13 @@ class Sequence:
         """See `scoda.sequence.absolute_sequence.AbsoluteSequence.quantise_note_lengths`."""
         self.abs.quantise_note_lengths(possible_durations, standard_length=standard_length, do_not_extend=do_not_extend)
         self._rel_stale = True
+
+    def quantise_and_normalise(self, step_sizes: list[int] = None, possible_durations=None, standard_length=PPQN,
+                               do_not_extend=False):
+        """Quantises and normalises the sequence."""
+        self.quantise(step_sizes)
+        self.quantise_note_lengths(possible_durations, standard_length, do_not_extend)
+        self.normalise()
 
     # Misc. Methods
 

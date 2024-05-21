@@ -20,8 +20,7 @@ def test_copy_bar():
 
 def test_bars_to_sequence():
     sequence = util_midi_to_sequences()[0]
-    sequence.quantise()
-    sequence.quantise_note_lengths()
+    sequence.quantise_and_normalise()
 
     bars = Sequence.sequences_split_bars([sequence])
 
