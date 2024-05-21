@@ -11,6 +11,8 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Add changelog
 - Add equivalence test for absolute sequences
 - Add tokenisation support
+- Add `quantise_and_normalise()` method for sequences
+- Add `save()` method for compositions
 
 ### Changed
 
