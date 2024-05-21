@@ -61,3 +61,13 @@ class Composition:
         # Create composition from tracks
         composition = Composition(tracks)
         return composition
+
+    def to_sequences(self):
+        sequences = []
+        for track in self.tracks:
+            sequences.append(track.to_sequence())
+        return sequences
+
+    def save(self, file_path: str):
+        sequences = self.to_sequences()
+        Sequence.sequences_save(sequences, file_path)

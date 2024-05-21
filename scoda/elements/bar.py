@@ -11,8 +11,7 @@ from scoda.settings.settings import PPQN
 
 
 class Bar:
-    """Class representing a single bar, its length defined by a time signature.
-    """
+    """Class representing a single bar, its length defined by a time signature."""
 
     def __init__(self, sequence: Sequence, numerator: int, denominator: int, key=None) -> None:
         super().__init__()

@@ -36,37 +36,3 @@ def test_piano_rolls():
     plot_object = Sequence.plot_pianorolls([bars[0][0].sequence, bars[1][0].sequence])
 
     assert plot_object is not None
-
-
-# TODO Delete
-# def test_sequence_to_external_representation():
-#     sequences = util_midi_to_sequences()
-#     sequence = sequences[0]
-#     sequence.quantise()
-#
-#     df_1 = sequence.get_representation(NoteRepresentationType.ABSOLUTE_VALUES,
-#                                        TemporalRepresentationType.RELATIVE_TICKS)
-#
-#     df_2 = sequence.get_representation(NoteRepresentationType.RELATIVE_DISTANCES,
-#                                        TemporalRepresentationType.RELATIVE_TICKS)
-#
-#     df_3 = sequence.get_representation(NoteRepresentationType.CIRCLE_OF_FIFTHS,
-#                                        TemporalRepresentationType.RELATIVE_TICKS)
-#
-#     df_4 = sequence.get_representation(NoteRepresentationType.ABSOLUTE_VALUES,
-#                                        TemporalRepresentationType.NOTELIKE_REPRESENTATION)
-#
-#     df_5 = sequence.get_representation(NoteRepresentationType.RELATIVE_DISTANCES,
-#                                        TemporalRepresentationType.NOTELIKE_REPRESENTATION)
-#
-#     df_6 = sequence.get_representation(NoteRepresentationType.CIRCLE_OF_FIFTHS,
-#                                        TemporalRepresentationType.NOTELIKE_REPRESENTATION)
-#
-#     for data_frame in [df_1, df_2, df_3, df_4, df_5, df_6]:
-#         assert data_frame is not None
-
-
-# def test_to_dataframe_is_deprecated():
-#     sequences = util_midi_to_sequences()
-#     sequence = sequences[0]
-#     sequence.to_relative_dataframe()
