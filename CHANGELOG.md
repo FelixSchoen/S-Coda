@@ -17,6 +17,7 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Change Python version from 3.10 to 3.11
 - Rename project to `scoda` (stylised as `S-Coda`)
 - Adapt `pyproject.toml`
+- Rename `get_sequence_length()` to `get_sequence_duration()`
 
 ### Deprecated
 

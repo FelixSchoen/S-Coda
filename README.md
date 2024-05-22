@@ -42,7 +42,7 @@ We provide a short listing on how to use basic S-Coda functions:
     sequence = Sequence.sequences_load(file_path=RESOURCE_BEETHOVEN)[1]
 
     # Quantise the sequence to thirty-seconds and thirty-second triplets (standard values)
-    sequence.quantise()
+    sequence.quantise_and_normalise()
 
     # Split the sequence into bars based on the occurring time signatures
     bars = Sequence.sequences_split_bars([sequence], meta_track_index=0)[0]
@@ -64,6 +64,5 @@ We provide a short listing on how to use basic S-Coda functions:
     detokenised_sequence = tokeniser.detokenise(tokens)
 
     # Save sequence
-    Sequence.save = lambda *args: None
     detokenised_sequence.save("out/generated_sequence.mid")
 ```

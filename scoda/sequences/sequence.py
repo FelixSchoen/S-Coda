@@ -220,17 +220,17 @@ class Sequence:
         """
         return self.abs.get_message_timings_of_type(message_types)
 
-    def get_sequence_length(self) -> float:
+    def get_sequence_duration(self) -> float:
         """See `scoda.sequence.absolute_sequence.AbsoluteSequence.get_sequence_length`.
 
         """
-        return self.abs.get_sequence_length()
+        return self.abs.get_sequence_duration()
 
-    def get_sequence_length_relation(self) -> float:
+    def get_sequence_duration_relation(self) -> float:
         """See `scoda.sequence.relative_sequence.RelativeSequence.sequence_length_relation`.
 
         """
-        return self.rel.get_sequence_length_relation()
+        return self.rel.get_sequence_duration_relation()
 
     def is_empty(self) -> bool:
         """See `scoda.sequence.relative_sequence.RelativeSequence.is_empty`.

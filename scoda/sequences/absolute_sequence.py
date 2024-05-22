@@ -386,10 +386,10 @@ class AbsoluteSequence(AbstractSequence):
 
         return timings
 
-    def get_sequence_length(self) -> int:
-        """Calculates the overall length of this sequence, given in ticks.
+    def get_sequence_duration(self) -> int:
+        """Calculates the overall duration of this sequence, given in ticks.
 
-        Returns: The length of this sequence.
+        Returns: The duration of this sequence.
 
         """
         return self.messages[-1].time

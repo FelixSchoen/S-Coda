@@ -25,12 +25,12 @@ class Bar:
         self.sequence.normalise()
 
         # Assert bar has correct capacity
-        if self.sequence.get_sequence_length_relation() > self.time_signature_numerator * PPQN / (
+        if self.sequence.get_sequence_duration_relation() > self.time_signature_numerator * PPQN / (
                 self.time_signature_denominator / 4):
             raise BarException("Bar capacity exceeded")
 
         # Pad bar
-        if self.sequence.get_sequence_length_relation() < self.time_signature_numerator * PPQN / (
+        if self.sequence.get_sequence_duration_relation() < self.time_signature_numerator * PPQN / (
                 self.time_signature_denominator / 4):
             self.sequence.pad(self.time_signature_numerator * PPQN / (self.time_signature_denominator / 4))
 
