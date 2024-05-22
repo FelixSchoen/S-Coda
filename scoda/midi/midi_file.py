@@ -6,8 +6,8 @@ from typing import TYPE_CHECKING
 import mido
 
 from scoda.elements.message import Message
+from scoda.enumerations.message_type import MessageType
 from scoda.midi.midi_track import MidiTrack
-from scoda.misc.enumerations import MessageType
 from scoda.misc.scoda_logging import get_logger
 from scoda.settings.settings import PPQN
 

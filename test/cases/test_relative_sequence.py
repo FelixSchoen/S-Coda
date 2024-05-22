@@ -1,4 +1,5 @@
 from base import *
+from scoda.enumerations.message_type import MessageType
 
 
 def test_concatenate():

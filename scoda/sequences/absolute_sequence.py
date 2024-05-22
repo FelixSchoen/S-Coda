@@ -5,8 +5,8 @@ from statistics import geometric_mean
 from typing import TYPE_CHECKING
 
 from scoda.elements.message import Message
+from scoda.enumerations.message_type import MessageType
 from scoda.exceptions.sequence_exception import SequenceException
-from scoda.misc.enumerations import MessageType
 from scoda.misc.scoda_logging import get_logger
 from scoda.misc.util import binary_insort, find_minimal_distance, regress, minmax, simple_regression, \
     get_note_durations, \

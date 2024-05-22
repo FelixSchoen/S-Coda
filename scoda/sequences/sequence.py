@@ -9,9 +9,9 @@ from matplotlib import pyplot as plt, pyplot
 from matplotlib.patches import Rectangle
 
 from scoda.elements.message import Message
+from scoda.enumerations.message_type import MessageType
 from scoda.midi.midi_file import MidiFile
 from scoda.midi.midi_track import MidiTrack
-from scoda.misc.enumerations import MessageType
 from scoda.misc.music_theory import Key
 from scoda.misc.util import minmax, simple_regression
 from scoda.sequences.absolute_sequence import AbsoluteSequence

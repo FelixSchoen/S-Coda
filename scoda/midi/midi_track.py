@@ -2,8 +2,8 @@ from __future__ import annotations
 
 import mido
 
+from scoda.enumerations.message_type import MessageType
 from scoda.midi.midi_message import MidiMessage
-from scoda.misc.enumerations import MessageType
 
 
 class MidiTrack:

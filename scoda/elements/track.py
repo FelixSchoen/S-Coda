@@ -3,8 +3,8 @@ from __future__ import annotations
 import copy
 
 from scoda.elements.bar import Bar
+from scoda.enumerations.message_type import MessageType
 from scoda.exceptions.track_exception import TrackException
-from scoda.misc.enumerations import MessageType
 from scoda.sequences.sequence import Sequence
 
 

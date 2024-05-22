@@ -3,8 +3,8 @@ from __future__ import annotations
 import copy
 
 from scoda.elements.message import Message
+from scoda.enumerations.message_type import MessageType
 from scoda.exceptions.bar_exception import BarException
-from scoda.misc.enumerations import MessageType
 from scoda.misc.music_theory import Key
 from scoda.sequences.sequence import Sequence
 from scoda.settings.settings import PPQN

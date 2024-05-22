@@ -8,10 +8,10 @@ from statistics import mean
 from typing import TYPE_CHECKING
 
 from scoda.elements.message import Message
+from scoda.enumerations.message_type import MessageType
 from scoda.exceptions.sequence_exception import SequenceException
 from scoda.midi.midi_message import MidiMessage
 from scoda.midi.midi_track import MidiTrack
-from scoda.misc.enumerations import MessageType
 from scoda.misc.music_theory import Note, Key, MusicMapping
 from scoda.misc.scoda_logging import get_logger
 from scoda.misc.util import minmax, simple_regression

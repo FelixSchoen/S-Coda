@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from scoda.elements.message import Message
-from scoda.misc.enumerations import MessageType
+from scoda.enumerations.message_type import MessageType
 from scoda.misc.music_theory import MusicMapping
 
 

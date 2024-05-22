@@ -1,8 +1,9 @@
 from abc import ABC
 
 from scoda.elements.message import Message
+from scoda.enumerations.message_type import MessageType
+from scoda.enumerations.tokenisation_flags import TokenisationFlags
 from scoda.exceptions.tokenisation_exception import TokenisationException
-from scoda.misc.enumerations import Flags, MessageType
 from scoda.sequences.sequence import Sequence
 from scoda.tokenisation.base_tokenisation import BaseTokeniser
 
@@ -69,7 +70,7 @@ class MidilikeTokeniser(BaseMidilikeTokeniser):
 
                 numerator = self._time_signature_to_eights(msg_numerator, msg_denominator)
 
-                if not (self.prv_numerator == numerator and self.flags.get(Flags.RUNNING_TIME_SIG, False)):
+                if not (self.prv_numerator == numerator and self.flags.get(TokenisationFlags.RUNNING_TIME_SIG, False)):
                     tokens.extend(self._general_tokenise_flush_time_buffer(time=self.cur_rest_buffer, value_shift=3))
                     self.cur_rest_buffer = 0
 
