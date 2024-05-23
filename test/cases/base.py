@@ -17,8 +17,6 @@ from scoda.settings.settings import *
 # noinspection PyUnresolvedReferences
 from scoda.misc.music_theory import *
 # noinspection PyUnresolvedReferences
-from scoda.misc.enumerations import *
-# noinspection PyUnresolvedReferences
 from scoda.misc.util import *
 # noinspection PyUnresolvedReferences
 from scoda.misc.scoda_logging import get_logger
