@@ -1,8 +1,9 @@
 from base import *
 
 
-def test_load_composition():
-    composition = util_load_composition()
+def test_from_midi_file():
+    composition = Composition.from_midi_file(file_path=RESOURCE_BEETHOVEN, track_indices=[[1], [2]],
+                                             meta_track_indices=[0, 3])
 
     assert len(composition.tracks) == 2
 

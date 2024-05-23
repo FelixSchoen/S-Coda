@@ -1,9 +1,11 @@
 import math
 from abc import ABC
+from typing import Any
 
 from scoda.elements.message import Message
+from scoda.enumerations.message_type import MessageType
+from scoda.enumerations.tokenisation_flags import TokenisationFlags
 from scoda.exceptions.tokenisation_exception import TokenisationException
-from scoda.misc.enumerations import Flags, MessageType
 from scoda.misc.music_theory import CircleOfFifths
 from scoda.sequences.sequence import Sequence
 from scoda.settings.settings import PPQN
@@ -15,7 +17,7 @@ class BaseNotelikeTokeniser(BaseTokeniser, ABC):
     def __init__(self, running_value: bool, running_time_sig: bool) -> None:
         super().__init__(running_time_sig)
 
-        self.flags[Flags.RUNNING_VALUE] = running_value
+        self.flags[TokenisationFlags.RUNNING_VALUE] = running_value
 
 
 class StandardNotelikeTokeniser(BaseNotelikeTokeniser):
@@ -35,7 +37,7 @@ class StandardNotelikeTokeniser(BaseNotelikeTokeniser):
     def __init__(self, running_value: bool, running_pitch: bool, running_time_sig: bool) -> None:
         super().__init__(running_value, running_time_sig)
 
-        self.flags[Flags.RUNNING_PITCH] = running_pitch
+        self.flags[TokenisationFlags.RUNNING_PITCH] = running_pitch
 
     def tokenise(self, sequence: Sequence, apply_buffer: bool = True, reset_time: bool = True,
                  insert_trailing_separator_token: bool = True, insert_border_tokens: bool = False) -> list[int]:
@@ -61,11 +63,11 @@ class StandardNotelikeTokeniser(BaseNotelikeTokeniser):
                         self._notelike_tokenise_flush_rest_buffer(apply_target=False, wait_token=3, value_shift=4))
 
                 # Check if value of note has to be defined
-                if not (self.prv_value == msg_value and self.flags.get(Flags.RUNNING_VALUE, False)):
+                if not (self.prv_value == msg_value and self.flags.get(TokenisationFlags.RUNNING_VALUE, False)):
                     tokens.extend(self._general_tokenise_flush_time_buffer(msg_value, value_shift=4))
 
                 # Check if pitch of note has to be defined
-                if not (self.prv_note == msg_note and self.flags.get(Flags.RUNNING_PITCH, False)):
+                if not (self.prv_note == msg_note and self.flags.get(TokenisationFlags.RUNNING_PITCH, False)):
                     tokens.append(msg_note - 21 + 29)
                 else:
                     tokens.append(132)
@@ -81,7 +83,7 @@ class StandardNotelikeTokeniser(BaseNotelikeTokeniser):
                 numerator = self._time_signature_to_eights(msg_numerator, msg_denominator)
 
                 # Check if time signature has to be defined
-                if not (self.prv_numerator == numerator and self.flags.get(Flags.RUNNING_TIME_SIG, False)):
+                if not (self.prv_numerator == numerator and self.flags.get(TokenisationFlags.RUNNING_TIME_SIG, False)):
                     self.cur_rest_buffer += msg_time - self.cur_time
                     tokens.extend(
                         self._notelike_tokenise_flush_rest_buffer(apply_target=False, wait_token=3, value_shift=3))
@@ -155,6 +157,154 @@ class StandardNotelikeTokeniser(BaseNotelikeTokeniser):
                 raise TokenisationException(f"Encountered invalid token during detokenisation: {token}")
 
         return seq
+
+    @staticmethod
+    def get_constraints(tokens: list[int], previous_state: dict = None, min_bars: int = -1,
+                        running_value: bool = False, running_pitch: bool = False, running_time_sig: bool = False) -> \
+            tuple[list[int], dict[str, Any]]:
+        cur_time = 0
+        cur_bar = 0
+        bar_time = 0
+        bar_tokens = []
+        bar_open_notes = []
+        bar_capacity = None
+        seq_started = False
+        seq_stopped = False
+        prv_type = None
+        prv_note = None
+        prv_value = math.nan
+
+        if previous_state is not None:
+            cur_time = previous_state["cur_time"]
+            cur_bar = previous_state["cur_bar"]
+            bar_time = previous_state["bar_time"]
+            bar_tokens = previous_state["bar_tokens"]
+            bar_open_notes = previous_state["bar_open_notes"]
+            bar_capacity = previous_state["bar_capacity"]
+            seq_started = previous_state["seq_started"]
+            seq_stopped = previous_state["seq_stopped"]
+            prv_type = previous_state["prv_type"]
+            prv_note = previous_state["prv_note"]
+            prv_value = previous_state["prv_value"]
+
+        # === Retrace sequence ===
+
+        for token in tokens:
+            if token == 0:
+                bar_tokens.append(token)
+                prv_type = MessageType.SEQUENCE_CONTROL
+            elif token == 1:
+                bar_tokens.append(token)
+                seq_started = True
+                prv_type = MessageType.SEQUENCE_CONTROL
+            elif token == 2:
+                bar_tokens.append(token)
+                seq_stopped = True
+                prv_type = MessageType.SEQUENCE_CONTROL
+            elif token == 3:
+                cur_time += prv_value
+                bar_time += prv_value
+
+                while bar_time > bar_capacity:
+                    bar_time -= bar_capacity
+                    cur_bar += 1
+
+                bar_tokens.append(token)
+                bar_open_notes = []
+                prv_type = MessageType.WAIT
+            elif token == 4:
+                cur_bar += 1
+                bar_time = 0
+                bar_tokens.append(token)
+                prv_type = MessageType.SEQUENCE_CONTROL
+            elif 5 <= token <= 28:
+                bar_tokens.append(token)
+                if prv_type != MessageType.INTERNAL:
+                    prv_value = 0
+                prv_value += token - 4
+                prv_type = MessageType.INTERNAL
+            elif 29 <= token <= 116:
+                bar_tokens.append(token)
+                bar_open_notes.append(token - 29 + 21)
+                prv_type = MessageType.NOTE_ON
+                prv_note = token - 29 + 21
+            elif 117 <= token <= 131:
+                bar_tokens.append(token)
+                bar_capacity = int(((token - 117 + 2) / 8) * 4 * PPQN)
+                prv_type = MessageType.TIME_SIGNATURE
+            elif token == 132:
+                bar_tokens.append(token)
+                bar_open_notes.append(prv_note)
+                prv_type = MessageType.NOTE_ON
+            else:
+                raise TokenisationException(f"Encountered invalid token during constraint creation: {token}")
+
+            if not running_value and not 5 <= token <= 28:
+                prv_value = None
+
+        # === Retrieve valid tokens ===
+
+        # Helper variables
+        h_started_not_stopped = seq_started and not seq_stopped
+        h_bar_contains_time_signature = any(117 <= t <= 131 for t in bar_tokens)
+        h_bar_valid_time_signature = (running_time_sig and bar_capacity is not None) or h_bar_contains_time_signature
+        h_note_not_open = lambda x: x is not None and x not in bar_open_notes
+        h_has_prv_value = prv_value is not None
+
+        valid_tokens = []
+
+        # [        0] ... pad
+        if seq_started and seq_stopped:
+            valid_tokens.append(0)
+        # [        1] ... start
+        if not seq_started:
+            valid_tokens.append(1)
+        # [        2] ... stop
+        if not seq_stopped and (min_bars == -1 or cur_bar + 1 == min_bars) and bar_time == bar_capacity:
+            valid_tokens.append(2)
+        # [        3] ... wait
+        if h_started_not_stopped and h_bar_valid_time_signature and h_has_prv_value and bar_capacity - bar_time >= prv_value:
+            valid_tokens.append(3)
+        # [        4] ... bar separator
+        if h_started_not_stopped and h_bar_valid_time_signature and bar_time == bar_capacity and 4 not in bar_tokens:
+            valid_tokens.append(4)
+        # [  5 -  28] ... value definition
+        if h_started_not_stopped and h_bar_valid_time_signature:
+            prv_value_volatile = prv_value
+            if prv_type != MessageType.INTERNAL:
+                prv_value_volatile = 0
+            for v_d in range(1, 24 + 1):
+                if bar_capacity - bar_time >= prv_value_volatile + v_d:
+                    valid_tokens.append(v_d + 4)
+        # [ 29 - 116] ... note
+        if h_started_not_stopped and h_bar_valid_time_signature and h_has_prv_value:
+            for n in range(21, 108 + 1):
+                if prv_note not in bar_open_notes:
+                    valid_tokens.append(n - 21 + 29)
+        # [117 - 131] ... time signature numerator in eights from 2/8 to 16/8
+        if h_started_not_stopped and not h_bar_contains_time_signature and bar_time == 0:
+            for t in range(117, 131 + 1):
+                valid_tokens.append(t)
+        # [      132] ... note with previous pitch (running pitch only)
+        if h_started_not_stopped and h_bar_valid_time_signature and running_pitch and h_has_prv_value and h_note_not_open(
+                prv_note):
+            valid_tokens.append(132)
+
+        # === Store and return finding ===
+
+        state = {"cur_time": cur_time,
+                 "cur_bar": cur_bar,
+                 "bar_time": bar_time,
+                 "bar_tokens": bar_tokens,
+                 "bar_open_notes": bar_open_notes,
+                 "bar_capacity": bar_capacity,
+                 "seq_started": seq_started,
+                 "seq_stopped": seq_stopped,
+                 "prv_type": prv_type,
+                 "prv_note": prv_note,
+                 "prv_value": prv_value}
+
+        return valid_tokens, state
 
     @staticmethod
     def get_info_notes(tokens: list[int], invalid_value: int = -1) -> list[int]:
@@ -348,7 +498,7 @@ class CoFNotelikeTokeniser(BaseNotelikeTokeniser):
     def __init__(self, running_value: bool, running_octave: bool, running_time_sig: bool) -> None:
         super().__init__(running_value, running_time_sig)
 
-        self.flags[Flags.RUNNING_OCTAVE] = running_octave
+        self.flags[TokenisationFlags.RUNNING_OCTAVE] = running_octave
 
         self.prv_octave = None
 
@@ -383,12 +533,12 @@ class CoFNotelikeTokeniser(BaseNotelikeTokeniser):
                         self._notelike_tokenise_flush_rest_buffer(apply_target=False, wait_token=3, value_shift=4))
 
                 # Check if value of note has to be defined
-                if not (self.prv_value == msg_value and self.flags.get(Flags.RUNNING_VALUE, False)):
+                if not (self.prv_value == msg_value and self.flags.get(TokenisationFlags.RUNNING_VALUE, False)):
                     tokens.extend(self._general_tokenise_flush_time_buffer(msg_value, value_shift=4))
 
                 # Check if octave of note hast to be defined
                 octave_tgt = msg_note // 12 - 1
-                if not (self.prv_octave == octave_tgt and self.flags.get(Flags.RUNNING_OCTAVE, False)):
+                if not (self.prv_octave == octave_tgt and self.flags.get(TokenisationFlags.RUNNING_OCTAVE, False)):
                     octave_src = self.prv_note // 12 - 1
                     octave_shift = octave_tgt - octave_src
                     assert -8 <= octave_shift <= 8
@@ -410,7 +560,7 @@ class CoFNotelikeTokeniser(BaseNotelikeTokeniser):
                 numerator = self._time_signature_to_eights(msg_numerator, msg_denominator)
 
                 # Check if time signature has to be defined
-                if not (self.prv_numerator == numerator and self.flags.get(Flags.RUNNING_TIME_SIG, False)):
+                if not (self.prv_numerator == numerator and self.flags.get(TokenisationFlags.RUNNING_TIME_SIG, False)):
                     self.cur_rest_buffer += msg_time - self.cur_time
                     tokens.extend(
                         self._notelike_tokenise_flush_rest_buffer(apply_target=False, wait_token=3, value_shift=4))
@@ -565,7 +715,7 @@ class LargeDictionaryNotelikeTokeniser(BaseNotelikeTokeniser):
                 numerator = self._time_signature_to_eights(msg_numerator, msg_denominator)
 
                 # Check if time signature has to be defined
-                if not (self.prv_numerator == numerator and self.flags.get(Flags.RUNNING_TIME_SIG, False)):
+                if not (self.prv_numerator == numerator and self.flags.get(TokenisationFlags.RUNNING_TIME_SIG, False)):
                     self.cur_rest_buffer += msg_time - self.cur_time
                     tokens.extend(
                         self._general_tokenise_flush_time_buffer(time=self.cur_rest_buffer, value_shift=3))

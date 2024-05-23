@@ -2,8 +2,9 @@ import math
 from abc import ABC
 
 from scoda.elements.message import Message
+from scoda.enumerations.message_type import MessageType
+from scoda.enumerations.tokenisation_flags import TokenisationFlags
 from scoda.exceptions.tokenisation_exception import TokenisationException
-from scoda.misc.enumerations import MessageType, Flags
 from scoda.sequences.sequence import Sequence
 from scoda.tokenisation.base_tokenisation import BaseTokeniser
 
@@ -90,7 +91,7 @@ class GridlikeTokeniser(BaseGridlikeTokeniser):
 
                 numerator = self._time_signature_to_eights(msg_numerator, msg_denominator)
 
-                if not (self.prv_numerator == numerator and self.flags.get(Flags.RUNNING_TIME_SIG, False)):
+                if not (self.prv_numerator == numerator and self.flags.get(TokenisationFlags.RUNNING_TIME_SIG, False)):
                     tokens.extend(self._gridlike_tokenise_flush_grid_buffer(min_grid_size=min_grid_size, wait_token=3))
                     tokens.append(numerator - 2 + 204)
 

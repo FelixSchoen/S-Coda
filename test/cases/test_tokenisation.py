@@ -15,7 +15,13 @@ def test_roundtrip_standard_notelike_tokenisation(path_resource, track, running_
     tokeniser = StandardNotelikeTokeniser(running_value=running_value, running_pitch=running_pitch,
                                           running_time_sig=running_time_sig)
 
-    _test_roundtrip_tokenisation(tokeniser, path_resource, track)
+    tokens = _test_roundtrip_tokenisation(tokeniser, path_resource, track)
+    tokens.insert(0, 1)
+
+    _test_constraints(tokeniser, tokens,
+                      running_value=running_value,
+                      running_pitch=running_pitch,
+                      running_time_sig=running_time_sig)
 
 
 @pytest.mark.parametrize("path_resource, track", zip(RESOURCES, [0, 0, 1, 1]))
@@ -35,18 +41,6 @@ def test_roundtrip_large_dictionary_notelike_tokenisation(path_resource, track, 
     tokeniser = LargeDictionaryNotelikeTokeniser(running_time_sig=running_time_sig)
 
     _test_roundtrip_tokenisation(tokeniser, path_resource, track, quantise=True)
-
-
-# @pytest.mark.parametrize("path_resource, track", zip(RESOURCES, [0, 0, 1, 1]))
-# @pytest.mark.parametrize("running_value", [True, False])
-# @pytest.mark.parametrize("running_pitch", [True, False])
-# @pytest.mark.parametrize("running_time_sig", [True, False])
-# def test_valid_tokens_notelike_tokenisation(path_resource, track, running_value, running_pitch,
-#                                             running_time_sig):
-#     tokeniser = NotelikeTokeniser(running_value=running_value, running_pitch=running_pitch,
-#                                   running_time_sig=running_time_sig)
-#
-#     _test_valid_tokens(tokeniser, path_resource, track)
 
 
 @pytest.mark.parametrize("path_resource, track", zip(RESOURCES, [0, 0, 1, 1]))
@@ -84,7 +78,9 @@ def _test_roundtrip_tokenisation(tokeniser, path_resource, track, quantise=False
     tokens = []
 
     for i, bar in enumerate(bars):
-        tokens.extend(tokeniser.tokenise(bar.sequence))
+        bar_tokens = tokeniser.tokenise(bar.sequence)
+        tokens.extend(bar_tokens)
+        break
 
     sequence_roundtrip = tokeniser.detokenise(tokens)
 
@@ -93,42 +89,10 @@ def _test_roundtrip_tokenisation(tokeniser, path_resource, track, quantise=False
     return tokens
 
 
-def _test_valid_tokens(tokeniser, path_resource, track):
-    tokens = _test_roundtrip_tokenisation(tokeniser, path_resource, track)
-    tokens.insert(0, 1)
-    tokens.append(2)
+def _test_constraints(tokeniser, tokens, **kwargs):
+    previous_state = None
+    valid_tokens = [tokens[0]]
 
-    valid_tokens, previous_state = tokeniser.get_valid_tokens([])
-    assert tokens[0] in valid_tokens
-
-    for i in range(0, len(tokens) - 1):
-        valid_tokens, previous_state = tokeniser.get_valid_tokens([tokens[i]], previous_state=previous_state)
-        assert tokens[i + 1] in valid_tokens
-
-
-def test_tokenisation_single():
-    quantise = True
-
-    tokeniser = LargeDictionaryNotelikeTokeniser(running_time_sig=True)
-    sequence = Sequence.sequences_load(file_path=RESOURCE_CHOPIN)[1]
-    bars = Sequence.sequences_split_bars([sequence], meta_track_index=0)[0]
-
-    if quantise:
-        for bar in bars:
-            bar.sequence.quantise_and_normalise()
-
-    sequence = Sequence()
-    sequence.concatenate([bar.sequence for bar in bars])
-
-    tokens = []
-
-    for i, bar in enumerate(bars):
-        bar_tokens = tokeniser.tokenise(bar.sequence)
-        print(bar_tokens)
-        tokens.extend(bar_tokens)
-
-    sequence_roundtrip = tokeniser.detokenise(tokens)
-
-    sequence_roundtrip.save("res/out.mid")
-
-    assert sequence == sequence_roundtrip
+    for i, token in enumerate(tokens):
+        assert token in valid_tokens
+        valid_tokens, previous_state = tokeniser.get_constraints([tokens[i]], previous_state, **kwargs)

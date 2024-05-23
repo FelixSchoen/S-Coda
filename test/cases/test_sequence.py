@@ -1,7 +1,8 @@
 from base import *
+from scoda.enumerations.message_type import MessageType
 
 
-def test_difficulty_assessment():
+def test_difficulty():
     bars = util_split_into_bars()
     bar = bars[0][0]
     for msg in bar.sequence.rel.messages:
@@ -15,13 +16,7 @@ def test_difficulty_assessment():
     assert 0 <= difficulty <= 1
 
 
-def test_midi_to_sequences():
-    sequences = util_midi_to_sequences(RESOURCE_BEETHOVEN)
-
-    assert len(sequences) == 2
-
-
-def test_sequence_from_file_without_parameters():
+def test_sequences_load():
     sequences = Sequence.sequences_load(file_path=RESOURCE_BEETHOVEN)
 
     assert sequences is not None
@@ -29,7 +24,7 @@ def test_sequence_from_file_without_parameters():
         assert len(sequence.rel.messages) > 0
 
 
-def test_piano_rolls():
+def test_plot_pianorolls():
     sequences = util_midi_to_sequences()
     bars = Sequence.sequences_split_bars(sequences)
 

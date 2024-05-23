@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 
+from scoda.enumerations.tokenisation_flags import TokenisationFlags
 from scoda.exceptions.tokenisation_exception import TokenisationException
-from scoda.misc.enumerations import Flags
 from scoda.sequences.sequence import Sequence
 from scoda.settings.settings import PPQN
 
@@ -12,7 +12,7 @@ class BaseTokeniser(ABC):
         super().__init__()
 
         self.flags = dict()
-        self.flags[Flags.RUNNING_TIME_SIG] = running_time_sig
+        self.flags[TokenisationFlags.RUNNING_TIME_SIG] = running_time_sig
 
         self.cur_time = None
         self.cur_time_target = None
@@ -60,7 +60,7 @@ class BaseTokeniser(ABC):
 
         # Insert rests of length up to `set_max_rest_value`
         while self.cur_rest_buffer > self.set_max_rest_value:
-            if not (self.prv_value == self.set_max_rest_value and self.flags.get(Flags.RUNNING_VALUE, False)):
+            if not (self.prv_value == self.set_max_rest_value and self.flags.get(TokenisationFlags.RUNNING_VALUE, False)):
                 tokens.append(int(self.set_max_rest_value + value_shift))
                 self.prv_value = self.set_max_rest_value
 
@@ -70,7 +70,7 @@ class BaseTokeniser(ABC):
 
         # Insert rests smaller than `set_max_rest_value`
         if self.cur_rest_buffer > 0:
-            if not (self.prv_value == self.cur_rest_buffer and self.flags.get(Flags.RUNNING_VALUE, False)):
+            if not (self.prv_value == self.cur_rest_buffer and self.flags.get(TokenisationFlags.RUNNING_VALUE, False)):
                 tokens.append(int(self.cur_rest_buffer + value_shift))
                 self.prv_value = self.cur_rest_buffer
             tokens.append(int(wait_token))

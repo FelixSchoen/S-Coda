@@ -2,8 +2,9 @@ import math
 from abc import ABC
 
 from scoda.elements.message import Message
+from scoda.enumerations.message_type import MessageType
+from scoda.enumerations.tokenisation_flags import TokenisationFlags
 from scoda.exceptions.tokenisation_exception import TokenisationException
-from scoda.misc.enumerations import Flags, MessageType
 from scoda.sequences.sequence import Sequence
 from scoda.settings.settings import PPQN
 from scoda.tokenisation.base_tokenisation import BaseTokeniser
@@ -34,7 +35,7 @@ class TransposedNotelikeTokeniser(BaseTransposedNotelikeTokeniser):
     def __init__(self, running_value: bool, running_time_sig: bool) -> None:
         super().__init__(running_time_sig)
 
-        self.flags[Flags.RUNNING_VALUE] = running_value
+        self.flags[TokenisationFlags.RUNNING_VALUE] = running_value
 
     def tokenise(self, bar_seq: Sequence, apply_buffer: bool = True, reset_time: bool = True,
                  insert_border_tokens: bool = False) -> list[int]:
@@ -102,7 +103,7 @@ class TransposedNotelikeTokeniser(BaseTransposedNotelikeTokeniser):
                             self._notelike_tokenise_flush_rest_buffer(apply_target=False, wait_token=4, value_shift=5))
 
                     # Check if value of note has to be defined
-                    if not (self.prv_value == msg_value and self.flags.get(Flags.RUNNING_VALUE, False)):
+                    if not (self.prv_value == msg_value and self.flags.get(TokenisationFlags.RUNNING_VALUE, False)):
                         tokens.extend(self._general_tokenise_flush_time_buffer(msg_value, value_shift=5))
 
                     # Play note
@@ -118,7 +119,7 @@ class TransposedNotelikeTokeniser(BaseTransposedNotelikeTokeniser):
                     numerator = self._time_signature_to_eights(msg_numerator, msg_denominator)
 
                     # Check if time signature has to be defined
-                    if not (self.prv_numerator == numerator and self.flags.get(Flags.RUNNING_TIME_SIG, False)):
+                    if not (self.prv_numerator == numerator and self.flags.get(TokenisationFlags.RUNNING_TIME_SIG, False)):
                         self.cur_rest_buffer += msg_time - self.cur_time
                         tokens.extend(
                             self._notelike_tokenise_flush_rest_buffer(apply_target=False, wait_token=4, value_shift=5))

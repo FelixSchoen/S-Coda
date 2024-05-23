@@ -1,4 +1,13 @@
 from base import *
+from scoda.enumerations.message_type import MessageType
+
+
+def test_cutoff():
+    sequence = Sequence.sequences_load(file_path=RESOURCE_CHOPIN, track_indices=[[0]], meta_track_indices=[0])[0]
+    sequence.cutoff(48, 24)
+
+    for note_pair in sequence.abs.get_message_time_pairings():
+        assert note_pair[1].time - note_pair[0].time <= 48
 
 
 def test_equivalence():
@@ -9,7 +18,7 @@ def test_equivalence():
     assert sequence_a != sequence_b
 
 
-def test_absolute_note_array():
+def test_get_message_time_pairings():
     sequence = util_midi_to_sequences()[0]
     note_array = sequence.abs.get_message_time_pairings()
 
@@ -34,7 +43,7 @@ def test_get_timing_of_message_type():
     assert all(len(seq.get_message_timings_of_type([MessageType.TIME_SIGNATURE])) <= 1 for seq in split_sequences)
 
 
-def test_merge_sequences():
+def test_merge():
     sequences = util_midi_to_sequences()
     sequence = Sequence()
 
@@ -42,6 +51,7 @@ def test_merge_sequences():
 
     assert len(sequence.abs.messages) == len(sequences[0].abs.messages) + len(
         sequences[1].abs.messages)
+    assert sequence.get_sequence_duration() == max([seq.get_sequence_duration() for seq in sequences])
 
 
 def test_quantise():
@@ -70,7 +80,22 @@ def test_quantise_note_lengths():
         assert note_pair[1].time - note_pair[0].time in possible_durations
 
 
-def test_sequence_length():
+def test_sort():
+    sequences = util_midi_to_sequences()
+    sequence = sequences[0]
+
+    sequence.abs.sort()
+
+    assert all(msg.time <= sequence.abs.messages[i + 1].time for i, msg in enumerate(sequence.abs.messages[:-1]))
+
+
+def test_sequence_duration():
     sequences = util_midi_to_sequences()
 
-    assert all(sequence.get_sequence_length() == sequences[0].get_sequence_length() for sequence in sequences)
+    for sequence in sequences:
+        sequence_duration = 0
+        for msg in sequence.rel.messages:
+            if msg.message_type == MessageType.WAIT:
+                sequence_duration += msg.time
+
+        assert sequence.get_sequence_duration() == sequence_duration

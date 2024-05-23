@@ -8,10 +8,10 @@ from statistics import mean
 from typing import TYPE_CHECKING
 
 from scoda.elements.message import Message
+from scoda.enumerations.message_type import MessageType
 from scoda.exceptions.sequence_exception import SequenceException
 from scoda.midi.midi_message import MidiMessage
 from scoda.midi.midi_track import MidiTrack
-from scoda.misc.enumerations import MessageType
 from scoda.misc.music_theory import Note, Key, MusicMapping
 from scoda.misc.scoda_logging import get_logger
 from scoda.misc.util import minmax, simple_regression
@@ -245,7 +245,6 @@ class RelativeSequence(AbstractSequence):
         return split_sequences
 
     def scale(self, factor, meta_sequence=None) -> None:
-        # TODO Without normalisation inserts double time signature - check why
         """Stretches the sequence by the given factor.
 
         Args:
@@ -399,88 +398,19 @@ class RelativeSequence(AbstractSequence):
         guessed_key = [key for key in MusicMapping.KeyNoteMapping][best_index]
         return guessed_key
 
-    def get_sequence_length_relation(self) -> float:
-        """Calculates the length of the sequence in multiples of the `PPQN`.
+    def get_sequence_duration_relation(self) -> float:
+        """Calculates the duration of the sequence in multiples of the `PPQN`.
 
-        Returns: The length of the sequence as a multiple of the `PPQN`.
+        Returns: The duration of the sequence as a multiple of the `PPQN`.
 
         """
-        length = 0
+        duration = 0
 
         for msg in self.messages:
             if msg.message_type == MessageType.WAIT:
-                length += msg.time
+                duration += msg.time
 
-        return length / PPQN
-
-    def get_valid_next_messages(self, desired_bars, force_time_signature=True, maximum_note_length=-1) -> list[dict]:
-        """Determines, which messages are valid messages to be inserted into this sequence.
-
-        Returns: A list of valid message types
-
-        """
-        amount_bars_completed = 0
-        current_bar_capacity = 4 * PPQN
-        current_point_in_time = 0
-        current_bar_time = 0
-        at_bar_border = True
-
-        open_messages = dict()
-
-        for msg in self.messages:
-            if msg.message_type == MessageType.NOTE_ON:
-                at_bar_border = False
-                open_messages[msg.note] = current_point_in_time
-            elif msg.message_type == MessageType.NOTE_OFF:
-                open_messages.pop(msg.note, None)
-            elif msg.message_type == MessageType.WAIT:
-                at_bar_border = False
-
-                current_point_in_time += msg.time
-                current_bar_time += msg.time
-
-                if current_bar_time == current_bar_capacity:
-                    at_bar_border = True
-                    amount_bars_completed += 1
-                    current_bar_time -= current_bar_capacity
-
-                while current_bar_time > current_bar_capacity:
-                    current_bar_time -= current_bar_capacity
-                    amount_bars_completed += 1
-            elif msg.message_type == MessageType.TIME_SIGNATURE:
-                if not at_bar_border:
-                    raise SequenceException("Time signature message may only occur at border of a bar")
-                at_bar_border = False
-
-                current_bar_capacity = PPQN * (msg.numerator / (msg.denominator / 4))
-
-        valid_messages = []
-
-        if amount_bars_completed < desired_bars and not (at_bar_border and force_time_signature):
-            for wait_time in range(1, PPQN + 1):
-                if (
-                        current_bar_time + wait_time <= current_bar_capacity or
-                        current_bar_time + wait_time <= 2 * current_bar_capacity and
-                        amount_bars_completed + 1 < desired_bars) \
-                        and (maximum_note_length == -1 or all(
-                    current_point_in_time + wait_time - value <= maximum_note_length for value in
-                    open_messages.values())
-                ):
-                    valid_messages.append({"message_type": MessageType.WAIT.value, "time": wait_time})
-
-        for note in range(NOTE_LOWER_BOUND, NOTE_UPPER_BOUND + 1):
-            if note not in open_messages and amount_bars_completed < desired_bars and not (
-                    at_bar_border and force_time_signature):
-                valid_messages.append({"message_type": MessageType.NOTE_ON.value, "note": note})
-
-        for note in range(NOTE_LOWER_BOUND, NOTE_UPPER_BOUND + 1):
-            if note in open_messages and open_messages[note] != current_point_in_time:
-                valid_messages.append({"message_type": MessageType.NOTE_OFF.value, "note": note})
-
-        if at_bar_border and amount_bars_completed < desired_bars:
-            valid_messages.append({"message_type": MessageType.TIME_SIGNATURE.value})
-
-        return valid_messages
+        return duration / PPQN
 
     def to_absolute_sequence(self) -> AbsoluteSequence:
         """Converts this `RelativeSequence` to an `AbsoluteSequence`.
@@ -542,7 +472,7 @@ class RelativeSequence(AbstractSequence):
                 if Note(msg.note % 12) not in note_mapping[0]:
                     violations += 1
 
-        relation = violations / self.get_sequence_length_relation()
+        relation = violations / self.get_sequence_duration_relation()
         scaled_relation = simple_regression(DIFF_DUAL_ACCIDENTALS_UPPER_BOUND, 1, DIFF_DUAL_ACCIDENTALS_LOWER_BOUND, 0,
                                             relation)
 
@@ -671,14 +601,14 @@ class RelativeSequence(AbstractSequence):
         """
         amount_notes_played = 0
 
-        if self.get_sequence_length_relation() == 0:
+        if self.get_sequence_duration_relation() == 0:
             return 0
 
         for msg in self.messages:
             if msg.message_type == MessageType.NOTE_ON:
                 amount_notes_played += 1
 
-        relation = amount_notes_played / self.get_sequence_length_relation()
+        relation = amount_notes_played / self.get_sequence_duration_relation()
 
         scaled_difficulty = simple_regression(DIFF_DUAL_NOTE_AMOUNT_UPPER_BOUND, 1, DIFF_DUAL_NOTE_AMOUNT_LOWER_BOUND,
                                               0,
@@ -703,7 +633,7 @@ class RelativeSequence(AbstractSequence):
         if len(note_classes) == 0:
             return 0
 
-        relation = len(note_classes) / self.get_sequence_length_relation()
+        relation = len(note_classes) / self.get_sequence_duration_relation()
         scaled_relation = simple_regression(DIFF_DUAL_NOTE_CLASSES_UPPER_BOUND, 1, DIFF_DUAL_NOTE_CLASSES_LOWER_BOUND,
                                             0,
                                             relation)

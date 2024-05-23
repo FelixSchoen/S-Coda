@@ -9,9 +9,9 @@ from matplotlib import pyplot as plt, pyplot
 from matplotlib.patches import Rectangle
 
 from scoda.elements.message import Message
+from scoda.enumerations.message_type import MessageType
 from scoda.midi.midi_file import MidiFile
 from scoda.midi.midi_track import MidiTrack
-from scoda.misc.enumerations import MessageType
 from scoda.misc.music_theory import Key
 from scoda.misc.util import minmax, simple_regression
 from scoda.sequences.absolute_sequence import AbsoluteSequence
@@ -220,17 +220,17 @@ class Sequence:
         """
         return self.abs.get_message_timings_of_type(message_types)
 
-    def get_sequence_length(self) -> float:
+    def get_sequence_duration(self) -> float:
         """See `scoda.sequence.absolute_sequence.AbsoluteSequence.get_sequence_length`.
 
         """
-        return self.abs.get_sequence_length()
+        return self.abs.get_sequence_duration()
 
-    def get_sequence_length_relation(self) -> float:
+    def get_sequence_duration_relation(self) -> float:
         """See `scoda.sequence.relative_sequence.RelativeSequence.sequence_length_relation`.
 
         """
-        return self.rel.get_sequence_length_relation()
+        return self.rel.get_sequence_duration_relation()
 
     def is_empty(self) -> bool:
         """See `scoda.sequence.relative_sequence.RelativeSequence.is_empty`.
