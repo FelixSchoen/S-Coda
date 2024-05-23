@@ -159,13 +159,15 @@ class StandardNotelikeTokeniser(BaseNotelikeTokeniser):
         return seq
 
     @staticmethod
-    def get_constraints(tokens: list[int], previous_state: dict = None, min_bars: int = -1) -> \
+    def get_constraints(tokens: list[int], previous_state: dict = None, min_bars: int = -1,
+                        running_value: bool = False, running_pitch: bool = False, running_time_sig: bool = False) -> \
             tuple[list[int], dict[str, Any]]:
         cur_time = 0
         cur_bar = 0
         bar_time = 0
         bar_tokens = []
-        bar_capacity = 4 * PPQN
+        bar_open_notes = []
+        bar_capacity = None
         seq_started = False
         seq_stopped = False
         prv_type = None
@@ -177,6 +179,7 @@ class StandardNotelikeTokeniser(BaseNotelikeTokeniser):
             cur_bar = previous_state["cur_bar"]
             bar_time = previous_state["bar_time"]
             bar_tokens = previous_state["bar_tokens"]
+            bar_open_notes = previous_state["bar_open_notes"]
             bar_capacity = previous_state["bar_capacity"]
             seq_started = previous_state["seq_started"]
             seq_stopped = previous_state["seq_stopped"]
@@ -207,6 +210,7 @@ class StandardNotelikeTokeniser(BaseNotelikeTokeniser):
                     cur_bar += 1
 
                 bar_tokens.append(token)
+                bar_open_notes = []
                 prv_type = MessageType.WAIT
             elif token == 4:
                 cur_bar += 1
@@ -221,19 +225,31 @@ class StandardNotelikeTokeniser(BaseNotelikeTokeniser):
                 prv_type = MessageType.INTERNAL
             elif 29 <= token <= 116:
                 bar_tokens.append(token)
+                bar_open_notes.append(token - 29 + 21)
                 prv_type = MessageType.NOTE_ON
                 prv_note = token - 29 + 21
             elif 117 <= token <= 131:
                 bar_tokens.append(token)
-                bar_capacity = int(((token - 117 + 2) / 8) * PPQN)
+                bar_capacity = int(((token - 117 + 2) / 8) * 4 * PPQN)
                 prv_type = MessageType.TIME_SIGNATURE
             elif token == 132:
                 bar_tokens.append(token)
+                bar_open_notes.append(prv_note)
                 prv_type = MessageType.NOTE_ON
             else:
                 raise TokenisationException(f"Encountered invalid token during constraint creation: {token}")
 
+            if not running_value and not 5 <= token <= 28:
+                prv_value = None
+
         # === Retrieve valid tokens ===
+
+        # Helper variables
+        h_started_not_stopped = seq_started and not seq_stopped
+        h_bar_contains_time_signature = any(117 <= t <= 131 for t in bar_tokens)
+        h_bar_valid_time_signature = (running_time_sig and bar_capacity is not None) or h_bar_contains_time_signature
+        h_note_not_open = lambda x: x is not None and x not in bar_open_notes
+        h_has_prv_value = prv_value is not None
 
         valid_tokens = []
 
@@ -247,31 +263,32 @@ class StandardNotelikeTokeniser(BaseNotelikeTokeniser):
         if not seq_stopped and (min_bars == -1 or cur_bar + 1 == min_bars) and bar_time == bar_capacity:
             valid_tokens.append(2)
         # [        3] ... wait
-        if (seq_started and
-                not seq_stopped and
-                bar_capacity - bar_time >= prv_value):
+        if h_started_not_stopped and h_bar_valid_time_signature and h_has_prv_value and bar_capacity - bar_time >= prv_value:
             valid_tokens.append(3)
         # [        4] ... bar separator
-        if seq_started and not seq_stopped and bar_time == bar_capacity:
+        if h_started_not_stopped and h_bar_valid_time_signature and bar_time == bar_capacity and 4 not in bar_tokens:
             valid_tokens.append(4)
         # [  5 -  28] ... value definition
-        if seq_started and not seq_stopped:
-            prv_value_vol = prv_value
+        if h_started_not_stopped and h_bar_valid_time_signature:
+            prv_value_volatile = prv_value
             if prv_type != MessageType.INTERNAL:
-                prv_value_vol = 0
+                prv_value_volatile = 0
             for v_d in range(1, 24 + 1):
-                prv_value_vol += v_d
-                if bar_capacity - bar_time >= prv_value_vol:
+                if bar_capacity - bar_time >= prv_value_volatile + v_d:
                     valid_tokens.append(v_d + 4)
         # [ 29 - 116] ... note
-        if seq_started and not seq_stopped:
+        if h_started_not_stopped and h_bar_valid_time_signature and h_has_prv_value:
             for n in range(21, 108 + 1):
-                if not prv_note == n and prv_type == MessageType.NOTE_ON:
+                if prv_note not in bar_open_notes:
                     valid_tokens.append(n - 21 + 29)
         # [117 - 131] ... time signature numerator in eights from 2/8 to 16/8
-        if seq_started and not seq_stopped and bar_time == 0 and not any(117 <= t <= 131 for t in bar_tokens):
+        if h_started_not_stopped and not h_bar_contains_time_signature and bar_time == 0:
             for t in range(117, 131 + 1):
                 valid_tokens.append(t)
+        # [      132] ... note with previous pitch (running pitch only)
+        if h_started_not_stopped and h_bar_valid_time_signature and running_pitch and h_has_prv_value and h_note_not_open(
+                prv_note):
+            valid_tokens.append(132)
 
         # === Store and return finding ===
 
@@ -279,6 +296,7 @@ class StandardNotelikeTokeniser(BaseNotelikeTokeniser):
                  "cur_bar": cur_bar,
                  "bar_time": bar_time,
                  "bar_tokens": bar_tokens,
+                 "bar_open_notes": bar_open_notes,
                  "bar_capacity": bar_capacity,
                  "seq_started": seq_started,
                  "seq_stopped": seq_stopped,

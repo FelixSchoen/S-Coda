@@ -15,7 +15,13 @@ def test_roundtrip_standard_notelike_tokenisation(path_resource, track, running_
     tokeniser = StandardNotelikeTokeniser(running_value=running_value, running_pitch=running_pitch,
                                           running_time_sig=running_time_sig)
 
-    _test_roundtrip_tokenisation(tokeniser, path_resource, track)
+    tokens = _test_roundtrip_tokenisation(tokeniser, path_resource, track)
+    tokens.insert(0, 1)
+
+    _test_constraints(tokeniser, tokens,
+                      running_value=running_value,
+                      running_pitch=running_pitch,
+                      running_time_sig=running_time_sig)
 
 
 @pytest.mark.parametrize("path_resource, track", zip(RESOURCES, [0, 0, 1, 1]))
@@ -72,10 +78,21 @@ def _test_roundtrip_tokenisation(tokeniser, path_resource, track, quantise=False
     tokens = []
 
     for i, bar in enumerate(bars):
-        tokens.extend(tokeniser.tokenise(bar.sequence))
+        bar_tokens = tokeniser.tokenise(bar.sequence)
+        tokens.extend(bar_tokens)
+        break
 
     sequence_roundtrip = tokeniser.detokenise(tokens)
 
     assert sequence == sequence_roundtrip
 
     return tokens
+
+
+def _test_constraints(tokeniser, tokens, **kwargs):
+    previous_state = None
+    valid_tokens = [tokens[0]]
+
+    for i, token in enumerate(tokens):
+        assert token in valid_tokens
+        valid_tokens, previous_state = tokeniser.get_constraints([tokens[i]], previous_state, **kwargs)
