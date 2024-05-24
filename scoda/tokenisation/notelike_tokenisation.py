@@ -158,10 +158,12 @@ class StandardNotelikeTokeniser(BaseNotelikeTokeniser):
 
         return seq
 
-    @staticmethod
-    def get_constraints(tokens: list[int], previous_state: dict = None, min_bars: int = -1,
-                        running_value: bool = False, running_pitch: bool = False, running_time_sig: bool = False) -> \
+    def get_constraints(self, tokens: list[int], previous_state: dict = None, min_bars: int = -1) -> \
             tuple[list[int], dict[str, Any]]:
+        running_value = self.flags.get(TokenisationFlags.RUNNING_VALUE, False)
+        running_pitch = self.flags.get(TokenisationFlags.RUNNING_PITCH, False)
+        running_time_sig = self.flags.get(TokenisationFlags.RUNNING_TIME_SIG, False)
+
         cur_time = 0
         cur_bar = 0
         bar_time = 0
