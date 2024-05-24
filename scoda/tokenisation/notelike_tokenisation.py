@@ -168,8 +168,8 @@ class StandardNotelikeTokeniser(BaseNotelikeTokeniser):
         cur_bar = 0
         bar_time = 0
         bar_tokens = []
-        bar_open_notes = []
         bar_capacity = None
+        pnt_concurrent_notes = []
         seq_started = False
         seq_stopped = False
         prv_type = None
@@ -181,7 +181,7 @@ class StandardNotelikeTokeniser(BaseNotelikeTokeniser):
             cur_bar = previous_state["cur_bar"]
             bar_time = previous_state["bar_time"]
             bar_tokens = previous_state["bar_tokens"]
-            bar_open_notes = previous_state["bar_open_notes"]
+            pnt_concurrent_notes = previous_state["pnt_concurrent_notes"]
             bar_capacity = previous_state["bar_capacity"]
             seq_started = previous_state["seq_started"]
             seq_stopped = previous_state["seq_stopped"]
@@ -212,7 +212,7 @@ class StandardNotelikeTokeniser(BaseNotelikeTokeniser):
                     cur_bar += 1
 
                 bar_tokens.append(token)
-                bar_open_notes = []
+                pnt_concurrent_notes = []
                 prv_type = MessageType.WAIT
             elif token == 4:
                 cur_bar += 1
@@ -227,7 +227,7 @@ class StandardNotelikeTokeniser(BaseNotelikeTokeniser):
                 prv_type = MessageType.INTERNAL
             elif 29 <= token <= 116:
                 bar_tokens.append(token)
-                bar_open_notes.append(token - 29 + 21)
+                pnt_concurrent_notes.append(token - 29 + 21)
                 prv_type = MessageType.NOTE_ON
                 prv_note = token - 29 + 21
             elif 117 <= token <= 131:
@@ -236,7 +236,7 @@ class StandardNotelikeTokeniser(BaseNotelikeTokeniser):
                 prv_type = MessageType.TIME_SIGNATURE
             elif token == 132:
                 bar_tokens.append(token)
-                bar_open_notes.append(prv_note)
+                pnt_concurrent_notes.append(prv_note)
                 prv_type = MessageType.NOTE_ON
             else:
                 raise TokenisationException(f"Encountered invalid token during constraint creation: {token}")
@@ -250,7 +250,7 @@ class StandardNotelikeTokeniser(BaseNotelikeTokeniser):
         h_started_not_stopped = seq_started and not seq_stopped
         h_bar_contains_time_signature = any(117 <= t <= 131 for t in bar_tokens)
         h_bar_valid_time_signature = (running_time_sig and bar_capacity is not None) or h_bar_contains_time_signature
-        h_note_not_open = lambda x: x is not None and x not in bar_open_notes
+        h_note_not_open = lambda x: x is not None and x not in pnt_concurrent_notes
         h_has_prv_value = prv_value is not None
 
         valid_tokens = []
@@ -281,7 +281,7 @@ class StandardNotelikeTokeniser(BaseNotelikeTokeniser):
         # [ 29 - 116] ... note
         if h_started_not_stopped and h_bar_valid_time_signature and h_has_prv_value:
             for n in range(21, 108 + 1):
-                if prv_note not in bar_open_notes:
+                if prv_note not in pnt_concurrent_notes:
                     valid_tokens.append(n - 21 + 29)
         # [117 - 131] ... time signature numerator in eights from 2/8 to 16/8
         if h_started_not_stopped and not h_bar_contains_time_signature and bar_time == 0:
@@ -298,7 +298,7 @@ class StandardNotelikeTokeniser(BaseNotelikeTokeniser):
                  "cur_bar": cur_bar,
                  "bar_time": bar_time,
                  "bar_tokens": bar_tokens,
-                 "bar_open_notes": bar_open_notes,
+                 "pnt_concurrent_notes": pnt_concurrent_notes,
                  "bar_capacity": bar_capacity,
                  "seq_started": seq_started,
                  "seq_stopped": seq_stopped,
@@ -489,8 +489,8 @@ class CoFNotelikeTokeniser(BaseNotelikeTokeniser):
     [        0] ... pad
     [        1] ... start
     [        2] ... stop
-    [        3] ... wait
-    [        4] ... separator
+    [        3] ... bar separator
+    [        4] ... wait
     [  5 -  28] ... value definition
     [ 29 -  45] ... octave shift between notes
     [ 46 -  57] ... note without octave in distance on the circle of fifths
@@ -532,7 +532,7 @@ class CoFNotelikeTokeniser(BaseNotelikeTokeniser):
                 if not self.cur_time == msg_time:
                     self.cur_rest_buffer += msg_time - self.cur_time
                     tokens.extend(
-                        self._notelike_tokenise_flush_rest_buffer(apply_target=False, wait_token=3, value_shift=4))
+                        self._notelike_tokenise_flush_rest_buffer(apply_target=False, wait_token=4, value_shift=4))
 
                 # Check if value of note has to be defined
                 if not (self.prv_value == msg_value and self.flags.get(TokenisationFlags.RUNNING_VALUE, False)):
@@ -565,7 +565,7 @@ class CoFNotelikeTokeniser(BaseNotelikeTokeniser):
                 if not (self.prv_numerator == numerator and self.flags.get(TokenisationFlags.RUNNING_TIME_SIG, False)):
                     self.cur_rest_buffer += msg_time - self.cur_time
                     tokens.extend(
-                        self._notelike_tokenise_flush_rest_buffer(apply_target=False, wait_token=3, value_shift=4))
+                        self._notelike_tokenise_flush_rest_buffer(apply_target=False, wait_token=4, value_shift=4))
                     tokens.append(numerator - 2 + 58)
 
                 self.prv_type = MessageType.TIME_SIGNATURE
@@ -576,7 +576,7 @@ class CoFNotelikeTokeniser(BaseNotelikeTokeniser):
 
         if apply_buffer:
             tokens.extend(
-                self._notelike_tokenise_flush_rest_buffer(apply_target=True, wait_token=3, value_shift=4))
+                self._notelike_tokenise_flush_rest_buffer(apply_target=True, wait_token=4, value_shift=4))
 
         if reset_time:
             self.reset_time()
@@ -600,10 +600,10 @@ class CoFNotelikeTokeniser(BaseNotelikeTokeniser):
             if token <= 2:
                 prv_type = "sequence_control"
             elif token == 3:
+                prv_type = "sequence_control"
+            elif token == 4:
                 cur_time += prv_value
                 prv_type = MessageType.WAIT
-            elif token == 4:
-                prv_type = "sequence_control"
             elif 5 <= token <= 28:
                 if prv_type == MessageType.INTERNAL:
                     prv_value += token - 4
