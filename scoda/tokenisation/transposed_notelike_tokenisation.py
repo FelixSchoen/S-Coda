@@ -13,9 +13,12 @@ from scoda.tokenisation.base_tokenisation import BaseTokeniser
 class BaseTransposedNotelikeTokeniser(BaseTokeniser, ABC):
 
     def __init__(self, running_time_sig: bool) -> None:
-        super().__init__(running_time_sig)
+        super().__init__()
+
+        self.flags[TokenisationFlags.RUNNING_TIME_SIG] = running_time_sig
 
 
+# TODO
 class TransposedNotelikeTokeniser(BaseTransposedNotelikeTokeniser):
     """Tokeniser that uses transposed temporal representation with a note-like approach, i.e., all occurrences of a note
     are shown first before any other note is handled. Note that input sequences are expected to represent bars,
@@ -37,10 +40,10 @@ class TransposedNotelikeTokeniser(BaseTransposedNotelikeTokeniser):
 
         self.flags[TokenisationFlags.RUNNING_VALUE] = running_value
 
-    def tokenise(self, bar_seq: Sequence, apply_buffer: bool = True, reset_time: bool = True,
+    def tokenise(self, bar_sequence: Sequence, apply_buffer: bool = True, reset_time: bool = True,
                  insert_border_tokens: bool = False) -> list[int]:
         tokens = []
-        event_pairings = bar_seq.abs.get_message_time_pairings(
+        event_pairings = bar_sequence.abs.get_message_time_pairings(
             [MessageType.NOTE_ON, MessageType.NOTE_OFF, MessageType.TIME_SIGNATURE, MessageType.INTERNAL])
 
         event_pairings_by_note = dict()
@@ -100,11 +103,12 @@ class TransposedNotelikeTokeniser(BaseTransposedNotelikeTokeniser):
                     if not self.cur_time == msg_time:
                         self.cur_rest_buffer += msg_time - self.cur_time
                         tokens.extend(
-                            self._notelike_tokenise_flush_rest_buffer(apply_target=False, wait_token=4, value_shift=5))
+                            self._notelike_tokenise_flush_rest_buffer(apply_target=False, wait_token=4,
+                                                                      index_time_def=6))
 
                     # Check if value of note has to be defined
                     if not (self.prv_value == msg_value and self.flags.get(TokenisationFlags.RUNNING_VALUE, False)):
-                        tokens.extend(self._general_tokenise_flush_time_buffer(msg_value, value_shift=5))
+                        tokens.extend(self._general_tokenise_flush_time_buffer(msg_value, index_time_def=6))
 
                     # Play note
                     tokens.append(3)
@@ -119,10 +123,12 @@ class TransposedNotelikeTokeniser(BaseTransposedNotelikeTokeniser):
                     numerator = self._time_signature_to_eights(msg_numerator, msg_denominator)
 
                     # Check if time signature has to be defined
-                    if not (self.prv_numerator == numerator and self.flags.get(TokenisationFlags.RUNNING_TIME_SIG, False)):
+                    if not (self.prv_numerator == numerator and self.flags.get(TokenisationFlags.RUNNING_TIME_SIG,
+                                                                               False)):
                         self.cur_rest_buffer += msg_time - self.cur_time
                         tokens.extend(
-                            self._notelike_tokenise_flush_rest_buffer(apply_target=False, wait_token=4, value_shift=5))
+                            self._notelike_tokenise_flush_rest_buffer(apply_target=False, wait_token=4,
+                                                                      index_time_def=6))
                         tokens.append(numerator - 2 + 118)
 
                     self.prv_type = MessageType.TIME_SIGNATURE
@@ -136,7 +142,7 @@ class TransposedNotelikeTokeniser(BaseTransposedNotelikeTokeniser):
 
         if apply_buffer:
             tokens.extend(
-                self._notelike_tokenise_flush_rest_buffer(apply_target=True, wait_token=4, value_shift=5))
+                self._notelike_tokenise_flush_rest_buffer(apply_target=True, wait_token=4, index_time_def=6))
 
         if reset_time:
             self.reset_time()
@@ -209,87 +215,3 @@ class TransposedNotelikeTokeniser(BaseTransposedNotelikeTokeniser):
                 raise TokenisationException(f"Encountered invalid token during detokenisation: {token}")
 
         return seq
-
-    @staticmethod
-    def get_info_notes(tokens: list[int], invalid_value: int = -1) -> list[int]:
-        info = []
-
-        prv_note = math.nan
-
-        for token in tokens:
-            if token == 3:
-                if math.isnan(prv_note):
-                    raise TokenisationException(f"Note value not initialised")
-
-                info.append(prv_note)
-            elif 30 <= token <= 117:
-                info.append(invalid_value)
-                prv_note = token - 30 + 21
-            else:
-                info.append(invalid_value)
-
-        return info
-
-    @staticmethod
-    def get_info_circle_of_fifths(tokens: list[int], invalid_value: int = -1) -> list[int]:
-        info = []
-
-        prv_note = math.nan
-
-        for token in tokens:
-            if token == 3:
-                if math.isnan(prv_note):
-                    raise TokenisationException(f"Note value not initialised")
-
-                info.append(prv_note % 12)
-            elif 30 <= token <= 117:
-                info.append(invalid_value)
-                prv_note = token - 30 + 21
-            else:
-                info.append(invalid_value)
-
-        return info
-
-    @staticmethod
-    def get_info_elapsed_ticks(tokens: list[int]) -> list[int]:
-        info = []
-
-        time_bar_start = 0
-        cur_time_bar = 0
-
-        prv_type = None
-        prv_value = math.nan
-        prv_numerator = math.nan
-
-        for token in tokens:
-            info.append(time_bar_start + cur_time_bar)
-
-            if token == 4:
-                cur_time_bar += prv_value
-
-                prv_type = MessageType.WAIT
-            elif token == 5:
-                time_bar_start += prv_numerator * PPQN / 2
-                cur_time_bar = 0
-
-                prv_type = "bar_border"
-            elif 6 <= token <= 29:
-                if prv_type == "value_definition":
-                    prv_value += token - 5
-                else:
-                    prv_value = token - 5
-
-                prv_type = "value_definition"
-            elif 30 <= token <= 117:
-                cur_time_bar = 0
-
-                prv_type = "note_definition"
-            elif 118 <= token <= 132:
-                numerator = token - 118 + 2
-
-                prv_type = MessageType.TIME_SIGNATURE
-                prv_numerator = numerator
-            else:
-                prv_type = "general_message"
-
-        return info
