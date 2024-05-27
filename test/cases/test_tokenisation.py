@@ -1,6 +1,6 @@
 from base import *
 from scoda.tokenisation.gridlike_tokenisation import GridlikeTokeniser
-from scoda.tokenisation.midilike_tokenisation import MidilikeTokeniser
+from scoda.tokenisation.midilike_tokenisation import StandardMidilikeTokeniser
 from scoda.tokenisation.notelike_tokenisation import CoFNotelikeTokeniser, StandardNotelikeTokeniser, \
     LargeDictionaryNotelikeTokeniser, LargeDictionaryCoFNotelikeTokeniser
 from scoda.tokenisation.transposed_notelike_tokenisation import TransposedNotelikeTokeniser
@@ -50,7 +50,7 @@ def test_roundtrip_large_dictionary_cof_notelike_tokenisation(path_resource, run
 
 @pytest.mark.parametrize("path_resource", RESOURCES)
 def test_roundtrip_midilike_tokenisation(path_resource):
-    tokeniser = MidilikeTokeniser(running_time_sig=True)
+    tokeniser = StandardMidilikeTokeniser(running_time_sig=True)
 
     _test_roundtrip_tokenisation(tokeniser, path_resource)
 

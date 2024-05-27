@@ -619,18 +619,6 @@ class CoFNotelikeTokeniser(BaseNotelikeTokeniser):
 
         return seq
 
-    @staticmethod
-    def get_info_notes(tokens: list[int], invalid_value: int = -1) -> list[int]:
-        raise NotImplementedError
-
-    @staticmethod
-    def get_info_circle_of_fifths(tokens: list[int], invalid_value: int = -1) -> list[int]:
-        raise NotImplementedError
-
-    @staticmethod
-    def get_info_elapsed_ticks(tokens: list[int]) -> list[int]:
-        raise NotImplementedError
-
 
 class LargeDictionaryCoFNotelikeTokeniser(BaseLargeDictionaryNotelikeTokeniser):
     """Tokeniser that uses note-like temporal representation with circle of fifths distances between notes.
