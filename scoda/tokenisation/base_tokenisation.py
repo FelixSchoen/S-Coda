@@ -55,12 +55,14 @@ class BaseTokeniser(ABC):
 
         return tokens
 
-    def _notelike_tokenise_flush_rest_buffer(self, apply_target: bool, wait_token: int, index_time_def: int) -> list[int]:
+    def _notelike_tokenise_flush_rest_buffer(self, apply_target: bool, wait_token: int, index_time_def: int) -> list[
+        int]:
         tokens = []
 
         # Insert rests of length up to `set_max_rest_value`
         while self.cur_rest_buffer > self.set_max_rest_value:
-            if not (self.prv_value == self.set_max_rest_value and self.flags.get(TokenisationFlags.RUNNING_VALUE, False)):
+            if not (self.prv_value == self.set_max_rest_value and self.flags.get(TokenisationFlags.RUNNING_VALUE,
+                                                                                 False)):
                 tokens.append(int(self.set_max_rest_value + index_time_def - 1))
                 self.prv_value = self.set_max_rest_value
 
@@ -97,7 +99,8 @@ class BaseTokeniser(ABC):
         return tokens
 
     @abstractmethod
-    def tokenise(self, sequence: Sequence, insert_border_tokens: bool = False) -> list[int]:
+    def tokenise(self, sequence: Sequence, insert_trailing_separator_token: bool = True,
+                 insert_border_tokens: bool = False) -> list[int]:
         pass
 
     @staticmethod

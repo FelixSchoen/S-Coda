@@ -18,7 +18,7 @@ def test_roundtrip_standard_notelike_tokenisation(path_resource, running_value, 
     tokens = _test_roundtrip_tokenisation(tokeniser, path_resource)
     tokens.insert(0, 1)
 
-    # _test_constraints(tokeniser, tokens)
+    _test_constraints(tokeniser, tokens)
 
 
 @pytest.mark.parametrize("path_resource", RESOURCES)
@@ -42,7 +42,7 @@ def test_roundtrip_cof_notelike_tokenisation(path_resource, running_value, runni
 
 @pytest.mark.parametrize("path_resource", RESOURCES)
 @pytest.mark.parametrize("running_time_sig", [True, False])
-def roundtrip_large_dictionary_cof_notelike_tokenisation(path_resource, running_time_sig):
+def test_roundtrip_large_dictionary_cof_notelike_tokenisation(path_resource, running_time_sig):
     tokeniser = LargeDictionaryCoFNotelikeTokeniser(running_time_sig=running_time_sig)
 
     _test_roundtrip_tokenisation(tokeniser, path_resource)
@@ -94,6 +94,8 @@ def _test_roundtrip_tokenisation(tokeniser, path_resource, quantise=True):
         break
 
     sequence_roundtrip = tokeniser.detokenise(tokens)
+
+    sequence_roundtrip.save("test.mid")
 
     assert sequence == sequence_roundtrip
 
