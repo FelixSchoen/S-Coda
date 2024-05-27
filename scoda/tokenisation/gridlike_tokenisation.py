@@ -10,9 +10,12 @@ from scoda.tokenisation.base_tokenisation import BaseTokeniser
 
 
 class BaseGridlikeTokeniser(BaseTokeniser, ABC):
+    TOKEN_SEPARATOR = None
 
     def __init__(self, running_time_sig: bool) -> None:
-        super().__init__(running_time_sig)
+        super().__init__()
+
+        self.flags[TokenisationFlags.RUNNING_TIME_SIG] = running_time_sig
 
 
 class GridlikeTokeniser(BaseGridlikeTokeniser):
@@ -32,12 +35,12 @@ class GridlikeTokeniser(BaseGridlikeTokeniser):
     def __init__(self, running_time_sig: bool) -> None:
         super().__init__(running_time_sig)
 
-    def tokenise(self, bar_seq: Sequence, apply_buffer: bool = True, insert_border_tokens: bool = False) -> list[int]:
+    def tokenise(self, bar_sequence: Sequence, apply_buffer: bool = True) -> list[int]:
         tokens = []
         min_grid_size = self.set_max_rest_value
 
         # First pass to get minimum grid size
-        for message in bar_seq.rel.messages:
+        for message in bar_sequence.rel.messages:
             msg_type = message.message_type
 
             if msg_type == MessageType.WAIT:
@@ -58,7 +61,7 @@ class GridlikeTokeniser(BaseGridlikeTokeniser):
         tokens.append(min_grid_size + 3)
 
         # Second pass to generate tokens
-        for message in bar_seq.rel.messages:
+        for message in bar_sequence.rel.messages:
             msg_type = message.message_type
 
             if msg_type == MessageType.WAIT:
@@ -100,10 +103,6 @@ class GridlikeTokeniser(BaseGridlikeTokeniser):
 
         if apply_buffer and self.cur_rest_buffer > 0:
             tokens.extend(self._gridlike_tokenise_flush_grid_buffer(min_grid_size=min_grid_size, wait_token=3))
-
-        if insert_border_tokens:
-            tokens.insert(0, 1)
-            tokens.append(2)
 
         return tokens
 

@@ -60,7 +60,7 @@ def test_roundtrip_standard_midilike_tokenisation(path_resource):
 def test_roundtrip_cof_midilike_tokenisation(path_resource, running_octave):
     tokeniser = CoFMidilikeTokeniser(running_octave=running_octave, running_time_sig=True)
 
-    _test_roundtrip_tokenisation(tokeniser, path_resource)
+    _test_roundtrip_tokenisation(tokeniser, path_resource, detokenise=False)
 
 
 @pytest.mark.parametrize("path_resource", RESOURCES)
@@ -77,7 +77,7 @@ def test_roundtrip_transposed_notelike_tokenisation(path_resource):
     _test_roundtrip_tokenisation(tokeniser, path_resource)
 
 
-def _test_roundtrip_tokenisation(tokeniser, path_resource, quantise=True):
+def _test_roundtrip_tokenisation(tokeniser, path_resource, quantise=True, detokenise=True):
     sequences = Sequence.sequences_load(file_path=path_resource)
     sequence = sequences[0]
     sequence.merge(sequences[1:])
@@ -101,7 +101,8 @@ def _test_roundtrip_tokenisation(tokeniser, path_resource, quantise=True):
         tokens.extend(bar_tokens)
         break
 
-    return
+    if not detokenise:
+        return
 
     sequence_roundtrip = tokeniser.detokenise(tokens)
 

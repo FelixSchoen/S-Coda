@@ -12,7 +12,9 @@ from scoda.tokenisation.base_tokenisation import BaseTokeniser
 class BaseMidilikeTokeniser(BaseTokeniser, ABC):
 
     def __init__(self, running_time_sig: bool) -> None:
-        super().__init__(running_time_sig)
+        super().__init__()
+
+        self.flags[TokenisationFlags.RUNNING_TIME_SIG] = running_time_sig
 
 
 class StandardMidilikeTokeniser(BaseMidilikeTokeniser):
@@ -31,7 +33,7 @@ class StandardMidilikeTokeniser(BaseMidilikeTokeniser):
     def __init__(self, running_time_sig: bool) -> None:
         super().__init__(running_time_sig)
 
-    def tokenise(self, sequence: Sequence, apply_buffer: bool = True, insert_border_tokens: bool = False) -> list[int]:
+    def tokenise(self, sequence: Sequence, apply_buffer: bool = True) -> list[int]:
         tokens = []
 
         for message in sequence.rel.messages:
@@ -84,10 +86,6 @@ class StandardMidilikeTokeniser(BaseMidilikeTokeniser):
             tokens.extend(self._general_tokenise_flush_time_buffer(time=self.cur_rest_buffer, index_time_def=4))
             self.cur_rest_buffer = 0
 
-        if insert_border_tokens:
-            tokens.insert(0, 1)
-            tokens.append(2)
-
         return tokens
 
     @staticmethod
@@ -138,8 +136,7 @@ class CoFMidilikeTokeniser(BaseMidilikeTokeniser):
         self.prv_note = 69
         self.prv_octave = 4
 
-    def tokenise(self, sequence: Sequence, apply_buffer: bool = True, insert_trailing_separator_token: bool = True,
-                 insert_border_tokens: bool = False) -> list[int]:
+    def tokenise(self, sequence: Sequence, apply_buffer: bool = True) -> list[int]:
         tokens = []
 
         for message in sequence.rel.messages:
@@ -194,13 +191,6 @@ class CoFMidilikeTokeniser(BaseMidilikeTokeniser):
             tokens.extend(self._general_tokenise_flush_time_buffer(time=self.cur_rest_buffer, index_time_def=4))
             self.cur_rest_buffer = 0
 
-        if insert_trailing_separator_token:
-            tokens.append(3)
-
-        if insert_border_tokens:
-            tokens.insert(0, 1)
-            tokens.append(2)
-
         return tokens
 
     @staticmethod
@@ -221,40 +211,3 @@ class CoFMidilikeTokeniser(BaseMidilikeTokeniser):
                     Message(message_type=MessageType.TIME_SIGNATURE, numerator=token - 204 + 2, denominator=8))
 
         return seq
-
-    @staticmethod
-    def get_info_notes(tokens: list[int], invalid_value: int = -1) -> list[int]:
-        info = []
-
-        for token in tokens:
-            if not 28 <= token <= 115:
-                info.append(invalid_value)
-            else:
-                info.append(token - 28 + 21)
-
-        return info
-
-    @staticmethod
-    def get_info_circle_of_fifths(tokens: list[int], invalid_value: int = -1) -> list[int]:
-        info = []
-
-        for token in tokens:
-            if not 28 <= token <= 115:
-                info.append(invalid_value)
-            else:
-                info.append((token - 28 + 21) % 12)
-
-        return info
-
-    @staticmethod
-    def get_info_elapsed_ticks(tokens: list[int]) -> list[int]:
-        info = []
-        cur_time = 0
-
-        for token in tokens:
-            info.append(cur_time)
-
-            if 4 <= token <= 27:
-                cur_time += token - 3
-
-        return info

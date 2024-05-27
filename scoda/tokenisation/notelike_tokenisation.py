@@ -15,21 +15,20 @@ from scoda.tokenisation.base_tokenisation import BaseTokeniser
 class BaseNotelikeTokeniser(BaseTokeniser, ABC):
 
     def __init__(self, running_value: bool, running_time_sig: bool) -> None:
-        super().__init__(running_time_sig)
+        super().__init__()
 
         self.flags[TokenisationFlags.RUNNING_VALUE] = running_value
+        self.flags[TokenisationFlags.RUNNING_TIME_SIG] = running_time_sig
 
 
 class BaseLargeDictionaryNotelikeTokeniser(BaseNotelikeTokeniser, ABC):
+    SUPPORTED_VALUES = [2, 3, 4, 6, 8, 9, 12, 16, 18, 24, 32, 36, 48, 64, 72, 96]
+    NOTE_SECTION_SIZE = None
 
     def __init__(self, running_time_sig: bool) -> None:
         super().__init__(False, running_time_sig)
 
-    SUPPORTED_VALUES = [2, 3, 4, 6, 8, 9, 12, 16, 18, 24, 32, 36, 48, 64, 72, 96]
-    NOTE_SECTION_SIZE = None
-
-    def tokenise(self, sequence: Sequence, apply_buffer: bool = True, reset_time: bool = True,
-                 insert_trailing_separator_token: bool = True, insert_border_tokens: bool = False) -> list[int]:
+    def tokenise(self, sequence: Sequence, apply_buffer: bool = True, reset_time: bool = True) -> list[int]:
         tokens = []
         event_pairings = sequence.abs.get_message_time_pairings(
             [MessageType.NOTE_ON, MessageType.NOTE_OFF, MessageType.TIME_SIGNATURE, MessageType.INTERNAL])
@@ -90,13 +89,6 @@ class BaseLargeDictionaryNotelikeTokeniser(BaseNotelikeTokeniser, ABC):
         if reset_time:
             self.reset_time()
 
-        if insert_trailing_separator_token:
-            tokens.append(3)
-
-        if insert_border_tokens:
-            tokens.insert(0, 1)
-            tokens.append(2)
-
         return tokens
 
     @abstractmethod
@@ -123,8 +115,7 @@ class StandardNotelikeTokeniser(BaseNotelikeTokeniser):
 
         self.flags[TokenisationFlags.RUNNING_PITCH] = running_pitch
 
-    def tokenise(self, sequence: Sequence, apply_buffer: bool = True, reset_time: bool = True,
-                 insert_trailing_separator_token: bool = True, insert_border_tokens: bool = False) -> list[int]:
+    def tokenise(self, sequence: Sequence, apply_buffer: bool = True, reset_time: bool = True) -> list[int]:
         tokens = []
         event_pairings = sequence.abs.get_message_time_pairings(
             [MessageType.NOTE_ON, MessageType.NOTE_OFF, MessageType.TIME_SIGNATURE, MessageType.INTERNAL])
@@ -185,13 +176,6 @@ class StandardNotelikeTokeniser(BaseNotelikeTokeniser):
 
         if reset_time:
             self.reset_time()
-
-        if insert_trailing_separator_token:
-            tokens.append(3)
-
-        if insert_border_tokens:
-            tokens.insert(0, 1)
-            tokens.append(2)
 
         return tokens
 
@@ -493,8 +477,7 @@ class CoFNotelikeTokeniser(BaseNotelikeTokeniser):
         self.prv_octave = 4
 
     def tokenise(self, sequence: Sequence, apply_buffer: bool = True, reset_base_note: bool = True,
-                 reset_time: bool = True, insert_trailing_separator_token: bool = True,
-                 insert_border_tokens: bool = False) -> list[int]:
+                 reset_time: bool = True) -> list[int]:
         tokens = []
         event_pairings = sequence.abs.get_message_time_pairings(
             [MessageType.NOTE_ON, MessageType.NOTE_OFF, MessageType.TIME_SIGNATURE, MessageType.INTERNAL])
@@ -564,13 +547,6 @@ class CoFNotelikeTokeniser(BaseNotelikeTokeniser):
 
         if reset_time:
             self.reset_time()
-
-        if insert_trailing_separator_token:
-            tokens.append(3)
-
-        if insert_border_tokens:
-            tokens.insert(0, 1)
-            tokens.append(2)
 
         return tokens
 

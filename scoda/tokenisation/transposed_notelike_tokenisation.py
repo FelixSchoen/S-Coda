@@ -13,9 +13,12 @@ from scoda.tokenisation.base_tokenisation import BaseTokeniser
 class BaseTransposedNotelikeTokeniser(BaseTokeniser, ABC):
 
     def __init__(self, running_time_sig: bool) -> None:
-        super().__init__(running_time_sig)
+        super().__init__()
+
+        self.flags[TokenisationFlags.RUNNING_TIME_SIG] = running_time_sig
 
 
+# TODO
 class TransposedNotelikeTokeniser(BaseTransposedNotelikeTokeniser):
     """Tokeniser that uses transposed temporal representation with a note-like approach, i.e., all occurrences of a note
     are shown first before any other note is handled. Note that input sequences are expected to represent bars,
@@ -37,10 +40,10 @@ class TransposedNotelikeTokeniser(BaseTransposedNotelikeTokeniser):
 
         self.flags[TokenisationFlags.RUNNING_VALUE] = running_value
 
-    def tokenise(self, bar_seq: Sequence, apply_buffer: bool = True, reset_time: bool = True,
+    def tokenise(self, bar_sequence: Sequence, apply_buffer: bool = True, reset_time: bool = True,
                  insert_border_tokens: bool = False) -> list[int]:
         tokens = []
-        event_pairings = bar_seq.abs.get_message_time_pairings(
+        event_pairings = bar_sequence.abs.get_message_time_pairings(
             [MessageType.NOTE_ON, MessageType.NOTE_OFF, MessageType.TIME_SIGNATURE, MessageType.INTERNAL])
 
         event_pairings_by_note = dict()

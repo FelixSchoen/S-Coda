@@ -8,11 +8,15 @@ from scoda.settings.settings import PPQN
 
 class BaseTokeniser(ABC):
 
-    def __init__(self, running_time_sig: bool) -> None:
+    TOKEN_PAD = 0
+    TOKEN_START = 1
+    TOKEN_STOP = 2
+    TOKEN_SEPARATOR = 3
+
+    def __init__(self) -> None:
         super().__init__()
 
         self.flags = dict()
-        self.flags[TokenisationFlags.RUNNING_TIME_SIG] = running_time_sig
 
         self.cur_time = None
         self.cur_time_target = None
