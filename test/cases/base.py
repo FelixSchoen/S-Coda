@@ -30,9 +30,11 @@ LOGGER = get_logger(__name__)
 RESOURCES_ROOT = Path(__file__).parent.parent.joinpath("res")
 RESOURCE_BEETHOVEN = RESOURCES_ROOT.joinpath("beethoven_o27-2_m3.mid")
 RESOURCE_CHOPIN = RESOURCES_ROOT.joinpath("chopin_o66_fantaisie_impromptu.mid")
+RESOURCE_MOZART = RESOURCES_ROOT.joinpath("mozart_331_1.mid")
+RESOURCE_RACHMANINOW = RESOURCES_ROOT.joinpath("rachmaninow_op23_5.mid")
 RESOURCE_SWEEP = RESOURCES_ROOT.joinpath("sweep.mid")
 RESOURCE_EMPTY_BARS = RESOURCES_ROOT.joinpath("empty_bars.mid")
-RESOURCES = [RESOURCE_SWEEP, RESOURCE_EMPTY_BARS, RESOURCE_BEETHOVEN, RESOURCE_CHOPIN]
+RESOURCES = [RESOURCE_SWEEP, RESOURCE_EMPTY_BARS, RESOURCE_BEETHOVEN, RESOURCE_CHOPIN, RESOURCE_MOZART, RESOURCE_RACHMANINOW]
 
 
 def util_midi_to_sequences(file=None, lead_tracks=None, acmp_tracks=None, meta_tracks=None):
