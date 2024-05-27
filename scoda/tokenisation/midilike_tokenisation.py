@@ -4,6 +4,7 @@ from scoda.elements.message import Message
 from scoda.enumerations.message_type import MessageType
 from scoda.enumerations.tokenisation_flags import TokenisationFlags
 from scoda.exceptions.tokenisation_exception import TokenisationException
+from scoda.misc.music_theory import CircleOfFifths
 from scoda.sequences.sequence import Sequence
 from scoda.tokenisation.base_tokenisation import BaseTokeniser
 
@@ -15,7 +16,7 @@ class BaseMidilikeTokeniser(BaseTokeniser, ABC):
 
 
 class StandardMidilikeTokeniser(BaseMidilikeTokeniser):
-    """Tokeniser that uses note-like temporal representation.
+    """Tokeniser that uses midi-like temporal representation.
 
     [        0] ... pad
     [        1] ... start
@@ -109,23 +110,36 @@ class StandardMidilikeTokeniser(BaseMidilikeTokeniser):
         return seq
 
 
-class StandardMidilikeTokeniser(BaseMidilikeTokeniser):
-    """Tokeniser that uses note-like temporal representation.
+class CoFMidilikeTokeniser(BaseMidilikeTokeniser):
+    """Tokeniser that uses midi-like temporal representation and circle of fifths distances.
 
     [        0] ... pad
     [        1] ... start
     [        2] ... stop
     [        3] ... bar separator
     [  4 -  27] ... wait
-    [ 28 - 115] ... note on
-    [116 - 203] ... note off
-    [204 - 218] ... time signature numerator in eights from 2/8 to 16/8
+    [ 28 -  44] ... octave shift between notes
+    [ 45 -  56] ... note on without octave in distance on the circle of fifths
+    [ 57 -  68] ... note off without octave in distance on the circle of fifths
+    [ 69 -  84] ... time signature numerator in eights from 2/8 to 16/8
     """
 
-    def __init__(self, running_time_sig: bool) -> None:
+    def __init__(self, running_octave: bool, running_time_sig: bool) -> None:
         super().__init__(running_time_sig)
 
-    def tokenise(self, sequence: Sequence, apply_buffer: bool = True, insert_border_tokens: bool = False) -> list[int]:
+        self.flags[TokenisationFlags.RUNNING_OCTAVE] = running_octave
+
+        self.prv_octave = None
+
+    def reset_previous(self) -> None:
+        super().reset_previous()
+
+        # A4 as base note
+        self.prv_note = 69
+        self.prv_octave = 4
+
+    def tokenise(self, sequence: Sequence, apply_buffer: bool = True, insert_trailing_separator_token: bool = True,
+                 insert_border_tokens: bool = False) -> list[int]:
         tokens = []
 
         for message in sequence.rel.messages:
@@ -135,30 +149,32 @@ class StandardMidilikeTokeniser(BaseMidilikeTokeniser):
                 self.cur_rest_buffer += message.time
 
                 self.prv_type = MessageType.WAIT
-            elif msg_type == MessageType.NOTE_ON:
+            elif msg_type == MessageType.NOTE_ON or msg_type == MessageType.NOTE_OFF:
                 msg_note = message.note
 
                 if not (21 <= msg_note <= 108):
                     raise TokenisationException(f"Invalid note: {msg_note}")
 
-                tokens.extend(self._general_tokenise_flush_time_buffer(time=self.cur_rest_buffer, index_time_def=4))
-                self.cur_rest_buffer = 0
+                # Get distances
+                octave_tgt = msg_note // 12 - 1
+                octave_src = self.prv_note // 12 - 1
+                octave_shift = octave_tgt - octave_src
+                assert -8 <= octave_shift <= 8
 
-                tokens.append(msg_note - 21 + 28)
-
-                self.prv_type = MessageType.NOTE_ON
-            elif msg_type == MessageType.NOTE_OFF:
-                msg_note = message.note
-
-                if not (21 <= msg_note <= 108):
-                    raise TokenisationException(f"Invalid note: {msg_note}")
+                cof_dist = CircleOfFifths.get_distance(self.prv_note, msg_note)
+                assert -5 <= cof_dist <= 6
 
                 tokens.extend(self._general_tokenise_flush_time_buffer(time=self.cur_rest_buffer, index_time_def=4))
                 self.cur_rest_buffer = 0
 
-                tokens.append(msg_note - 21 + 116)
+                # Insert octave shift (if necessary) and note distance
+                if not (self.prv_octave == octave_tgt and self.flags.get(TokenisationFlags.RUNNING_OCTAVE, False)):
+                    tokens.append((octave_shift + 8) + 28)
+                shifter_on_off = 45 if msg_type == MessageType.NOTE_ON else 57
+                tokens.append((cof_dist + 5) + shifter_on_off)
 
-                self.prv_type = MessageType.NOTE_OFF
+                self.prv_type = msg_type
+                self.prv_octave = octave_tgt
             elif msg_type == MessageType.TIME_SIGNATURE:
                 msg_numerator = message.numerator
                 msg_denominator = message.denominator
@@ -169,7 +185,7 @@ class StandardMidilikeTokeniser(BaseMidilikeTokeniser):
                     tokens.extend(self._general_tokenise_flush_time_buffer(time=self.cur_rest_buffer, index_time_def=4))
                     self.cur_rest_buffer = 0
 
-                    tokens.append(numerator - 2 + 204)
+                    tokens.append(numerator - 2 + 69)
 
                 self.prv_type = MessageType.TIME_SIGNATURE
                 self.prv_numerator = numerator
@@ -177,6 +193,9 @@ class StandardMidilikeTokeniser(BaseMidilikeTokeniser):
         if apply_buffer and self.cur_rest_buffer > 0:
             tokens.extend(self._general_tokenise_flush_time_buffer(time=self.cur_rest_buffer, index_time_def=4))
             self.cur_rest_buffer = 0
+
+        if insert_trailing_separator_token:
+            tokens.append(3)
 
         if insert_border_tokens:
             tokens.insert(0, 1)

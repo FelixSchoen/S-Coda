@@ -527,6 +527,7 @@ class CoFNotelikeTokeniser(BaseNotelikeTokeniser):
                 assert -8 <= octave_shift <= 8
 
                 cof_dist = CircleOfFifths.get_distance(self.prv_note, msg_note)
+                assert -5 <= cof_dist <= 6
 
                 # Insert octave shift (if necessary) and note distance
                 if not (self.prv_octave == octave_tgt and self.flags.get(TokenisationFlags.RUNNING_OCTAVE, False)):

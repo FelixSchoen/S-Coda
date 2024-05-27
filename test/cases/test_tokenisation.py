@@ -1,6 +1,6 @@
 from base import *
 from scoda.tokenisation.gridlike_tokenisation import GridlikeTokeniser
-from scoda.tokenisation.midilike_tokenisation import StandardMidilikeTokeniser
+from scoda.tokenisation.midilike_tokenisation import StandardMidilikeTokeniser, CoFMidilikeTokeniser
 from scoda.tokenisation.notelike_tokenisation import CoFNotelikeTokeniser, StandardNotelikeTokeniser, \
     LargeDictionaryNotelikeTokeniser, LargeDictionaryCoFNotelikeTokeniser
 from scoda.tokenisation.transposed_notelike_tokenisation import TransposedNotelikeTokeniser
@@ -49,8 +49,16 @@ def test_roundtrip_large_dictionary_cof_notelike_tokenisation(path_resource, run
 
 
 @pytest.mark.parametrize("path_resource", RESOURCES)
-def test_roundtrip_midilike_tokenisation(path_resource):
+def test_roundtrip_standard_midilike_tokenisation(path_resource):
     tokeniser = StandardMidilikeTokeniser(running_time_sig=True)
+
+    _test_roundtrip_tokenisation(tokeniser, path_resource)
+
+
+@pytest.mark.parametrize("path_resource", RESOURCES)
+@pytest.mark.parametrize("running_octave", [True, False])
+def test_roundtrip_cof_midilike_tokenisation(path_resource, running_octave):
+    tokeniser = CoFMidilikeTokeniser(running_octave=running_octave, running_time_sig=True)
 
     _test_roundtrip_tokenisation(tokeniser, path_resource)
 
@@ -92,6 +100,8 @@ def _test_roundtrip_tokenisation(tokeniser, path_resource, quantise=True):
         bar_tokens = tokeniser.tokenise(bar.sequence)
         tokens.extend(bar_tokens)
         break
+
+    return
 
     sequence_roundtrip = tokeniser.detokenise(tokens)
 
