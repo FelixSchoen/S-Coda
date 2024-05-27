@@ -60,7 +60,7 @@ def test_roundtrip_standard_midilike_tokenisation(path_resource):
 def test_roundtrip_cof_midilike_tokenisation(path_resource, running_octave):
     tokeniser = CoFMidilikeTokeniser(running_octave=running_octave, running_time_sig=True)
 
-    _test_roundtrip_tokenisation(tokeniser, path_resource, detokenise=False)
+    _test_roundtrip_tokenisation(tokeniser, path_resource)
 
 
 @pytest.mark.parametrize("path_resource", RESOURCES)
@@ -106,8 +106,6 @@ def _test_roundtrip_tokenisation(tokeniser, path_resource, quantise=True, detoke
 
     sequence_roundtrip = tokeniser.detokenise(tokens)
 
-    sequence_roundtrip.save("test.mid")
-
     assert sequence == sequence_roundtrip
 
     return tokens
@@ -120,3 +118,9 @@ def _test_constraints(tokeniser, tokens):
     for i, token in enumerate(tokens):
         assert token in valid_tokens
         valid_tokens, previous_state = tokeniser.get_constraints([tokens[i]], previous_state)
+
+
+def test_single():
+    tokeniser = CoFMidilikeTokeniser(running_octave=True, running_time_sig=True)
+
+    _test_roundtrip_tokenisation(tokeniser, RESOURCE_SWEEP)

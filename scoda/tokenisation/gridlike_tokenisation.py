@@ -142,5 +142,7 @@ class GridlikeTokeniser(BaseGridlikeTokeniser):
                     Message(message_type=MessageType.TIME_SIGNATURE, numerator=token - 204 + 2, denominator=8))
 
                 prv_type = MessageType.TIME_SIGNATURE
+            else:
+                raise TokenisationException(f"Encountered invalid token during detokenisation: {token}")
 
         return seq

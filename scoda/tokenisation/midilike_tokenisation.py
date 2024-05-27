@@ -104,6 +104,8 @@ class StandardMidilikeTokeniser(BaseMidilikeTokeniser):
             elif 204 <= token <= 218:
                 seq.rel.add_message(
                     Message(message_type=MessageType.TIME_SIGNATURE, numerator=token - 204 + 2, denominator=8))
+            else:
+                raise TokenisationException(f"Encountered invalid token during detokenisation: {token}")
 
         return seq
 
@@ -171,6 +173,7 @@ class CoFMidilikeTokeniser(BaseMidilikeTokeniser):
                 tokens.append((cof_dist + 5) + shifter_on_off)
 
                 self.prv_type = msg_type
+                self.prv_note = msg_note
                 self.prv_octave = octave_tgt
             elif msg_type == MessageType.TIME_SIGNATURE:
                 msg_numerator = message.numerator
@@ -196,18 +199,30 @@ class CoFMidilikeTokeniser(BaseMidilikeTokeniser):
     @staticmethod
     def detokenise(tokens: list[int]) -> Sequence:
         seq = Sequence()
+        prv_note = 69  # A4 is base note
+        prv_octave = 4
 
         for token in tokens:
             if token <= 3:
                 pass
             elif 4 <= token <= 27:
                 seq.rel.add_message(Message(message_type=MessageType.WAIT, time=token - 3))
-            elif 28 <= token <= 115:
-                seq.rel.add_message(Message(message_type=MessageType.NOTE_ON, note=token - 28 + 21))
-            elif 116 <= token <= 203:
-                seq.rel.add_message(Message(message_type=MessageType.NOTE_OFF, note=token - 116 + 21))
-            elif 204 <= token <= 218:
+            elif 28 <= token <= 44:
+                prv_octave += token - 28 - 8
+            elif 45 <= token <= 68:
+                note_base = CircleOfFifths.from_distance(prv_note, (token - 45) - 5)
+                note = note_base + prv_octave * 12 + 12  # Shifts notes to A0
+
+                prv_note = note
+
+                if 45 <= token <= 56:
+                    seq.rel.add_message(Message(message_type=MessageType.NOTE_ON, note=note))
+                else:
+                    seq.rel.add_message(Message(message_type=MessageType.NOTE_OFF, note=note))
+            elif 69 <= token <= 84:
                 seq.rel.add_message(
-                    Message(message_type=MessageType.TIME_SIGNATURE, numerator=token - 204 + 2, denominator=8))
+                    Message(message_type=MessageType.TIME_SIGNATURE, numerator=token - 69 + 2, denominator=8))
+            else:
+                raise TokenisationException(f"Encountered invalid token during detokenisation: {token}")
 
         return seq
