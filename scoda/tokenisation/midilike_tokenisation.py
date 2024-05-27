@@ -46,7 +46,7 @@ class MidilikeTokeniser(BaseMidilikeTokeniser):
                 if not (21 <= msg_note <= 108):
                     raise TokenisationException(f"Invalid note: {msg_note}")
 
-                tokens.extend(self._general_tokenise_flush_time_buffer(time=self.cur_rest_buffer, value_shift=3))
+                tokens.extend(self._general_tokenise_flush_time_buffer(time=self.cur_rest_buffer, index_time_def=4))
                 self.cur_rest_buffer = 0
 
                 tokens.append(msg_note - 21 + 28)
@@ -58,7 +58,7 @@ class MidilikeTokeniser(BaseMidilikeTokeniser):
                 if not (21 <= msg_note <= 108):
                     raise TokenisationException(f"Invalid note: {msg_note}")
 
-                tokens.extend(self._general_tokenise_flush_time_buffer(time=self.cur_rest_buffer, value_shift=3))
+                tokens.extend(self._general_tokenise_flush_time_buffer(time=self.cur_rest_buffer, index_time_def=4))
                 self.cur_rest_buffer = 0
 
                 tokens.append(msg_note - 21 + 116)
@@ -71,7 +71,7 @@ class MidilikeTokeniser(BaseMidilikeTokeniser):
                 numerator = self._time_signature_to_eights(msg_numerator, msg_denominator)
 
                 if not (self.prv_numerator == numerator and self.flags.get(TokenisationFlags.RUNNING_TIME_SIG, False)):
-                    tokens.extend(self._general_tokenise_flush_time_buffer(time=self.cur_rest_buffer, value_shift=3))
+                    tokens.extend(self._general_tokenise_flush_time_buffer(time=self.cur_rest_buffer, index_time_def=4))
                     self.cur_rest_buffer = 0
 
                     tokens.append(numerator - 2 + 204)
@@ -80,7 +80,7 @@ class MidilikeTokeniser(BaseMidilikeTokeniser):
                 self.prv_numerator = numerator
 
         if apply_buffer and self.cur_rest_buffer > 0:
-            tokens.extend(self._general_tokenise_flush_time_buffer(time=self.cur_rest_buffer, value_shift=3))
+            tokens.extend(self._general_tokenise_flush_time_buffer(time=self.cur_rest_buffer, index_time_def=4))
             self.cur_rest_buffer = 0
 
         if insert_border_tokens:

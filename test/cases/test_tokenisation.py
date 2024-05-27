@@ -2,7 +2,7 @@ from base import *
 from scoda.tokenisation.gridlike_tokenisation import GridlikeTokeniser
 from scoda.tokenisation.midilike_tokenisation import MidilikeTokeniser
 from scoda.tokenisation.notelike_tokenisation import CoFNotelikeTokeniser, StandardNotelikeTokeniser, \
-    LargeDictionaryNotelikeTokeniser
+    LargeDictionaryNotelikeTokeniser, LargeDictionaryCoFNotelikeTokeniser
 from scoda.tokenisation.transposed_notelike_tokenisation import TransposedNotelikeTokeniser
 
 
@@ -22,6 +22,14 @@ def test_roundtrip_standard_notelike_tokenisation(path_resource, track, running_
 
 
 @pytest.mark.parametrize("path_resource, track", zip(RESOURCES, [0, 0, 1, 1]))
+@pytest.mark.parametrize("running_time_sig", [True, False])
+def test_roundtrip_large_dictionary_notelike_tokenisation(path_resource, track, running_time_sig):
+    tokeniser = LargeDictionaryNotelikeTokeniser(running_time_sig=running_time_sig)
+
+    _test_roundtrip_tokenisation(tokeniser, path_resource, track, quantise=True)
+
+
+@pytest.mark.parametrize("path_resource, track", zip(RESOURCES, [0, 0, 1, 1]))
 @pytest.mark.parametrize("running_value", [True, False])
 @pytest.mark.parametrize("running_octave", [True, False])
 @pytest.mark.parametrize("running_time_sig", [True, False])
@@ -34,10 +42,10 @@ def test_roundtrip_cof_notelike_tokenisation(path_resource, track, running_value
 
 @pytest.mark.parametrize("path_resource, track", zip(RESOURCES, [0, 0, 1, 1]))
 @pytest.mark.parametrize("running_time_sig", [True, False])
-def test_roundtrip_large_dictionary_notelike_tokenisation(path_resource, track, running_time_sig):
-    tokeniser = LargeDictionaryNotelikeTokeniser(running_time_sig=running_time_sig)
+def roundtrip_large_dictionary_cof_notelike_tokenisation(path_resource, track, running_time_sig):
+    tokeniser = LargeDictionaryCoFNotelikeTokeniser(running_time_sig=running_time_sig)
 
-    _test_roundtrip_tokenisation(tokeniser, path_resource, track, quantise=True)
+    _test_roundtrip_tokenisation(tokeniser, path_resource, track)
 
 
 @pytest.mark.parametrize("path_resource, track", zip(RESOURCES, [0, 0, 1, 1]))

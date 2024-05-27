@@ -61,7 +61,6 @@ class CircleOfFifths:
 
         distance_right = to_pos
         distance_left = 12 - distance_right
-        distance = None
 
         if distance_left == distance_right:
             distance = distance_right

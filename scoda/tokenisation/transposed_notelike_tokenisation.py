@@ -100,11 +100,11 @@ class TransposedNotelikeTokeniser(BaseTransposedNotelikeTokeniser):
                     if not self.cur_time == msg_time:
                         self.cur_rest_buffer += msg_time - self.cur_time
                         tokens.extend(
-                            self._notelike_tokenise_flush_rest_buffer(apply_target=False, wait_token=4, value_shift=5))
+                            self._notelike_tokenise_flush_rest_buffer(apply_target=False, wait_token=4, index_time_def=6))
 
                     # Check if value of note has to be defined
                     if not (self.prv_value == msg_value and self.flags.get(TokenisationFlags.RUNNING_VALUE, False)):
-                        tokens.extend(self._general_tokenise_flush_time_buffer(msg_value, value_shift=5))
+                        tokens.extend(self._general_tokenise_flush_time_buffer(msg_value, index_time_def=6))
 
                     # Play note
                     tokens.append(3)
@@ -122,7 +122,7 @@ class TransposedNotelikeTokeniser(BaseTransposedNotelikeTokeniser):
                     if not (self.prv_numerator == numerator and self.flags.get(TokenisationFlags.RUNNING_TIME_SIG, False)):
                         self.cur_rest_buffer += msg_time - self.cur_time
                         tokens.extend(
-                            self._notelike_tokenise_flush_rest_buffer(apply_target=False, wait_token=4, value_shift=5))
+                            self._notelike_tokenise_flush_rest_buffer(apply_target=False, wait_token=4, index_time_def=6))
                         tokens.append(numerator - 2 + 118)
 
                     self.prv_type = MessageType.TIME_SIGNATURE
@@ -136,7 +136,7 @@ class TransposedNotelikeTokeniser(BaseTransposedNotelikeTokeniser):
 
         if apply_buffer:
             tokens.extend(
-                self._notelike_tokenise_flush_rest_buffer(apply_target=True, wait_token=4, value_shift=5))
+                self._notelike_tokenise_flush_rest_buffer(apply_target=True, wait_token=4, index_time_def=6))
 
         if reset_time:
             self.reset_time()

@@ -43,25 +43,25 @@ class BaseTokeniser(ABC):
         self.prv_value = -1
         self.prv_numerator = -1
 
-    def _general_tokenise_flush_time_buffer(self, time: int, value_shift: int) -> list[int]:
+    def _general_tokenise_flush_time_buffer(self, time: int, index_time_def: int) -> list[int]:
         tokens = []
 
         while time > self.set_max_rest_value:
-            tokens.append(int(self.set_max_rest_value + value_shift))
+            tokens.append(int(self.set_max_rest_value + index_time_def - 1))
             time -= self.set_max_rest_value
 
         if time > 0:
-            tokens.append(int(time + value_shift))
+            tokens.append(int(time + index_time_def - 1))
 
         return tokens
 
-    def _notelike_tokenise_flush_rest_buffer(self, apply_target: bool, wait_token: int, value_shift: int) -> list[int]:
+    def _notelike_tokenise_flush_rest_buffer(self, apply_target: bool, wait_token: int, index_time_def: int) -> list[int]:
         tokens = []
 
         # Insert rests of length up to `set_max_rest_value`
         while self.cur_rest_buffer > self.set_max_rest_value:
             if not (self.prv_value == self.set_max_rest_value and self.flags.get(TokenisationFlags.RUNNING_VALUE, False)):
-                tokens.append(int(self.set_max_rest_value + value_shift))
+                tokens.append(int(self.set_max_rest_value + index_time_def - 1))
                 self.prv_value = self.set_max_rest_value
 
             tokens.append(int(wait_token))
@@ -71,7 +71,7 @@ class BaseTokeniser(ABC):
         # Insert rests smaller than `set_max_rest_value`
         if self.cur_rest_buffer > 0:
             if not (self.prv_value == self.cur_rest_buffer and self.flags.get(TokenisationFlags.RUNNING_VALUE, False)):
-                tokens.append(int(self.cur_rest_buffer + value_shift))
+                tokens.append(int(self.cur_rest_buffer + index_time_def - 1))
                 self.prv_value = self.cur_rest_buffer
             tokens.append(int(wait_token))
 
@@ -83,7 +83,7 @@ class BaseTokeniser(ABC):
             self.cur_rest_buffer += self.cur_time_target - self.cur_time
             tokens.extend(
                 self._notelike_tokenise_flush_rest_buffer(apply_target=False, wait_token=wait_token,
-                                                          value_shift=value_shift))
+                                                          index_time_def=index_time_def))
 
         return tokens
 
