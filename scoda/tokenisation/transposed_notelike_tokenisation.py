@@ -18,7 +18,6 @@ class BaseTransposedNotelikeTokeniser(BaseTokeniser, ABC):
         self.flags[TokenisationFlags.RUNNING_TIME_SIG] = running_time_sig
 
 
-# TODO
 class TransposedNotelikeTokeniser(BaseTransposedNotelikeTokeniser):
     """Tokeniser that uses transposed temporal representation with a note-like approach, i.e., all occurrences of a note
     are shown first before any other note is handled. Note that input sequences are expected to represent bars,
@@ -27,9 +26,9 @@ class TransposedNotelikeTokeniser(BaseTransposedNotelikeTokeniser):
     [        0] ... pad
     [        1] ... start
     [        2] ... stop
-    [        3] ... play
+    [        3] ... bar separator
     [        4] ... wait
-    [        5] ... bar border
+    [        5] ... play
     [  6 -  29] ... value definition
     [ 30 - 117] ... note
     [118 - 132] ... time signature numerator in eights from 2/8 to 16/8
@@ -111,7 +110,7 @@ class TransposedNotelikeTokeniser(BaseTransposedNotelikeTokeniser):
                         tokens.extend(self._general_tokenise_flush_time_buffer(msg_value, index_time_def=6))
 
                     # Play note
-                    tokens.append(3)
+                    tokens.append(5)
 
                     self.cur_time_target = max(self.cur_time_target, self.cur_time + msg_value)
                     self.prv_type = MessageType.NOTE_ON
@@ -148,7 +147,7 @@ class TransposedNotelikeTokeniser(BaseTransposedNotelikeTokeniser):
             self.reset_time()
 
         # Insert bar border mark
-        tokens.append(5)
+        tokens.append(3)
 
         if insert_border_tokens:
             tokens.insert(0, 1)
@@ -172,6 +171,15 @@ class TransposedNotelikeTokeniser(BaseTransposedNotelikeTokeniser):
             if token <= 2:
                 prv_type = "sequence_control"
             elif token == 3:
+                time_bar_start += prv_numerator * PPQN / 2
+                cur_time_bar = 0
+
+                prv_type = "bar_border"
+            elif token == 4:
+                cur_time_bar += prv_value
+
+                prv_type = MessageType.WAIT
+            elif token == 5:
                 seq.add_absolute_message(
                     Message(message_type=MessageType.NOTE_ON, note=prv_note,
                             time=time_bar_start + cur_time_bar))
@@ -180,15 +188,6 @@ class TransposedNotelikeTokeniser(BaseTransposedNotelikeTokeniser):
                             time=time_bar_start + cur_time_bar + prv_value))
 
                 prv_type = MessageType.NOTE_ON
-            elif token == 4:
-                cur_time_bar += prv_value
-
-                prv_type = MessageType.WAIT
-            elif token == 5:
-                time_bar_start += prv_numerator * PPQN / 2
-                cur_time_bar = 0
-
-                prv_type = "bar_border"
             elif 6 <= token <= 29:
                 if prv_type == "value_definition":
                     prv_value += token - 5
