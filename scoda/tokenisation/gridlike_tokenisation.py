@@ -10,8 +10,6 @@ from scoda.tokenisation.base_tokenisation import BaseTokeniser
 
 
 class BaseGridlikeTokeniser(BaseTokeniser, ABC):
-    TOKEN_SEPARATOR = None
-
     def __init__(self, running_time_sig: bool) -> None:
         super().__init__()
 
@@ -25,7 +23,7 @@ class GridlikeTokeniser(BaseGridlikeTokeniser):
     [        0] ... pad
     [        1] ... start
     [        2] ... stop
-    [        3] ... grid
+    [        3] ... bar separator
     [  4 -  27] ... grid time definition
     [ 28 - 115] ... note on
     [116 - 203] ... note off
