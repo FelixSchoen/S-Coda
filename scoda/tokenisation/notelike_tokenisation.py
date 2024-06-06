@@ -581,6 +581,9 @@ class CoFNotelikeTokeniser(BaseNotelikeTokeniser):
                 note_base = CircleOfFifths.from_distance(prv_note, (token - 46) - 5)
                 note = note_base + prv_octave * 12 + 12  # Shifts notes to A0
 
+                if not (21 <= note <= 108):
+                    raise TokenisationException(f"Invalid note: {note}")
+
                 seq.add_absolute_message(
                     Message(message_type=MessageType.NOTE_ON, note=note, time=cur_time))
                 seq.add_absolute_message(
@@ -682,7 +685,10 @@ class LargeDictionaryCoFNotelikeTokeniser(BaseLargeDictionaryNotelikeTokeniser):
                 octave = prv_note // 12 - 1
                 octave += note_octave_shift
                 note_base = CircleOfFifths.from_distance(prv_note, note_cof_distance)
-                note = note_base + octave * 12 + 12  # Shifts notes to A0
+                note = note_base + octave * 12 + 12  # Shifts notes to A0 (21, need to increase from CoF calculation)
+
+                if not (21 <= note <= 108):
+                    raise TokenisationException(f"Invalid note: {note}")
 
                 seq.add_absolute_message(
                     Message(message_type=MessageType.NOTE_ON, note=note, time=cur_time))

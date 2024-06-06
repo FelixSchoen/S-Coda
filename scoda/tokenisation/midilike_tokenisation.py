@@ -318,6 +318,9 @@ class CoFMidilikeTokeniser(BaseMidilikeTokeniser):
 
                 prv_note = note
 
+                if not (21 <= note <= 108):
+                    raise TokenisationException(f"Invalid note: {note}")
+
                 if 45 <= token <= 56:
                     seq.rel.add_message(Message(message_type=MessageType.NOTE_ON, note=note))
                 else:
