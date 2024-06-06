@@ -110,6 +110,107 @@ class StandardMidilikeTokeniser(BaseMidilikeTokeniser):
         return seq
 
 
+class RelativeMidilikeTokeniser(BaseMidilikeTokeniser):
+    """Tokeniser that uses midi-like temporal representation and circle of fifths distances.
+
+    [        0] ... pad
+    [        1] ... start
+    [        2] ... stop
+    [        3] ... bar separator
+    [  4 -  27] ... wait
+    [ 28 - 202] ... note on with relative note shift
+    [203 - 376] ... note off with relative note shift
+    [377 - 392] ... time signature numerator in eights from 2/8 to 16/8
+    """
+
+    def __init__(self, running_time_sig: bool) -> None:
+        super().__init__(running_time_sig)
+
+        self.reset()
+
+    def reset_previous(self) -> None:
+        super().reset_previous()
+
+        # A4 as base note
+        self.prv_note = 69
+
+    def tokenise(self, sequence: Sequence, apply_buffer: bool = True) -> list[int]:
+        tokens = []
+
+        for message in sequence.rel.messages:
+            msg_type = message.message_type
+
+            if msg_type == MessageType.WAIT:
+                self.cur_rest_buffer += message.time
+
+                self.prv_type = MessageType.WAIT
+            elif msg_type == MessageType.NOTE_ON or msg_type == MessageType.NOTE_OFF:
+                msg_note = message.note
+
+                if not (21 <= msg_note <= 108):
+                    raise TokenisationException(f"Invalid note: {msg_note}")
+
+                tokens.extend(self._general_tokenise_flush_time_buffer(time=self.cur_rest_buffer, index_time_def=4))
+                self.cur_rest_buffer = 0
+
+                # Get distance
+                note_distance = msg_note - self.prv_note
+                tokens.append(note_distance + 87 + 28 + (0 if msg_type == MessageType.NOTE_ON else 175))
+
+                self.prv_type = msg_type
+                self.prv_note = msg_note
+            elif msg_type == MessageType.TIME_SIGNATURE:
+                msg_numerator = message.numerator
+                msg_denominator = message.denominator
+
+                numerator = self._time_signature_to_eights(msg_numerator, msg_denominator)
+
+                if not (self.prv_numerator == numerator and self.flags.get(TokenisationFlags.RUNNING_TIME_SIG, False)):
+                    tokens.extend(self._general_tokenise_flush_time_buffer(time=self.cur_rest_buffer, index_time_def=4))
+                    self.cur_rest_buffer = 0
+
+                    tokens.append(numerator - 2 + 377)
+
+                self.prv_type = MessageType.TIME_SIGNATURE
+                self.prv_numerator = numerator
+
+        if apply_buffer and self.cur_rest_buffer > 0:
+            tokens.extend(self._general_tokenise_flush_time_buffer(time=self.cur_rest_buffer, index_time_def=4))
+            self.cur_rest_buffer = 0
+
+        return tokens
+
+    @staticmethod
+    def detokenise(tokens: list[int]) -> Sequence:
+        seq = Sequence()
+        prv_note = 69  # A4 is base note
+
+        for token in tokens:
+            if token <= 3:
+                pass
+            elif 4 <= token <= 27:
+                seq.rel.add_message(Message(message_type=MessageType.WAIT, time=token - 3))
+            elif 28 <= token <= 376:
+                shifter = 0 if 28 <= token <= 202 else 175
+                note = prv_note + token - 28 - 87 - shifter
+                prv_note = note
+
+                if not (21 <= note <= 108):
+                    raise TokenisationException(f"Invalid note: {note}")
+
+                if 28 <= token <= 202:
+                    seq.rel.add_message(Message(message_type=MessageType.NOTE_ON, note=note))
+                else:
+                    seq.rel.add_message(Message(message_type=MessageType.NOTE_OFF, note=note))
+            elif 377 <= token <= 392:
+                seq.rel.add_message(
+                    Message(message_type=MessageType.TIME_SIGNATURE, numerator=token - 377 + 2, denominator=8))
+            else:
+                raise TokenisationException(f"Encountered invalid token during detokenisation: {token}")
+
+        return seq
+
+
 class CoFMidilikeTokeniser(BaseMidilikeTokeniser):
     """Tokeniser that uses midi-like temporal representation and circle of fifths distances.
 
@@ -130,6 +231,8 @@ class CoFMidilikeTokeniser(BaseMidilikeTokeniser):
         self.flags[TokenisationFlags.RUNNING_OCTAVE] = running_octave
 
         self.prv_octave = None
+
+        self.reset()
 
     def reset_previous(self) -> None:
         super().reset_previous()

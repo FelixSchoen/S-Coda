@@ -469,6 +469,8 @@ class CoFNotelikeTokeniser(BaseNotelikeTokeniser):
 
         self.prv_octave = None
 
+        self.reset()
+
     def reset_previous(self) -> None:
         super().reset_previous()
 
@@ -628,6 +630,8 @@ class LargeDictionaryCoFNotelikeTokeniser(BaseLargeDictionaryNotelikeTokeniser):
         super().__init__(running_time_sig)
 
         self.prv_octave = None
+
+        self.reset()
 
     NOTE_SECTION_SIZE = 204
 
