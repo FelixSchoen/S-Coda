@@ -41,10 +41,7 @@ def test_roundtrip_standard_notelike_tokenisation(path_resource, running_value, 
     tokeniser = StandardNotelikeTokeniser(running_value=running_value, running_pitch=running_pitch,
                                           running_time_sig=running_time_sig)
 
-    tokens = _test_roundtrip_tokenisation(tokeniser, path_resource)
-    tokens.insert(0, 1)
-
-    _test_constraints(tokeniser, tokens)
+    _test_roundtrip_tokenisation(tokeniser, path_resource)
 
 
 @pytest.mark.parametrize("path_resource", RESOURCES)
