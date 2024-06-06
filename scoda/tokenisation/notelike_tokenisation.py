@@ -448,6 +448,139 @@ class LargeDictionaryNotelikeTokeniser(BaseLargeDictionaryNotelikeTokeniser):
         return seq
 
 
+class RelativeNotelikeTokeniser(BaseNotelikeTokeniser):
+    """Tokeniser that uses note-like temporal representation with relative distances between notes.
+
+    [        0] ... pad
+    [        1] ... start
+    [        2] ... stop
+    [        3] ... bar separator
+    [        4] ... wait
+    [  5 -  28] ... value definition
+    [ 29 - 203] ... note with relative distance to previous note
+    [204 - 219] ... time signature numerator in eights from 2/8 to 16/8
+    """
+
+    def __init__(self, running_value: bool, running_time_sig: bool) -> None:
+        super().__init__(running_value, running_time_sig)
+
+        self.reset()
+
+    def reset_previous(self) -> None:
+        super().reset_previous()
+
+        # A4 as base note
+        self.prv_note = 69
+
+    def tokenise(self, sequence: Sequence, apply_buffer: bool = True, reset_base_note: bool = True,
+                 reset_time: bool = True) -> list[int]:
+        tokens = []
+        event_pairings = sequence.abs.get_message_time_pairings(
+            [MessageType.NOTE_ON, MessageType.NOTE_OFF, MessageType.TIME_SIGNATURE, MessageType.INTERNAL])
+
+        for event_pairing in event_pairings:
+            msg_type = event_pairing[0].message_type
+            msg_time = event_pairing[0].time
+
+            if msg_type == MessageType.NOTE_ON:
+                msg_note = event_pairing[0].note
+                msg_value = event_pairing[1].time - msg_time
+
+                if not (21 <= msg_note <= 108):
+                    raise TokenisationException(f"Invalid note: {msg_note}")
+
+                # Check if message occurs at current time, if not place rest messages
+                if not self.cur_time == msg_time:
+                    self.cur_rest_buffer += msg_time - self.cur_time
+                    tokens.extend(
+                        self._notelike_tokenise_flush_rest_buffer(apply_target=False, wait_token=4, index_time_def=5))
+
+                # Check if value of note has to be defined
+                if not (self.prv_value == msg_value and self.flags.get(TokenisationFlags.RUNNING_VALUE, False)):
+                    tokens.extend(self._general_tokenise_flush_time_buffer(msg_value, index_time_def=5))
+
+                # Get distance
+                note_distance = msg_note - self.prv_note
+                tokens.append(note_distance + 87 + 29)
+
+                self.cur_time_target = max(self.cur_time_target, self.cur_time + msg_value)
+                self.prv_type = MessageType.NOTE_ON
+                self.prv_note = msg_note
+                self.prv_value = msg_value
+            elif msg_type == MessageType.TIME_SIGNATURE:
+                msg_numerator = event_pairing[0].numerator
+                msg_denominator = event_pairing[0].denominator
+
+                numerator = self._time_signature_to_eights(msg_numerator, msg_denominator)
+
+                # Check if time signature has to be defined
+                if not (self.prv_numerator == numerator and self.flags.get(TokenisationFlags.RUNNING_TIME_SIG, False)):
+                    self.cur_rest_buffer += msg_time - self.cur_time
+                    tokens.extend(
+                        self._notelike_tokenise_flush_rest_buffer(apply_target=False, wait_token=4, index_time_def=5))
+                    tokens.append(numerator - 2 + 204)
+
+                self.prv_type = MessageType.TIME_SIGNATURE
+                self.prv_numerator = numerator
+            elif msg_type == MessageType.INTERNAL:
+                self.cur_rest_buffer += msg_time - self.cur_time
+                self.prv_type = MessageType.INTERNAL
+
+        if apply_buffer:
+            tokens.extend(
+                self._notelike_tokenise_flush_rest_buffer(apply_target=True, wait_token=4, index_time_def=5))
+
+        if reset_time:
+            self.reset_time()
+
+        return tokens
+
+    @staticmethod
+    def detokenise(tokens: list[int]) -> Sequence:
+        seq = Sequence()
+        cur_time = 0
+        prv_type = None
+        prv_note = 69  # A4 is base note
+        prv_value = math.nan
+
+        for token in tokens:
+            if token <= 2:
+                prv_type = "sequence_control"
+            elif token == 3:
+                prv_type = "sequence_control"
+            elif token == 4:
+                cur_time += prv_value
+                prv_type = MessageType.WAIT
+            elif 5 <= token <= 28:
+                if prv_type == MessageType.INTERNAL:
+                    prv_value += token - 4
+                else:
+                    prv_value = token - 4
+                prv_type = MessageType.INTERNAL
+            elif 29 <= token <= 203:
+                note = prv_note + token - 29 - 87
+                prv_note = note
+
+                if not (21 <= note <= 108):
+                    raise TokenisationException(f"Invalid note: {note}")
+
+                seq.add_absolute_message(
+                    Message(message_type=MessageType.NOTE_ON, note=note, time=cur_time))
+                seq.add_absolute_message(
+                    Message(message_type=MessageType.NOTE_OFF, note=note, time=cur_time + prv_value))
+                prv_type = MessageType.NOTE_ON
+            elif 204 <= token <= 219:
+                seq.add_absolute_message(
+                    Message(message_type=MessageType.TIME_SIGNATURE, time=cur_time,
+                            numerator=token - 204 + 2, denominator=8)
+                )
+                prv_type = MessageType.TIME_SIGNATURE
+            else:
+                raise TokenisationException(f"Encountered invalid token during detokenisation: {token}")
+
+        return seq
+
+
 class CoFNotelikeTokeniser(BaseNotelikeTokeniser):
     """Tokeniser that uses note-like temporal representation with circle of fifths distances between notes.
 

@@ -46,6 +46,9 @@ class AbsoluteSequence(AbstractSequence):
         self_array = self.get_message_time_pairings()
         other_array = o.get_message_time_pairings()
 
+        if len(self_array) != len(other_array):
+            return False
+
         for self_pair, other_pair in zip(self_array, other_array):
             if self_pair[0].time != other_pair[0].time or \
                     self_pair[0].note != other_pair[0].note or \

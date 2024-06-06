@@ -111,7 +111,7 @@ class StandardMidilikeTokeniser(BaseMidilikeTokeniser):
 
 
 class RelativeMidilikeTokeniser(BaseMidilikeTokeniser):
-    """Tokeniser that uses midi-like temporal representation and circle of fifths distances.
+    """Tokeniser that uses midi-like temporal representation and relative distances.
 
     [        0] ... pad
     [        1] ... start
