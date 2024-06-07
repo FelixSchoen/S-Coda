@@ -141,11 +141,11 @@ def _test_constraints(tokeniser, tokens):
         valid_tokens, previous_state = tokeniser.get_constraints([tokens[i]], previous_state)
 
 
-def test_single():
-    tokeniser = RelativeNotelikeTokeniser(running_value=True, running_time_sig=True)
-
-    tokens, sequence_roundtrip = _test_roundtrip_tokenisation(tokeniser, RESOURCES_ROOT.joinpath("subject.mid"))
-
-    sequence_roundtrip.save("roundtrip.mid")
-    print(tokens)
-    print(sequence_roundtrip.abs.messages)
+# def test_single():
+#     tokeniser = RelativeNotelikeTokeniser(running_value=True, running_time_sig=True)
+#
+#     tokens, sequence_roundtrip = _test_roundtrip_tokenisation(tokeniser, RESOURCES_ROOT.joinpath("subject.mid"))
+#
+#     sequence_roundtrip.save("roundtrip.mid")
+#     print(tokens)
+#     print(sequence_roundtrip.abs.messages)

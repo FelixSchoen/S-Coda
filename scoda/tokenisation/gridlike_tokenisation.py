@@ -30,6 +30,8 @@ class GridlikeTokeniser(BaseGridlikeTokeniser):
     [204 - 218] ... time signature numerator in eights from 2/8 to 16/8
     """
 
+    VOCAB_SIZE = 219
+
     def __init__(self, running_time_sig: bool) -> None:
         super().__init__(running_time_sig)
 

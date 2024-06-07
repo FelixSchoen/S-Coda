@@ -30,6 +30,8 @@ class StandardMidilikeTokeniser(BaseMidilikeTokeniser):
     [204 - 218] ... time signature numerator in eights from 2/8 to 16/8
     """
 
+    VOCAB_SIZE = 219
+
     def __init__(self, running_time_sig: bool) -> None:
         super().__init__(running_time_sig)
 
@@ -122,6 +124,8 @@ class RelativeMidilikeTokeniser(BaseMidilikeTokeniser):
     [203 - 376] ... note off with relative note shift
     [377 - 392] ... time signature numerator in eights from 2/8 to 16/8
     """
+
+    VOCAB_SIZE = 393
 
     def __init__(self, running_time_sig: bool) -> None:
         super().__init__(running_time_sig)
@@ -224,6 +228,8 @@ class CoFMidilikeTokeniser(BaseMidilikeTokeniser):
     [ 57 -  68] ... note off without octave in distance on the circle of fifths
     [ 69 -  84] ... time signature numerator in eights from 2/8 to 16/8
     """
+
+    VOCAB_SIZE = 85
 
     def __init__(self, running_octave: bool, running_time_sig: bool) -> None:
         super().__init__(running_time_sig)

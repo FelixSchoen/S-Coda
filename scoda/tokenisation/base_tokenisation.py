@@ -12,6 +12,7 @@ class BaseTokeniser(ABC):
     TOKEN_START = 1
     TOKEN_STOP = 2
     TOKEN_SEPARATOR = 3
+    VOCAB_SIZE = -1
 
     def __init__(self) -> None:
         super().__init__()

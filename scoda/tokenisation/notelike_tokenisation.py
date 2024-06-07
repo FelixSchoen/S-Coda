@@ -110,6 +110,8 @@ class StandardNotelikeTokeniser(BaseNotelikeTokeniser):
     [      132] ... note with previous pitch (running pitch only)
     """
 
+    VOCAB_SIZE = 133
+
     def __init__(self, running_value: bool, running_pitch: bool, running_time_sig: bool) -> None:
         super().__init__(running_value, running_time_sig)
 
@@ -405,6 +407,8 @@ class LargeDictionaryNotelikeTokeniser(BaseLargeDictionaryNotelikeTokeniser):
     [1436-1450] ... time signature numerator in eights from 2/8 to 16/8
     """
 
+    VOCAB_SIZE = 1451
+
     def __init__(self, running_time_sig: bool) -> None:
         super().__init__(running_time_sig)
 
@@ -460,6 +464,8 @@ class RelativeNotelikeTokeniser(BaseNotelikeTokeniser):
     [ 29 - 203] ... note with relative distance to previous note
     [204 - 219] ... time signature numerator in eights from 2/8 to 16/8
     """
+
+    VOCAB_SIZE = 220
 
     def __init__(self, running_value: bool, running_time_sig: bool) -> None:
         super().__init__(running_value, running_time_sig)
@@ -594,6 +600,8 @@ class CoFNotelikeTokeniser(BaseNotelikeTokeniser):
     [ 46 -  57] ... note without octave in distance on the circle of fifths
     [ 58 -  73] ... time signature numerator in eights from 2/8 to 16/8
     """
+
+    VOCAB_SIZE = 74
 
     def __init__(self, running_value: bool, running_octave: bool, running_time_sig: bool) -> None:
         super().__init__(running_value, running_time_sig)
@@ -761,6 +769,8 @@ class LargeDictionaryCoFNotelikeTokeniser(BaseLargeDictionaryNotelikeTokeniser):
     [3088-3291] ... notes with duration of 96 ticks
     [3292-3307] ... time signature numerator in eights from 2/8 to 16/8
     """
+
+    VOCAB_SIZE = 3308
 
     def __init__(self, running_time_sig: bool) -> None:
         super().__init__(running_time_sig)

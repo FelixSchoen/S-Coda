@@ -34,6 +34,8 @@ class TransposedNotelikeTokeniser(BaseTransposedNotelikeTokeniser):
     [118 - 132] ... time signature numerator in eights from 2/8 to 16/8
     """
 
+    VOCAB_SIZE = 133
+
     def __init__(self, running_value: bool, running_time_sig: bool) -> None:
         super().__init__(running_time_sig)
 
