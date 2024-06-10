@@ -21,7 +21,7 @@ class BaseNotelikeTokeniser(BaseTokeniser, ABC):
         self.flags[TokenisationFlags.RUNNING_TIME_SIG] = running_time_sig
 
 
-class BaseLargeDictionaryNotelikeTokeniser(BaseNotelikeTokeniser, ABC):
+class BaseLargeVocabularyNotelikeTokeniser(BaseNotelikeTokeniser, ABC):
     SUPPORTED_VALUES = [2, 3, 4, 6, 8, 9, 12, 16, 18, 24, 32, 36, 48, 64, 72, 96]
     NOTE_SECTION_SIZE = None
 
@@ -43,7 +43,7 @@ class BaseLargeDictionaryNotelikeTokeniser(BaseNotelikeTokeniser, ABC):
 
                 if not (21 <= msg_note <= 108):
                     raise TokenisationException(f"Invalid note: {msg_note}")
-                if msg_value not in LargeDictionaryNotelikeTokeniser.SUPPORTED_VALUES:
+                if msg_value not in LargeVocabularyNotelikeTokeniser.SUPPORTED_VALUES:
                     raise TokenisationException(f"Invalid note value: {msg_value}")
 
                 # Check if message occurs at current time, if not place rest messages
@@ -380,7 +380,7 @@ class StandardNotelikeTokeniser(BaseNotelikeTokeniser):
         return valid_tokens, state
 
 
-class LargeDictionaryNotelikeTokeniser(BaseLargeDictionaryNotelikeTokeniser):
+class LargeVocabularyNotelikeTokeniser(BaseLargeVocabularyNotelikeTokeniser):
     """Tokeniser that uses note-like temporal representation.
 
     [        0] ... pad
@@ -417,15 +417,15 @@ class LargeDictionaryNotelikeTokeniser(BaseLargeDictionaryNotelikeTokeniser):
     def _tokenise_note(self, tokens: list[int], msg_note: int, msg_value: int) -> None:
         # Add token representing pitch and value
         tokens.append(
-            msg_note - 21 + 28 + LargeDictionaryNotelikeTokeniser.SUPPORTED_VALUES.index(msg_value) * 88)
+            msg_note - 21 + 28 + LargeVocabularyNotelikeTokeniser.SUPPORTED_VALUES.index(msg_value) * 88)
 
     @staticmethod
     def detokenise(tokens: list[int]) -> Sequence:
         seq = Sequence()
         cur_time = 0
-        note_section_size = LargeDictionaryNotelikeTokeniser.NOTE_SECTION_SIZE
+        note_section_size = LargeVocabularyNotelikeTokeniser.NOTE_SECTION_SIZE
 
-        boundary_token_ts = len(LargeDictionaryNotelikeTokeniser.SUPPORTED_VALUES) * note_section_size + 4 + 24
+        boundary_token_ts = len(LargeVocabularyNotelikeTokeniser.SUPPORTED_VALUES) * note_section_size + 4 + 24
 
         for token in tokens:
             if token <= 3:
@@ -434,7 +434,7 @@ class LargeDictionaryNotelikeTokeniser(BaseLargeDictionaryNotelikeTokeniser):
                 cur_time += token - 3
             elif 28 <= token <= boundary_token_ts - 1:
                 note_pitch = (token - 28) % note_section_size + 21
-                note_value = LargeDictionaryNotelikeTokeniser.SUPPORTED_VALUES[(token - 28) // note_section_size]
+                note_value = LargeVocabularyNotelikeTokeniser.SUPPORTED_VALUES[(token - 28) // note_section_size]
 
                 seq.add_absolute_message(
                     Message(message_type=MessageType.NOTE_ON, note=note_pitch, time=cur_time))
@@ -743,7 +743,7 @@ class CoFNotelikeTokeniser(BaseNotelikeTokeniser):
         return seq
 
 
-class LargeDictionaryCoFNotelikeTokeniser(BaseLargeDictionaryNotelikeTokeniser):
+class LargeVocabularyCoFNotelikeTokeniser(BaseLargeVocabularyNotelikeTokeniser):
     """Tokeniser that uses note-like temporal representation with circle of fifths distances between notes.
 
     [        0] ... pad
@@ -801,7 +801,7 @@ class LargeDictionaryCoFNotelikeTokeniser(BaseLargeDictionaryNotelikeTokeniser):
         token_value = (28 +
                        (cof_dist + 5) +
                        ((octave_shift + 8) * 12) +
-                       self.SUPPORTED_VALUES.index(msg_value) * LargeDictionaryCoFNotelikeTokeniser.NOTE_SECTION_SIZE)
+                       self.SUPPORTED_VALUES.index(msg_value) * LargeVocabularyCoFNotelikeTokeniser.NOTE_SECTION_SIZE)
 
         tokens.append(token_value)
 
@@ -810,10 +810,10 @@ class LargeDictionaryCoFNotelikeTokeniser(BaseLargeDictionaryNotelikeTokeniser):
         seq = Sequence()
         cur_time = 0
         prv_note = 69  # A4 is base note
-        note_section_size = LargeDictionaryCoFNotelikeTokeniser.NOTE_SECTION_SIZE
+        note_section_size = LargeVocabularyCoFNotelikeTokeniser.NOTE_SECTION_SIZE
 
         boundary_token_ts = len(
-            LargeDictionaryNotelikeTokeniser.SUPPORTED_VALUES) * note_section_size + 4 + 24
+            LargeVocabularyNotelikeTokeniser.SUPPORTED_VALUES) * note_section_size + 4 + 24
 
         for token in tokens:
             if token <= 3:
@@ -823,7 +823,7 @@ class LargeDictionaryCoFNotelikeTokeniser(BaseLargeDictionaryNotelikeTokeniser):
             elif 28 <= token <= boundary_token_ts - 1:
                 note_cof_distance = ((token - 28) % note_section_size) % 12 - 5
                 note_octave_shift = ((token - 28) % note_section_size) // 12 - 8
-                note_value = LargeDictionaryNotelikeTokeniser.SUPPORTED_VALUES[(token - 28) // note_section_size]
+                note_value = LargeVocabularyNotelikeTokeniser.SUPPORTED_VALUES[(token - 28) // note_section_size]
 
                 octave = prv_note // 12 - 1
                 octave += note_octave_shift

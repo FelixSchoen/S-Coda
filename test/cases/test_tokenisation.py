@@ -3,7 +3,7 @@ from scoda.tokenisation.gridlike_tokenisation import GridlikeTokeniser
 from scoda.tokenisation.midilike_tokenisation import StandardMidilikeTokeniser, CoFMidilikeTokeniser, \
     RelativeMidilikeTokeniser
 from scoda.tokenisation.notelike_tokenisation import CoFNotelikeTokeniser, StandardNotelikeTokeniser, \
-    LargeDictionaryNotelikeTokeniser, LargeDictionaryCoFNotelikeTokeniser, RelativeNotelikeTokeniser
+    LargeVocabularyNotelikeTokeniser, LargeVocabularyCoFNotelikeTokeniser, RelativeNotelikeTokeniser
 from scoda.tokenisation.transposed_notelike_tokenisation import TransposedNotelikeTokeniser
 
 
@@ -46,8 +46,8 @@ def test_roundtrip_standard_notelike_tokenisation(path_resource, running_value, 
 
 @pytest.mark.parametrize("path_resource", RESOURCES)
 @pytest.mark.parametrize("running_time_sig", [True, False])
-def test_roundtrip_large_dictionary_notelike_tokenisation(path_resource, running_time_sig):
-    tokeniser = LargeDictionaryNotelikeTokeniser(running_time_sig=running_time_sig)
+def test_roundtrip_large_vocabulary_notelike_tokenisation(path_resource, running_time_sig):
+    tokeniser = LargeVocabularyNotelikeTokeniser(running_time_sig=running_time_sig)
 
     _test_roundtrip_tokenisation(tokeniser, path_resource, quantise=True)
 
@@ -74,8 +74,8 @@ def test_roundtrip_cof_notelike_tokenisation(path_resource, running_value, runni
 
 @pytest.mark.parametrize("path_resource", RESOURCES)
 @pytest.mark.parametrize("running_time_sig", [True, False])
-def test_roundtrip_large_dictionary_cof_notelike_tokenisation(path_resource, running_time_sig):
-    tokeniser = LargeDictionaryCoFNotelikeTokeniser(running_time_sig=running_time_sig)
+def test_roundtrip_large_vocabulary_cof_notelike_tokenisation(path_resource, running_time_sig):
+    tokeniser = LargeVocabularyCoFNotelikeTokeniser(running_time_sig=running_time_sig)
 
     _test_roundtrip_tokenisation(tokeniser, path_resource)
 
