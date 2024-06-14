@@ -7,7 +7,6 @@ from scoda.settings.settings import PPQN
 
 
 class BaseTokeniser(ABC):
-
     TOKEN_PAD = 0
     TOKEN_START = 1
     TOKEN_STOP = 2

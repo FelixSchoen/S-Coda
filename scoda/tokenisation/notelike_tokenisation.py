@@ -7,9 +7,12 @@ from scoda.enumerations.message_type import MessageType
 from scoda.enumerations.tokenisation_flags import TokenisationFlags
 from scoda.exceptions.tokenisation_exception import TokenisationException
 from scoda.misc.music_theory import CircleOfFifths
+from scoda.misc.scoda_logging import get_logger
 from scoda.sequences.sequence import Sequence
 from scoda.settings.settings import PPQN
 from scoda.tokenisation.base_tokenisation import BaseTokeniser
+
+LOGGER = get_logger(__name__)
 
 
 class BaseNotelikeTokeniser(BaseTokeniser, ABC):
@@ -568,7 +571,11 @@ class RelativeNotelikeTokeniser(BaseNotelikeTokeniser):
                 prv_note = note
 
                 if not (21 <= note <= 108):
-                    raise TokenisationException(f"Invalid note: {note}")
+                    LOGGER.warning(f"Invalid note: {note}")
+                while note < 21:
+                    note += 12
+                while note > 108:
+                    note -= 12
 
                 seq.add_absolute_message(
                     Message(message_type=MessageType.NOTE_ON, note=note, time=cur_time))
@@ -723,7 +730,11 @@ class CoFNotelikeTokeniser(BaseNotelikeTokeniser):
                 note = note_base + prv_octave * 12 + 12  # Shifts notes to A0
 
                 if not (21 <= note <= 108):
-                    raise TokenisationException(f"Invalid note: {note}")
+                    LOGGER.warning(f"Invalid note: {note}")
+                while note < 21:
+                    note += 12
+                while note > 108:
+                    note -= 12
 
                 seq.add_absolute_message(
                     Message(message_type=MessageType.NOTE_ON, note=note, time=cur_time))
@@ -831,7 +842,11 @@ class LargeVocabularyCoFNotelikeTokeniser(BaseLargeVocabularyNotelikeTokeniser):
                 note = note_base + octave * 12 + 12  # Shifts notes to A0 (21, need to increase from CoF calculation)
 
                 if not (21 <= note <= 108):
-                    raise TokenisationException(f"Invalid note: {note}")
+                    LOGGER.warning(f"Invalid note: {note}")
+                while note < 21:
+                    note += 12
+                while note > 108:
+                    note -= 12
 
                 seq.add_absolute_message(
                     Message(message_type=MessageType.NOTE_ON, note=note, time=cur_time))
