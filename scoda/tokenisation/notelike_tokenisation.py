@@ -571,7 +571,11 @@ class RelativeNotelikeTokeniser(BaseNotelikeTokeniser):
                 prv_note = note
 
                 if not (21 <= note <= 108):
-                    raise TokenisationException(f"Invalid note: {note}")
+                    LOGGER.warning(f"Invalid note: {note}")
+                while note < 21:
+                    note += 12
+                while note > 108:
+                    note -= 12
 
                 seq.add_absolute_message(
                     Message(message_type=MessageType.NOTE_ON, note=note, time=cur_time))
