@@ -2,7 +2,7 @@
 
 [![GitHub Release](https://img.shields.io/github/v/release/FelixSchoen/S-Coda?include_prereleases&label=Latest%20Release)](https://github.com/FelixSchoen/S-Coda/releases)
 [![GitHub Actions Workflow Status](https://img.shields.io/github/actions/workflow/status/FelixSchoen/S-Coda/scoda_test.yml?label=Build)](https://github.com/FelixSchoen/S-Coda/actions/workflows/scoda_test.yml)
-[![Python Version](https://img.shields.io/badge/Python%20Version-3.11-blue)](https://www.python.org/downloads/release/python-3119)
+[![Python Version](https://img.shields.io/badge/Python%20Version-3.12-blue)](https://www.python.org/downloads/release/python-3124/)
 
 [![DOI](https://img.shields.io/badge/DOI-10.34726%2Fhss.2023.103585-blue)](https://doi.org/10.34726/hss.2023.103585)
 [![DOI](https://img.shields.io/badge/DOI-10.1007%2F978--3--031--47546--7_19-blue)](https://doi.org/10.1007/978-3-031-47546-7_19)
