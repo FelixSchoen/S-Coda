@@ -1,6 +1,6 @@
 import math
 from abc import ABC, abstractmethod
-from typing import Any
+from typing import Any, Tuple, List
 
 from scoda.elements.message import Message
 from scoda.enumerations.message_type import MessageType
@@ -453,6 +453,47 @@ class LargeVocabularyNotelikeTokeniser(BaseLargeVocabularyNotelikeTokeniser):
                 raise TokenisationException(f"Encountered invalid token during detokenisation: {token}")
 
         return seq
+
+    @staticmethod
+    def get_info(tokens: list[int]) -> tuple[list[int], list[int], list[float | int], list[float | Any]]:
+        info_pos = []
+        info_time = []
+        info_pitch = []
+        info_cof = []
+
+        cur_pos = 0
+        cur_time = 0
+        note_section_size = LargeVocabularyNotelikeTokeniser.NOTE_SECTION_SIZE
+        boundary_token_ts = len(LargeVocabularyNotelikeTokeniser.SUPPORTED_VALUES) * note_section_size + 4 + 24
+
+        for token in tokens:
+            info_pos.append(cur_pos)
+            if token <= 3:
+                info_time.append(cur_time)
+                info_pitch.append(math.nan)
+                info_cof.append(math.nan)
+            elif 4 <= token <= 27:
+                cur_time += token - 3
+
+                info_time.append(cur_time)
+                info_pitch.append(math.nan)
+                info_cof.append(math.nan)
+            elif 28 <= token <= boundary_token_ts - 1:
+                note_pitch = (token - 28) % note_section_size + 21
+                note_value = LargeVocabularyNotelikeTokeniser.SUPPORTED_VALUES[(token - 28) // note_section_size]
+
+                info_time.append(cur_time)
+                info_pitch.append(note_pitch)
+                info_cof.append(CircleOfFifths.get_position(note_pitch))
+            elif boundary_token_ts <= token <= boundary_token_ts + 14:
+                info_time.append(cur_time)
+                info_pitch.append(math.nan)
+                info_cof.append(math.nan)
+            else:
+                raise TokenisationException(f"Encountered invalid token during detokenisation: {token}")
+            cur_pos += 1
+
+        return info_pos, info_time, info_pitch, info_cof
 
 
 class RelativeNotelikeTokeniser(BaseNotelikeTokeniser):

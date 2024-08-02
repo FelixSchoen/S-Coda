@@ -53,9 +53,13 @@ class CircleOfFifths:
                               Note.F_S]
 
     @staticmethod
+    def get_position(note_val: int):
+        return CircleOfFifths.circle_of_fifths_order.index(Note(note_val % 12)) - 5
+
+    @staticmethod
     def get_distance(from_note_val: int, to_note_val: int):
-        from_pos = CircleOfFifths.circle_of_fifths_order.index(Note(from_note_val % 12)) - 5
-        to_pos = CircleOfFifths.circle_of_fifths_order.index(Note(to_note_val % 12)) - 5
+        from_pos = CircleOfFifths.get_position(from_note_val)
+        to_pos = CircleOfFifths.get_position(to_note_val)
 
         to_pos = (to_pos - from_pos) % 12
 

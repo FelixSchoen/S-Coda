@@ -124,7 +124,7 @@ def _test_roundtrip_tokenisation(tokeniser, path_resource, quantise=True, detoke
 
     assert sequence == sequence_roundtrip
 
-    return tokens, sequence_roundtrip
+    return tokens, sequence, sequence_roundtrip
 
 
 def _test_constraints(tokeniser, tokens):
@@ -134,7 +134,6 @@ def _test_constraints(tokeniser, tokens):
     for i, token in enumerate(tokens):
         assert token in valid_tokens
         valid_tokens, previous_state = tokeniser.get_constraints([tokens[i]], previous_state)
-
 
 # def test_single():
 #     tokeniser = RelativeNotelikeTokeniser(running_value=True, running_time_sig=True)
