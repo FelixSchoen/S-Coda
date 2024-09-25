@@ -93,6 +93,14 @@ def test_roundtrip_transposed_notelike_tokenisation(path_resource):
 
     _test_roundtrip_tokenisation(tokeniser, path_resource)
 
+def test_info_large_vocabulary_notelike_tokenisation():
+    tokeniser = LargeVocabularyNotelikeTokeniser(running_time_sig=True)
+
+    tokens, sequence, sequence_roundtrip = _test_roundtrip_tokenisation(tokeniser, RESOURCE_BEETHOVEN, quantise=True, detokenise=True)
+
+    info = tokeniser.get_info(tokens)
+
+    print(info)
 
 def _test_roundtrip_tokenisation(tokeniser, path_resource, quantise=True, detokenise=True):
     sequences = Sequence.sequences_load(file_path=path_resource)

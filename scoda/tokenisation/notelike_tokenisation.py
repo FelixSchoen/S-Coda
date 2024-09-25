@@ -482,8 +482,10 @@ class LargeVocabularyNotelikeTokeniser(BaseLargeVocabularyNotelikeTokeniser):
                 note_pitch = (token - 28) % note_section_size + 21
                 note_value = LargeVocabularyNotelikeTokeniser.SUPPORTED_VALUES[(token - 28) // note_section_size]
 
+                assert 1 <= note_pitch <= 88
+
                 info_time.append(cur_time)
-                info_pitch.append(note_pitch)
+                info_pitch.append(note_pitch - 21)
                 info_cof.append(CircleOfFifths.get_position(note_pitch))
             elif boundary_token_ts <= token <= boundary_token_ts + 14:
                 info_time.append(cur_time)
