@@ -45,7 +45,7 @@ class BaseLargeVocabularyNotelikeTokeniser(BaseNotelikeTokeniser, ABC):
                 msg_value = event_pairing[1].time - msg_time
 
                 if not (21 <= msg_note <= 108):
-                    raise TokenisationException(f"Invalid note: {msg_note}")
+                    raise TokenisationException(f"Invalid note pitch: {msg_note}")
                 if msg_value not in LargeVocabularyNotelikeTokeniser.SUPPORTED_VALUES:
                     raise TokenisationException(f"Invalid note value: {msg_value}")
 
@@ -482,7 +482,7 @@ class LargeVocabularyNotelikeTokeniser(BaseLargeVocabularyNotelikeTokeniser):
                 note_pitch = (token - 28) % note_section_size + 21
                 note_value = LargeVocabularyNotelikeTokeniser.SUPPORTED_VALUES[(token - 28) // note_section_size]
 
-                assert 1 <= note_pitch <= 88
+                assert 21 <= note_pitch <= 108, f"Invalid note pitch: {note_pitch}"
 
                 info_time.append(cur_time)
                 info_pitch.append(note_pitch - 21)
