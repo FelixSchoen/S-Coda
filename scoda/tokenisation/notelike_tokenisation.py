@@ -467,32 +467,31 @@ class LargeVocabularyNotelikeTokeniser(BaseLargeVocabularyNotelikeTokeniser):
         boundary_token_ts = len(LargeVocabularyNotelikeTokeniser.SUPPORTED_VALUES) * note_section_size + 4 + 24
 
         for token in tokens:
-            info_pos.append(cur_pos)
             if token <= 3:
-                info_time.append(cur_time)
                 info_pitch.append(math.nan)
                 info_cof.append(math.nan)
             elif 4 <= token <= 27:
                 cur_time += token - 3
 
-                info_time.append(cur_time)
                 info_pitch.append(math.nan)
                 info_cof.append(math.nan)
             elif 28 <= token <= boundary_token_ts - 1:
                 note_pitch = (token - 28) % note_section_size + 21
-                note_value = LargeVocabularyNotelikeTokeniser.SUPPORTED_VALUES[(token - 28) // note_section_size]
+                # note_value = LargeVocabularyNotelikeTokeniser.SUPPORTED_VALUES[(token - 28) // note_section_size]
 
                 assert 21 <= note_pitch <= 108, f"Invalid note pitch: {note_pitch}"
 
-                info_time.append(cur_time)
                 info_pitch.append(note_pitch - 21)
                 info_cof.append(CircleOfFifths.get_position(note_pitch))
             elif boundary_token_ts <= token <= boundary_token_ts + 14:
-                info_time.append(cur_time)
                 info_pitch.append(math.nan)
                 info_cof.append(math.nan)
             else:
                 raise TokenisationException(f"Encountered invalid token during detokenisation: {token}")
+
+            info_pos.append(cur_pos)
+            info_time.append(cur_time)
+
             cur_pos += 1
 
         return info_pos, info_time, info_pitch, info_cof
