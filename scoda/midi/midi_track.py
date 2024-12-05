@@ -31,6 +31,9 @@ class MidiTrack:
         time_buffer = 0
 
         for msg in self.messages:
+            if hasattr(msg, "time") and msg.time is not None:
+                time_buffer += msg.time
+
             if msg.message_type == MessageType.NOTE_ON:
                 track.append(
                     mido.Message("note_on", note=msg.note, velocity=msg.velocity if msg.velocity is not None else 127,
@@ -40,7 +43,7 @@ class MidiTrack:
                 track.append(mido.Message("note_off", note=msg.note, velocity=0, time=int(time_buffer)))
                 time_buffer = 0
             elif msg.message_type == MessageType.WAIT:
-                time_buffer += msg.time
+                pass
             elif msg.message_type == MessageType.TIME_SIGNATURE:
                 track.append(mido.MetaMessage("time_signature", numerator=msg.numerator, denominator=msg.denominator,
                                               time=int(time_buffer)))
