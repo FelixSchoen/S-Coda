@@ -1,6 +1,9 @@
 import math
 from abc import ABC, abstractmethod
+from tokenize import Token
 from typing import Any, Tuple, List
+
+import numpy as np
 
 from scoda.elements.message import Message
 from scoda.enumerations.message_type import MessageType
@@ -426,8 +429,8 @@ class LargeVocabularyNotelikeTokeniser(BaseLargeVocabularyNotelikeTokeniser):
     def detokenise(tokens: list[int]) -> Sequence:
         seq = Sequence()
         cur_time = 0
-        note_section_size = LargeVocabularyNotelikeTokeniser.NOTE_SECTION_SIZE
 
+        note_section_size = LargeVocabularyNotelikeTokeniser.NOTE_SECTION_SIZE
         boundary_token_ts = len(LargeVocabularyNotelikeTokeniser.SUPPORTED_VALUES) * note_section_size + 4 + 24
 
         for token in tokens:
@@ -495,6 +498,108 @@ class LargeVocabularyNotelikeTokeniser(BaseLargeVocabularyNotelikeTokeniser):
             cur_pos += 1
 
         return info_pos, info_time, info_pitch, info_cof
+
+    @staticmethod
+    def get_restraints(tokens: list[int]):
+        cur_time = 0
+        cur_bar_capacity_overall = 0
+        cur_bar_capacity_remaining = 0
+
+        flag_seq_started = False
+        flag_seq_stopped = False
+        flag_at_bar_start = False
+        flag_at_bar_end = False
+        mem_cur_step_notes = []
+
+        note_section_size = LargeVocabularyNotelikeTokeniser.NOTE_SECTION_SIZE
+        boundary_token_ts = len(LargeVocabularyNotelikeTokeniser.SUPPORTED_VALUES) * note_section_size + 4 + 24
+
+        restrictions = []
+
+        for token in tokens:
+            # Reconnaissance
+            if token == 0:
+                pass
+            elif token == 1:
+                flag_seq_started = True
+                flag_at_bar_start = True
+            elif token == 2:
+                flag_seq_stopped = True
+            elif token == 3:
+                flag_at_bar_start = True
+                flag_at_bar_end = False
+            elif 4 <= token <= 27:
+                cur_time += token - 3
+                cur_bar_capacity_remaining -= token - 3
+                flag_at_bar_start = False
+                mem_cur_step_notes.clear()
+
+                if cur_bar_capacity_remaining < 0:
+                    raise TokenisationException("Bar capacity underflow while calculating restraints.")
+
+                if cur_bar_capacity_remaining == 0:
+                    flag_at_bar_end = True
+            elif 28 <= token <= boundary_token_ts - 1:
+                note_pitch = (token - 28) % note_section_size + 21
+                note_value = LargeVocabularyNotelikeTokeniser.SUPPORTED_VALUES[(token - 28) // note_section_size]
+
+                flag_at_bar_start = False
+                mem_cur_step_notes.append(note_pitch)
+
+                if note_value > cur_bar_capacity_remaining:
+                    raise TokenisationException("Note value exceeds bar capacity while calculating restraints.")
+
+            elif boundary_token_ts <= token <= boundary_token_ts + 14:
+                if not flag_at_bar_start:
+                    raise TokenisationException("Time signature not at bar start while calculating restraints.")
+                flag_at_bar_start = False
+
+                cur_bar_capacity_remaining = (token - boundary_token_ts + 2) * 24
+                cur_bar_capacity_overall = cur_bar_capacity_remaining
+            else:
+                raise TokenisationException(f"Encountered invalid token during restraints calculation: {token}")
+
+            # Restrictions (1 means restricted)
+            restriction_slice = np.zeros(LargeVocabularyNotelikeTokeniser.VOCAB_SIZE, dtype=bool)
+
+            if not flag_seq_started:
+                # If sequence not started only start token allowed
+                restriction_slice = np.ones(LargeVocabularyNotelikeTokeniser.VOCAB_SIZE, dtype=bool)
+                restriction_slice[2] = 0
+            else:
+                # Sequences has started, padding and start token disallowed
+                restriction_slice[0] = 1
+                restriction_slice[1] = 1
+
+                if flag_seq_stopped:
+                    # If sequence stopped only padding token allowed
+                    restriction_slice = np.ones(LargeVocabularyNotelikeTokeniser.VOCAB_SIZE, dtype=bool)
+                    restriction_slice[0] = 0
+                else:
+                    if not flag_at_bar_start:
+                        # Restrict time signature messages
+                        restriction_slice[boundary_token_ts:boundary_token_ts + 14 + 1] = 1
+                    if not flag_at_bar_end:
+                        # Restrict separator token
+                        restriction_slice[3] = 1
+
+                    if cur_bar_capacity_remaining < 24:
+                        # Restrict wait tokens
+                        restriction_slice[4 + cur_bar_capacity_remaining:27 + 1] = 1
+
+                    for i, supported_value in enumerate(LargeVocabularyNotelikeTokeniser.SUPPORTED_VALUES):
+                        # Restrict notes with duration exceeding bar capacity
+                        if supported_value > cur_bar_capacity_remaining:
+                            restriction_slice[28 + note_section_size * i:28 + note_section_size * (i + 1)] = 1
+
+                    for note in mem_cur_step_notes:
+                        for i, supported_value in enumerate(LargeVocabularyNotelikeTokeniser.SUPPORTED_VALUES):
+                            # Restrict notes that have already been placed
+                            restriction_slice[28 + note - 21 + note_section_size * i] = 1
+
+            restrictions.append(restriction_slice)
+
+        return restrictions
 
 
 class RelativeNotelikeTokeniser(BaseNotelikeTokeniser):
