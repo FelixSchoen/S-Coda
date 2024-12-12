@@ -1,5 +1,3 @@
-from lib2to3.btm_utils import tokens
-
 from base import *
 from scoda.tokenisation.gridlike_tokenisation import GridlikeTokeniser
 from scoda.tokenisation.midilike_tokenisation import StandardMidilikeTokeniser, CoFMidilikeTokeniser, \
@@ -55,6 +53,31 @@ def test_roundtrip_large_vocabulary_notelike_tokenisation(path_resource, running
 
 
 @pytest.mark.parametrize("path_resource", RESOURCES)
+def test_extras_large_vocabulary_notelike_tokenisation(path_resource):
+    tokeniser = LargeVocabularyNotelikeTokeniser(running_time_sig=True)
+
+    tokens, sequence, sequence_roundtrip, tokens_bars = _test_roundtrip_tokenisation(tokeniser, path_resource,
+                                                                                     quantise=True, detokenise=True)
+
+    # Mask
+    previous_state = None
+    for i, single_bar_tokens in enumerate(tokens_bars):
+        tokens_with_border_tokens = single_bar_tokens.copy()
+        tokens_with_border_tokens.insert(0, 1)
+        tokens_with_border_tokens.append(2)
+        masks, previous_state = tokeniser.get_mask(tokens_with_border_tokens, previous_state)
+
+        for j, token in enumerate(tokens_with_border_tokens):
+            if j == 0:
+                continue
+            mask = masks[j - 1]
+            assert mask[token] != 0
+
+    # Info
+    info = tokeniser.get_info(tokens)
+
+
+@pytest.mark.parametrize("path_resource", RESOURCES)
 @pytest.mark.parametrize("running_value", [True, False])
 @pytest.mark.parametrize("running_time_sig", [True, False])
 def test_roundtrip_relative_notelike_tokenisation(path_resource, running_value, running_time_sig):
@@ -94,31 +117,6 @@ def test_roundtrip_transposed_notelike_tokenisation(path_resource):
     tokeniser = TransposedNotelikeTokeniser(running_value=True, running_time_sig=True)
 
     _test_roundtrip_tokenisation(tokeniser, path_resource)
-
-
-@pytest.mark.parametrize("path_resource", RESOURCES)
-def test_extras_large_vocabulary_notelike_tokenisation(path_resource):
-    tokeniser = LargeVocabularyNotelikeTokeniser(running_time_sig=True)
-
-    tokens, sequence, sequence_roundtrip, tokens_bars = _test_roundtrip_tokenisation(tokeniser, path_resource,
-                                                                                     quantise=True, detokenise=True)
-
-    # Mask
-    previous_state = None
-    for i, single_bar_tokens in enumerate(tokens_bars):
-        tokens_with_border_tokens = single_bar_tokens.copy()
-        tokens_with_border_tokens.insert(0, 1)
-        tokens_with_border_tokens.append(2)
-        masks, previous_state = tokeniser.get_mask(tokens_with_border_tokens, previous_state)
-
-        for j, token in enumerate(tokens_with_border_tokens):
-            if j == 0:
-                continue
-            mask = masks[j - 1]
-            assert mask[token] != 0
-
-    # Info
-    info = tokeniser.get_info(tokens)
 
 
 def _test_roundtrip_tokenisation(tokeniser, path_resource, quantise=True, detokenise=True):
