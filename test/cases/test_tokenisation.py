@@ -1,3 +1,5 @@
+from lib2to3.btm_utils import tokens
+
 from base import *
 from scoda.tokenisation.gridlike_tokenisation import GridlikeTokeniser
 from scoda.tokenisation.midilike_tokenisation import StandardMidilikeTokeniser, CoFMidilikeTokeniser, \
@@ -93,14 +95,31 @@ def test_roundtrip_transposed_notelike_tokenisation(path_resource):
 
     _test_roundtrip_tokenisation(tokeniser, path_resource)
 
-def test_info_large_vocabulary_notelike_tokenisation():
+
+@pytest.mark.parametrize("path_resource", RESOURCES)
+def test_extras_large_vocabulary_notelike_tokenisation(path_resource):
     tokeniser = LargeVocabularyNotelikeTokeniser(running_time_sig=True)
 
-    tokens, sequence, sequence_roundtrip = _test_roundtrip_tokenisation(tokeniser, RESOURCE_BEETHOVEN, quantise=True, detokenise=True)
+    tokens, sequence, sequence_roundtrip, tokens_bars = _test_roundtrip_tokenisation(tokeniser, path_resource,
+                                                                                     quantise=True, detokenise=True)
 
+    # Mask
+    previous_state = None
+    for i, single_bar_tokens in enumerate(tokens_bars):
+        tokens_with_border_tokens = single_bar_tokens.copy()
+        tokens_with_border_tokens.insert(0, 1)
+        tokens_with_border_tokens.append(2)
+        masks, previous_state = tokeniser.get_mask(tokens_with_border_tokens, previous_state)
+
+        for j, token in enumerate(tokens_with_border_tokens):
+            if j == 0:
+                continue
+            mask = masks[j - 1]
+            assert mask[token] != 0
+
+    # Info
     info = tokeniser.get_info(tokens)
 
-    print(info)
 
 def _test_roundtrip_tokenisation(tokeniser, path_resource, quantise=True, detokenise=True):
     sequences = Sequence.sequences_load(file_path=path_resource)
@@ -119,11 +138,16 @@ def _test_roundtrip_tokenisation(tokeniser, path_resource, quantise=True, detoke
     sequence = Sequence()
     sequence.concatenate([bar.sequence for bar in bars])
 
-    tokens = []
+    tokens_bars = []
 
     for i, bar in enumerate(bars):
         bar_tokens = tokeniser.tokenise(bar.sequence)
-        tokens.extend(bar_tokens)
+        tokens_bars.append(bar_tokens)
+
+    tokens = []
+
+    for single_bar_tokens in tokens_bars:
+        tokens.extend(single_bar_tokens)
 
     if not detokenise:
         return
@@ -132,7 +156,7 @@ def _test_roundtrip_tokenisation(tokeniser, path_resource, quantise=True, detoke
 
     assert sequence == sequence_roundtrip
 
-    return tokens, sequence, sequence_roundtrip
+    return tokens, sequence, sequence_roundtrip, tokens_bars
 
 
 def _test_constraints(tokeniser, tokens):

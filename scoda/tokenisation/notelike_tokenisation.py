@@ -500,10 +500,11 @@ class LargeVocabularyNotelikeTokeniser(BaseLargeVocabularyNotelikeTokeniser):
         return info_pos, info_time, info_pitch, info_cof
 
     @staticmethod
-    def get_restraints(tokens: list[int]):
+    def get_mask(tokens: list[int], previous_state: dict = None) -> tuple[list[np.ndarray], dict[str, Any]]:
         cur_time = 0
         cur_bar_capacity_overall = 0
         cur_bar_capacity_remaining = 0
+        cur_numerator = 8
 
         flag_seq_started = False
         flag_seq_stopped = False
@@ -514,15 +515,22 @@ class LargeVocabularyNotelikeTokeniser(BaseLargeVocabularyNotelikeTokeniser):
         note_section_size = LargeVocabularyNotelikeTokeniser.NOTE_SECTION_SIZE
         boundary_token_ts = len(LargeVocabularyNotelikeTokeniser.SUPPORTED_VALUES) * note_section_size + 4 + 24
 
-        restrictions = []
+        if previous_state is not None:
+            if "prv_numerator" in previous_state:
+                cur_numerator = previous_state["prv_numerator"]
 
-        for token in tokens:
+        masks = []
+
+        for i_t, token in enumerate(tokens):
             # Reconnaissance
             if token == 0:
                 pass
             elif token == 1:
                 flag_seq_started = True
                 flag_at_bar_start = True
+
+                cur_bar_capacity_remaining = 12 * cur_numerator
+                cur_bar_capacity_overall = cur_bar_capacity_remaining
             elif token == 2:
                 flag_seq_stopped = True
             elif token == 3:
@@ -532,6 +540,7 @@ class LargeVocabularyNotelikeTokeniser(BaseLargeVocabularyNotelikeTokeniser):
                 cur_time += token - 3
                 cur_bar_capacity_remaining -= token - 3
                 flag_at_bar_start = False
+                # TODO actually only clear once note has resolved
                 mem_cur_step_notes.clear()
 
                 if cur_bar_capacity_remaining < 0:
@@ -554,52 +563,55 @@ class LargeVocabularyNotelikeTokeniser(BaseLargeVocabularyNotelikeTokeniser):
                     raise TokenisationException("Time signature not at bar start while calculating restraints.")
                 flag_at_bar_start = False
 
-                cur_bar_capacity_remaining = (token - boundary_token_ts + 2) * 24
+                cur_numerator = token - boundary_token_ts + 2
+                cur_bar_capacity_remaining = cur_numerator * 12
                 cur_bar_capacity_overall = cur_bar_capacity_remaining
             else:
                 raise TokenisationException(f"Encountered invalid token during restraints calculation: {token}")
 
-            # Restrictions (1 means restricted)
-            restriction_slice = np.zeros(LargeVocabularyNotelikeTokeniser.VOCAB_SIZE, dtype=bool)
+            # Masking, one means allowed
+            mask = np.ones(LargeVocabularyNotelikeTokeniser.VOCAB_SIZE, dtype=bool)
 
             if not flag_seq_started:
                 # If sequence not started only start token allowed
-                restriction_slice = np.ones(LargeVocabularyNotelikeTokeniser.VOCAB_SIZE, dtype=bool)
-                restriction_slice[2] = 0
+                mask = np.zeros(LargeVocabularyNotelikeTokeniser.VOCAB_SIZE, dtype=bool)
+                mask[2] = 1
             else:
                 # Sequences has started, padding and start token disallowed
-                restriction_slice[0] = 1
-                restriction_slice[1] = 1
+                mask[0] = 0
+                mask[1] = 0
 
                 if flag_seq_stopped:
                     # If sequence stopped only padding token allowed
-                    restriction_slice = np.ones(LargeVocabularyNotelikeTokeniser.VOCAB_SIZE, dtype=bool)
-                    restriction_slice[0] = 0
+                    mask = np.zeros(LargeVocabularyNotelikeTokeniser.VOCAB_SIZE, dtype=bool)
+                    mask[0] = 1
                 else:
                     if not flag_at_bar_start:
-                        # Restrict time signature messages
-                        restriction_slice[boundary_token_ts:boundary_token_ts + 14 + 1] = 1
+                        # Mask time signature messages
+                        mask[boundary_token_ts:boundary_token_ts + 14 + 1] = 0
                     if not flag_at_bar_end:
-                        # Restrict separator token
-                        restriction_slice[3] = 1
+                        # Mask end token
+                        mask[2] = 0
+                        # Mask separator token
+                        mask[3] = 0
 
                     if cur_bar_capacity_remaining < 24:
-                        # Restrict wait tokens
-                        restriction_slice[4 + cur_bar_capacity_remaining:27 + 1] = 1
+                        # Mask wait tokens
+                        mask[4 + cur_bar_capacity_remaining:27 + 1] = 0
 
                     for i, supported_value in enumerate(LargeVocabularyNotelikeTokeniser.SUPPORTED_VALUES):
-                        # Restrict notes with duration exceeding bar capacity
+                        # Mask notes with duration exceeding bar capacity
                         if supported_value > cur_bar_capacity_remaining:
-                            restriction_slice[28 + note_section_size * i:28 + note_section_size * (i + 1)] = 1
+                            mask[28 + note_section_size * i:28 + note_section_size * (i + 1)] = 0
 
                     for note in mem_cur_step_notes:
                         for i, supported_value in enumerate(LargeVocabularyNotelikeTokeniser.SUPPORTED_VALUES):
-                            # Restrict notes that have already been placed
-                            restriction_slice[28 + note - 21 + note_section_size * i] = 1
+                            # Mask notes that have already been placed
+                            mask[28 + note - 21 + note_section_size * i] = 0
 
-            restrictions.append(restriction_slice)
+            masks.append(mask)
 
-        return restrictions
+        return masks, {"prv_numerator": cur_numerator}
 
 
 class RelativeNotelikeTokeniser(BaseNotelikeTokeniser):
