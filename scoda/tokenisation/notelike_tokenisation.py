@@ -510,7 +510,7 @@ class LargeVocabularyNotelikeTokeniser(BaseLargeVocabularyNotelikeTokeniser):
         flag_seq_stopped = False
         flag_at_bar_start = False
         flag_at_bar_end = False
-        mem_cur_step_notes = []
+        mem_cur_step_notes = dict()
 
         note_section_size = LargeVocabularyNotelikeTokeniser.NOTE_SECTION_SIZE
         boundary_token_ts = len(LargeVocabularyNotelikeTokeniser.SUPPORTED_VALUES) * note_section_size + 4 + 24
@@ -540,8 +540,12 @@ class LargeVocabularyNotelikeTokeniser(BaseLargeVocabularyNotelikeTokeniser):
                 cur_time += token - 3
                 cur_bar_capacity_remaining -= token - 3
                 flag_at_bar_start = False
-                # TODO actually only clear once note has resolved
-                mem_cur_step_notes.clear()
+
+                new_mem_cur_step_notes = dict()
+                for note_end_time, note_pitch in mem_cur_step_notes.items():
+                    if note_end_time > cur_time:
+                        new_mem_cur_step_notes[note_end_time] = note_pitch
+                mem_cur_step_notes = new_mem_cur_step_notes
 
                 if cur_bar_capacity_remaining < 0:
                     raise TokenisationException("Bar capacity underflow while calculating restraints.")
@@ -553,7 +557,7 @@ class LargeVocabularyNotelikeTokeniser(BaseLargeVocabularyNotelikeTokeniser):
                 note_value = LargeVocabularyNotelikeTokeniser.SUPPORTED_VALUES[(token - 28) // note_section_size]
 
                 flag_at_bar_start = False
-                mem_cur_step_notes.append(note_pitch)
+                mem_cur_step_notes[cur_time + note_value] = note_pitch
 
                 if note_value > cur_bar_capacity_remaining:
                     raise TokenisationException("Note value exceeds bar capacity while calculating restraints.")
@@ -604,10 +608,10 @@ class LargeVocabularyNotelikeTokeniser(BaseLargeVocabularyNotelikeTokeniser):
                         if supported_value > cur_bar_capacity_remaining:
                             mask[28 + note_section_size * i:28 + note_section_size * (i + 1)] = 0
 
-                    for note in mem_cur_step_notes:
+                    for note_end_time, note_pitch in mem_cur_step_notes.items():
                         for i, supported_value in enumerate(LargeVocabularyNotelikeTokeniser.SUPPORTED_VALUES):
-                            # Mask notes that have already been placed
-                            mask[28 + note - 21 + note_section_size * i] = 0
+                            # Mask notes that are still active
+                            mask[28 + note_pitch - 21 + note_section_size * i] = 0
 
             masks.append(mask)
 
