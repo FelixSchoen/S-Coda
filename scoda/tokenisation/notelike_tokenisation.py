@@ -458,7 +458,7 @@ class LargeVocabularyNotelikeTokeniser(BaseLargeVocabularyNotelikeTokeniser):
         return seq
 
     @staticmethod
-    def get_info(tokens: list[int]) -> tuple[list[int], list[int], list[float | int], list[float | Any]]:
+    def get_info(tokens: list[int]) -> dict():
         info_pos = []
         info_time = []
         info_pitch = []
@@ -497,7 +497,10 @@ class LargeVocabularyNotelikeTokeniser(BaseLargeVocabularyNotelikeTokeniser):
 
             cur_pos += 1
 
-        return info_pos, info_time, info_pitch, info_cof
+        return {"info_position": info_pos,
+                "info_time": info_time,
+                "info_pitch": info_pitch,
+                "info_circle_of_fifths": info_cof}
 
     @staticmethod
     def get_mask(tokens: list[int], previous_state: dict = None) -> tuple[list[np.ndarray], dict[str, Any]]:
