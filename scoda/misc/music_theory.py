@@ -61,9 +61,7 @@ class CircleOfFifths:
         from_pos = CircleOfFifths.get_position(from_note_val)
         to_pos = CircleOfFifths.get_position(to_note_val)
 
-        to_pos = (to_pos - from_pos) % 12
-
-        distance_right = to_pos
+        distance_right = (to_pos - from_pos) % 12
         distance_left = 12 - distance_right
 
         if distance_left == distance_right:

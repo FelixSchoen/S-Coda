@@ -461,20 +461,30 @@ class LargeVocabularyNotelikeTokeniser(BaseLargeVocabularyNotelikeTokeniser):
     def get_info(tokens: list[int]) -> dict():
         info_pos = []
         info_time = []
+        info_time_bar = []
         info_pitch = []
         info_cof = []
 
         cur_pos = 0
         cur_time = 0
+        cur_time_bar = 0
         note_section_size = LargeVocabularyNotelikeTokeniser.NOTE_SECTION_SIZE
         boundary_token_ts = len(LargeVocabularyNotelikeTokeniser.SUPPORTED_VALUES) * note_section_size + 4 + 24
 
         for token in tokens:
-            if token <= 3:
+            info_time.append(cur_time)
+            info_time_bar.append(cur_time_bar)
+
+            if token <= 2:
                 info_pitch.append(math.nan)
                 info_cof.append(math.nan)
+            elif token == 3:
+                info_pitch.append(math.nan)
+                info_cof.append(math.nan)
+                cur_time_bar = 0
             elif 4 <= token <= 27:
                 cur_time += token - 3
+                cur_time_bar += token - 3
 
                 info_pitch.append(math.nan)
                 info_cof.append(math.nan)
@@ -493,12 +503,12 @@ class LargeVocabularyNotelikeTokeniser(BaseLargeVocabularyNotelikeTokeniser):
                 raise TokenisationException(f"Encountered invalid token during detokenisation: {token}")
 
             info_pos.append(cur_pos)
-            info_time.append(cur_time)
 
             cur_pos += 1
 
         return {"info_position": info_pos,
                 "info_time": info_time,
+                "info_time_bar": info_time_bar,
                 "info_pitch": info_pitch,
                 "info_circle_of_fifths": info_cof}
 
