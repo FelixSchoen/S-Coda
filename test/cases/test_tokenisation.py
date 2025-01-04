@@ -173,12 +173,12 @@ def _test_constraints(tokeniser, tokens):
         valid_tokens, previous_state = tokeniser.get_constraints([tokens[i]], previous_state)
 
 
-def test_single():
-    tokeniser = LargeVocabularyNotelikeTokeniser(running_time_sig=True)
-
-    tokens, sequence, sequence_roundtrip, tokens_bars = _test_roundtrip_tokenisation(tokeniser, RESOURCES_ROOT.joinpath(
-        "beethoven_half.mid"))
-
-    sequence_roundtrip.save("roundtrip.mid")
-    print(tokens)
-    print(sequence_roundtrip.abs.messages)
+# def test_single():
+#     tokeniser = LargeVocabularyNotelikeTokeniser(running_time_sig=True)
+#
+#     tokens, sequence, sequence_roundtrip, tokens_bars = _test_roundtrip_tokenisation(tokeniser, RESOURCES_ROOT.joinpath(
+#         "beethoven_half.mid"))
+#
+#     sequence_roundtrip.save("roundtrip.mid")
+#     print(tokens)
+#     print(sequence_roundtrip.abs.messages)
