@@ -513,7 +513,8 @@ class LargeVocabularyNotelikeTokeniser(BaseLargeVocabularyNotelikeTokeniser):
                 "info_circle_of_fifths": info_cof}
 
     @staticmethod
-    def get_mask(tokens: list[int], previous_state: dict = None) -> tuple[list[np.ndarray], dict[str, Any]]:
+    def get_mask(tokens: list[int], max_len: int=-1, previous_state: dict = None) -> tuple[list[np.ndarray], dict[str, Any]]:
+        cur_step = 0
         cur_time = 0
         cur_bar_capacity_overall = 0
         cur_bar_capacity_remaining = 0
@@ -529,12 +530,24 @@ class LargeVocabularyNotelikeTokeniser(BaseLargeVocabularyNotelikeTokeniser):
         boundary_token_ts = len(LargeVocabularyNotelikeTokeniser.SUPPORTED_VALUES) * note_section_size + 4 + 24
 
         if previous_state is not None:
-            if "prv_numerator" in previous_state:
-                cur_numerator = previous_state["prv_numerator"]
+            cur_step = previous_state.get("prv_step", cur_step)
+            cur_time = previous_state.get("prv_time", cur_time)
+            cur_bar_capacity_overall = previous_state.get("prv_bar_capacity_overall", cur_bar_capacity_overall)
+            cur_bar_capacity_remaining = previous_state.get("prv_bar_capacity_remaining", cur_bar_capacity_remaining)
+            cur_numerator = previous_state.get("prv_numerator", cur_numerator)
+
+            flag_seq_started = previous_state.get("prv_flag_seq_started", flag_seq_started)
+            flag_seq_stopped = previous_state.get("prv_flag_seq_stopped", flag_seq_stopped)
+            flag_at_bar_start = previous_state.get("prv_flag_at_bar_start", flag_at_bar_start)
+            flag_at_bar_end = previous_state.get("prv_flag_at_bar_end", flag_at_bar_end)
+            mem_cur_step_notes = previous_state.get("prv_mem_cur_step_notes", mem_cur_step_notes)
 
         masks = []
 
-        for i_t, token in enumerate(tokens):
+        for i_token, token in enumerate(tokens[cur_step:]):
+            if max_len != -1 and i_token >= max_len:
+                break
+
             # Reconnaissance
             if token == 0:
                 pass
@@ -626,9 +639,19 @@ class LargeVocabularyNotelikeTokeniser(BaseLargeVocabularyNotelikeTokeniser):
                             # Mask notes that are still active
                             mask[28 + note_pitch - 21 + note_section_size * i] = 0
 
+            cur_step += 1
             masks.append(mask)
 
-        return masks, {"prv_numerator": cur_numerator}
+        return masks, {"prv_step": cur_step,
+                       "prv_time": cur_time,
+                       "prv_bar_capacity_overall": cur_bar_capacity_overall,
+                       "prv_bar_capacity_remaining": cur_bar_capacity_remaining,
+                       "prv_numerator": cur_numerator,
+                       "prv_flag_seq_started": flag_seq_started,
+                       "prv_flag_seq_stopped": flag_seq_stopped,
+                       "prv_flag_at_bar_start": flag_at_bar_start,
+                       "prv_flag_at_bar_end": flag_at_bar_end,
+                       "prv_mem_cur_step_notes": mem_cur_step_notes}
 
 
 class RelativeNotelikeTokeniser(BaseNotelikeTokeniser):

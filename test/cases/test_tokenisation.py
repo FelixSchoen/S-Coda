@@ -61,17 +61,21 @@ def test_extras_large_vocabulary_notelike_tokenisation(path_resource):
 
     # Mask
     previous_state = None
+    previous_mask = None
     for i, single_bar_tokens in enumerate(tokens_bars):
         tokens_with_border_tokens = single_bar_tokens.copy()
         tokens_with_border_tokens.insert(0, 1)
         tokens_with_border_tokens.append(2)
-        masks, previous_state = tokeniser.get_mask(tokens_with_border_tokens, previous_state)
 
-        for j, token in enumerate(tokens_with_border_tokens):
-            if j == 0:
-                continue
-            mask = masks[j - 1]
-            assert mask[token] != 0
+        for j, single_bar_token in enumerate(tokens_with_border_tokens):
+            masks, previous_state = tokeniser.get_mask(tokens_with_border_tokens, max_len=1,
+                                                       previous_state=previous_state)
+
+            if j > 0:
+                assert previous_mask[single_bar_token] != 0
+            previous_mask = masks[0]
+
+        previous_state = {"prv_numerator": previous_state["prv_numerator"]}
 
     # Info
     info = tokeniser.get_info(tokens)
@@ -152,6 +156,9 @@ def _test_roundtrip_tokenisation(tokeniser, path_resource, quantise=True, detoke
 
     sequence_roundtrip = tokeniser.detokenise(tokens)
 
+    if quantise:
+        sequence_roundtrip.quantise_and_normalise()
+
     assert sequence == sequence_roundtrip
 
     return tokens, sequence, sequence_roundtrip, tokens_bars
@@ -165,11 +172,13 @@ def _test_constraints(tokeniser, tokens):
         assert token in valid_tokens
         valid_tokens, previous_state = tokeniser.get_constraints([tokens[i]], previous_state)
 
-# def test_single():
-#     tokeniser = RelativeNotelikeTokeniser(running_value=True, running_time_sig=True)
-#
-#     tokens, sequence_roundtrip = _test_roundtrip_tokenisation(tokeniser, RESOURCES_ROOT.joinpath("subject.mid"))
-#
-#     sequence_roundtrip.save("roundtrip.mid")
-#     print(tokens)
-#     print(sequence_roundtrip.abs.messages)
+
+def test_single():
+    tokeniser = LargeVocabularyNotelikeTokeniser(running_time_sig=True)
+
+    tokens, sequence, sequence_roundtrip, tokens_bars = _test_roundtrip_tokenisation(tokeniser, RESOURCES_ROOT.joinpath(
+        "beethoven_half.mid"))
+
+    sequence_roundtrip.save("roundtrip.mid")
+    print(tokens)
+    print(sequence_roundtrip.abs.messages)
