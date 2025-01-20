@@ -100,8 +100,8 @@ def find_minimal_distance(element, collection) -> int:
     return index
 
 
-def get_default_step_sizes():
-    quantise_parameters = get_note_durations(1, 4)
+def get_default_step_sizes(upper_bound_shift=0, lower_bound_shift=0):
+    quantise_parameters = get_note_durations(1*2**upper_bound_shift, 4*2**lower_bound_shift)
     quantise_parameters += get_tuplet_durations(quantise_parameters, 3, 2)
     step_sizes = quantise_parameters
 

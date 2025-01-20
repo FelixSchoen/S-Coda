@@ -13,7 +13,9 @@
         3,
         2
       ]
-    ]
+    ],
+    "default_time_signature_numerator": 8,
+    "default_time_signature_denominator": 8
   },
   "difficulty_parameters": {
     "dual_track_difficulty_parameters": {

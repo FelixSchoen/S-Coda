@@ -54,9 +54,8 @@ def test_roundtrip_large_vocabulary_notelike_tokenisation(path_resource, running
 
 
 @pytest.mark.parametrize("path_resource", RESOURCES)
-@pytest.mark.parametrize("running_time_sig", [True, False])
-def test_roundtrip_new_tok(path_resource, running_time_sig):
-    tokeniser = MultiInstrumentLDNotelikeTokeniser()
+def test_roundtrip_new_tok(path_resource):
+    tokeniser = MultiInstrumentLDNotelikeTokeniser(num_instruments=3)
 
     _test_roundtrip_multi_track_tokenisation(tokeniser, path_resource, quantise=True)
 
@@ -172,6 +171,7 @@ def _test_roundtrip_tokenisation(tokeniser, path_resource, quantise=True, detoke
 
     return tokens, sequence, sequence_roundtrip, tokens_bars
 
+
 def _test_roundtrip_multi_track_tokenisation(tokeniser, path_resource, quantise=True, detokenise=True):
     sequences = Sequence.sequences_load(file_path=path_resource)
 
@@ -186,8 +186,13 @@ def _test_roundtrip_multi_track_tokenisation(tokeniser, path_resource, quantise=
             for bar in sequence_bars:
                 bar.sequence.quantise_and_normalise()
 
-    # sequence = Sequence()
-    # sequence.concatenate([bar.sequence for bar in bars])
+    sequences_original = []
+    for sequence_bars in sequences_bars:
+        sequence = Sequence()
+        sequence.concatenate([bar.sequence for bar in sequence_bars])
+        sequences_original.append(sequence)
+    sequence_original = Sequence()
+    sequence_original.merge(sequences_original)
 
     tokens_bars = []
 
@@ -206,14 +211,19 @@ def _test_roundtrip_multi_track_tokenisation(tokeniser, path_resource, quantise=
     if not detokenise:
         return
 
-    sequence_roundtrip = tokeniser.detokenise(tokens)
+    sequences_roundtrip = tokeniser.detokenise(tokens)
+    sequence_roundtrip = Sequence()
+    sequence_roundtrip.merge(sequences_roundtrip)
 
     if quantise:
         sequence_roundtrip.quantise_and_normalise()
 
-    assert sequence == sequence_roundtrip
+    sequence_original.save("new_original.mid")
+    sequence_roundtrip.save("new_roundtrip.mid")
 
-    return tokens, sequence, sequence_roundtrip, tokens_bars
+    assert sequence_original == sequence_roundtrip
+
+    return tokens, sequence_original, sequence_roundtrip
 
 
 def _test_constraints(tokeniser, tokens):
@@ -223,7 +233,6 @@ def _test_constraints(tokeniser, tokens):
     for i, token in enumerate(tokens):
         assert token in valid_tokens
         valid_tokens, previous_state = tokeniser.get_constraints([tokens[i]], previous_state)
-
 
 # def test_single():
 #     tokeniser = LargeVocabularyNotelikeTokeniser(running_time_sig=True)
