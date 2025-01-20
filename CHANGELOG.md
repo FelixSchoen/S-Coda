@@ -6,6 +6,10 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [2.1]
 
+### Added
+
+- Add tokenisation methods
+
 ### Changed
 
 - Re-release
