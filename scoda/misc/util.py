@@ -3,10 +3,11 @@ import math
 import numpy as np
 
 from scoda.elements.message import Message
-from scoda.settings.settings import VELOCITY_MAX, VELOCITY_BINS, PPQN
+from scoda.settings.settings import VELOCITY_MAX, VELOCITY_BINS, PPQN, NOTE_VALUE_UPPER_BOUND, NOTE_VALUE_LOWER_BOUND, \
+    VALID_TUPLETS, DOTTED_ITERATIONS
 
 
-def bin_from_velocity(velocity: int) -> int:
+def bin_velocity(velocity: int, bins: list[int] = None) -> int:
     """Returns the bin defined by the velocity.
 
     Args:
@@ -15,13 +16,22 @@ def bin_from_velocity(velocity: int) -> int:
     Returns: The corresponding bin
 
     """
-    if velocity <= 0 or velocity > VELOCITY_MAX:
-        raise ValueError("Velocity not contained in any bag")
-
-    bin_size = round(VELOCITY_MAX / VELOCITY_BINS)
-    bins = [min(VELOCITY_MAX, ((i + 1) * bin_size) + bin_size / 2) for i in range(0, VELOCITY_BINS)]
+    if bins is None:
+        bins = get_velocity_bins()
 
     return np.digitize(velocity, bins, right=True).item(-1)
+
+
+def get_velocity_bins(velocity_max=None, velocity_bins=None):
+    if velocity_max is None:
+        velocity_max = VELOCITY_MAX
+    if velocity_bins is None:
+        velocity_bins = VELOCITY_BINS
+
+    bin_size = round(velocity_max / velocity_bins)
+    bins = [min(velocity_max, ((i + 1) * bin_size) + bin_size / 2) for i in range(0, velocity_bins)]
+
+    return bins
 
 
 def binary_insort(collection: list, message: Message) -> None:
@@ -61,7 +71,7 @@ def digitise_velocity(velocity_unquantised: int) -> int:
     if velocity_unquantised == 0:
         return velocity_unquantised
 
-    return velocity_from_bin(bin_from_velocity(velocity_unquantised))
+    return velocity_from_bin(bin_velocity(velocity_unquantised))
 
 
 def find_minimal_distance(element, collection) -> int:
@@ -88,6 +98,25 @@ def find_minimal_distance(element, collection) -> int:
                 return index
 
     return index
+
+
+def get_default_step_sizes():
+    quantise_parameters = get_note_durations(1, 4)
+    quantise_parameters += get_tuplet_durations(quantise_parameters, 3, 2)
+    step_sizes = quantise_parameters
+
+    return step_sizes
+
+
+def get_default_note_values():
+    normal_durations = get_note_durations(NOTE_VALUE_UPPER_BOUND, NOTE_VALUE_LOWER_BOUND)
+    triplet_durations = []
+    for valid_tuplet in VALID_TUPLETS:
+        triplet_durations.extend(get_tuplet_durations(normal_durations, valid_tuplet[0], valid_tuplet[1]))
+    dotted_durations = get_dotted_note_durations(normal_durations, DOTTED_ITERATIONS)
+    possible_durations = normal_durations + triplet_durations + dotted_durations
+
+    return possible_durations
 
 
 def get_note_durations(upper_bound_multiplier: int, lower_bound_divisor: int, base_value: int = PPQN) -> [int]:

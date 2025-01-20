@@ -22,7 +22,7 @@ def test_velocity_digitised_to_correct_bin_indices():
     values_to_digitise = [(1, 0), (17, 0), (31, 1), (33, 1)]
 
     for pair in values_to_digitise:
-        assert bin_from_velocity(pair[0]) == pair[1]
+        assert bin_velocity(pair[0]) == pair[1]
 
 
 def test_dotted_note_values():
