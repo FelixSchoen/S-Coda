@@ -1,11 +1,11 @@
+import math
 from typing import Tuple, List
-
-from numpy.ma.core import not_equal
 
 from scoda.elements.message import Message
 from scoda.enumerations.message_type import MessageType
 from scoda.enumerations.tokenisation_prefixes import TokenisationPrefixes
 from scoda.exceptions.tokenisation_exception import TokenisationException
+from scoda.misc.music_theory import CircleOfFifths
 from scoda.misc.scoda_logging import get_logger
 from scoda.misc.util import get_default_step_sizes, get_default_note_values, get_velocity_bins, bin_velocity
 from scoda.sequences.sequence import Sequence
@@ -14,7 +14,7 @@ from scoda.settings.settings import PPQN, DEFAULT_TIME_SIGNATURE_NUMERATOR, DEFA
 LOGGER = get_logger(__name__)
 
 
-class MultiInstrumentLDNotelikeTokeniser:
+class MultiTrackLargeVocabularyNotelikeTokeniser:
 
     def __init__(self,
                  ppqn: int = None,
@@ -25,6 +25,7 @@ class MultiInstrumentLDNotelikeTokeniser:
                  velocity_bins: int = 1,
                  time_signature_range: Tuple[int, int] = (2, 16)):
         self.dictionary = dict()
+        self.inverse_dictionary = dict()
         self.dictionary_size = 0
 
         self.ppqn = ppqn
@@ -160,16 +161,92 @@ class MultiInstrumentLDNotelikeTokeniser:
                 )
             elif part_main == TokenisationPrefixes.TIME_SIGNATURE.value:
                 if cur_time_bar > 0:
-                    LOGGER.warning(f"Skipping time signature change mid-bar at time {cur_time} (bar time {cur_time_bar})")
+                    LOGGER.warning(
+                        f"Skipping time signature change mid-bar at time {cur_time} (bar time {cur_time_bar})")
                 else:
                     cur_time_signature_numerator = int(token_parts[0][1])
                     cur_time_signature_denominator = int(token_parts[0][2])
-                    cur_bar_capacity_total = self.ppqn * 4 * cur_time_signature_numerator / cur_time_signature_denominator
+                    cur_bar_capacity_total = int(
+                        self.ppqn * 4 * cur_time_signature_numerator / cur_time_signature_denominator)
                     cur_bar_capacity_remaining = cur_bar_capacity_total
             else:
                 raise TokenisationException(f"Invalid token: {token}")
 
         return sequences
+
+    def encode(self, tokens: List[str]) -> List[int]:
+        return [self.dictionary[token] for token in tokens]
+
+    def decode(self, tokens: List[int]) -> List[str]:
+        return [self.inverse_dictionary[token] for token in tokens]
+
+    def get_info(self, tokens: List[str]) -> dict[str, list[int]]:
+        info_pos = []
+        info_time = []
+        info_time_bar = []
+        info_pitch = []
+        info_cof = []
+
+        # Setup Values
+        cur_pos = 0
+        cur_time = 0
+        cur_time_bar = 0
+        cur_time_signature_numerator = DEFAULT_TIME_SIGNATURE_NUMERATOR
+        cur_time_signature_denominator = DEFAULT_TIME_SIGNATURE_DENOMINATOR
+        cur_bar_capacity_total = int(self.ppqn * 4 * cur_time_signature_numerator / cur_time_signature_denominator)
+        cur_bar_capacity_remaining = cur_bar_capacity_total
+
+        for token in tokens:
+            token_parts = self._split_token(token)
+            part_main = token_parts[0][0]
+
+            info_time.append(cur_time)
+            info_time_bar.append(cur_time_bar)
+
+            if part_main == TokenisationPrefixes.BAR.value:
+                cur_time += cur_bar_capacity_remaining
+                cur_time_bar = 0
+                cur_bar_capacity_remaining = cur_bar_capacity_total
+
+                info_pitch.append(math.nan)
+                info_cof.append(math.nan)
+            elif part_main == TokenisationPrefixes.REST.value:
+                cur_time += int(token_parts[0][1])
+                cur_time_bar += int(token_parts[0][1])
+                cur_bar_capacity_remaining -= int(token_parts[0][1])
+
+                info_pitch.append(math.nan)
+                info_cof.append(math.nan)
+            elif part_main == TokenisationPrefixes.INSTRUMENT.value:
+                note_pitch = int(token_parts[1][1])
+
+                info_pitch.append(note_pitch)
+                info_cof.append(CircleOfFifths.get_position(note_pitch))
+            elif part_main == TokenisationPrefixes.TIME_SIGNATURE.value:
+                if cur_time_bar > 0:
+                    LOGGER.warning(
+                        f"Skipping time signature change mid-bar at time {cur_time} (bar time {cur_time_bar})")
+                else:
+                    cur_time_signature_numerator = int(token_parts[0][1])
+                    cur_time_signature_denominator = int(token_parts[0][2])
+                    cur_bar_capacity_total = int(
+                        self.ppqn * 4 * cur_time_signature_numerator / cur_time_signature_denominator)
+                    cur_bar_capacity_remaining = cur_bar_capacity_total
+
+                info_pitch.append(math.nan)
+                info_cof.append(math.nan)
+            else:
+                info_pitch.append(math.nan)
+                info_cof.append(math.nan)
+
+            info_pos.append(cur_pos)
+            cur_pos += 1
+
+        return {"info_position": info_pos,
+                "info_time": info_time,
+                "info_time_bar": info_time_bar,
+                "info_pitch": info_pitch,
+                "info_circle_of_fifths": info_cof}
 
     def _split_token(self, token: str):
         parts = token.split("-")
@@ -187,6 +264,7 @@ class MultiInstrumentLDNotelikeTokeniser:
         self.dictionary_size += 1
 
         self.dictionary[TokenisationPrefixes.BAR.value] = 3
+        self.dictionary_size += 1
 
         for step_size in self.step_sizes:
             self.dictionary[f"{TokenisationPrefixes.REST.value}_{step_size:02}"] = self.dictionary_size
@@ -206,6 +284,8 @@ class MultiInstrumentLDNotelikeTokeniser:
             self.dictionary[
                 f"{TokenisationPrefixes.TIME_SIGNATURE.value}_{time_signature:02}_{DEFAULT_TIME_SIGNATURE_DENOMINATOR:02}"] = self.dictionary_size
             self.dictionary_size += 1
+
+        self.inverse_dictionary = {v: k for k, v in self.dictionary.items()}
 
     def _flush_buffer(self, time: int) -> List[str]:
         tokens = []
