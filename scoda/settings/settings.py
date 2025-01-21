@@ -21,6 +21,10 @@ NOTE_VALUE_UPPER_BOUND: int
 DOTTED_ITERATIONS: int
 """Considered tuplets, e.g., a value of (3, 2) allows for triplets"""
 VALID_TUPLETS: list[tuple[int, int]]
+"""The default time signature numerator"""
+DEFAULT_TIME_SIGNATURE_NUMERATOR: int
+"""The default time signature denominator"""
+DEFAULT_TIME_SIGNATURE_DENOMINATOR: int
 
 # Pattern Recognition
 
@@ -72,6 +76,8 @@ def load_from_file():
     global NOTE_VALUE_UPPER_BOUND
     global DOTTED_ITERATIONS
     global VALID_TUPLETS
+    global DEFAULT_TIME_SIGNATURE_NUMERATOR
+    global DEFAULT_TIME_SIGNATURE_DENOMINATOR
 
     global PATTERN_LENGTH_MIN
     global PATTERN_SECONDS_SEARCH_DURATION
@@ -108,6 +114,9 @@ def load_from_file():
     VALID_TUPLETS = []
     for tuplet in settings["general_settings"]["tuplets_valid"]:
         VALID_TUPLETS.append(tuple(tuplet))
+
+    DEFAULT_TIME_SIGNATURE_NUMERATOR = settings["general_settings"]["default_time_signature_numerator"]
+    DEFAULT_TIME_SIGNATURE_DENOMINATOR = settings["general_settings"]["default_time_signature_denominator"]
 
     PATTERN_LENGTH_MIN = settings["pattern_recognition"]["pattern_length_min"]
     PATTERN_SECONDS_SEARCH_DURATION = settings["pattern_recognition"]["pattern_seconds_search_duration"]

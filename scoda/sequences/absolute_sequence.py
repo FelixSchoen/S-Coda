@@ -10,7 +10,7 @@ from scoda.exceptions.sequence_exception import SequenceException
 from scoda.misc.scoda_logging import get_logger
 from scoda.misc.util import binary_insort, find_minimal_distance, regress, minmax, simple_regression, \
     get_note_durations, \
-    get_tuplet_durations, get_dotted_note_durations
+    get_tuplet_durations, get_dotted_note_durations, get_default_step_sizes, get_default_note_values
 from scoda.sequences.abstract_sequence import AbstractSequence
 from scoda.settings.settings import PPQN, DIFF_DUAL_NOTE_VALUES_UPPER_BOUND, \
     DIFF_DUAL_NOTE_VALUES_LOWER_BOUND, NOTE_VALUE_UPPER_BOUND, NOTE_VALUE_LOWER_BOUND, VALID_TUPLETS, DOTTED_ITERATIONS, \
@@ -127,9 +127,7 @@ class AbsoluteSequence(AbstractSequence):
 
         """
         if step_sizes is None:
-            quantise_parameters = get_note_durations(1, 8)
-            quantise_parameters += get_tuplet_durations(quantise_parameters, 3, 2)
-            step_sizes = quantise_parameters
+            step_sizes = get_default_step_sizes()
 
         # List of finally quantised messages
         quantised_messages = []
@@ -237,20 +235,15 @@ class AbsoluteSequence(AbstractSequence):
             do_not_extend: Determines if notes are only allowed to be shortened, e.g., for bars.
 
         """
+        # Construct possible durations
+        if possible_durations is None:
+            possible_durations = get_default_note_values()
+
         # Construct current durations
         notes = self.get_message_time_pairings(standard_length=standard_length)
         # Track when each type of note occurs, in order to check for possible overlaps
         note_occurrences = dict()
         quantised_messages = []
-
-        # Construct possible durations
-        if possible_durations is None:
-            normal_durations = get_note_durations(NOTE_VALUE_UPPER_BOUND, NOTE_VALUE_LOWER_BOUND)
-            triplet_durations = []
-            for valid_tuplet in VALID_TUPLETS:
-                triplet_durations.extend(get_tuplet_durations(normal_durations, valid_tuplet[0], valid_tuplet[1]))
-            dotted_durations = get_dotted_note_durations(normal_durations, DOTTED_ITERATIONS)
-            possible_durations = normal_durations + triplet_durations + dotted_durations
 
         # Construct array keeping track of when each note occurs
         for pairing in notes:

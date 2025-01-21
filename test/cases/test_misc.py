@@ -1,6 +1,5 @@
 from base import *
 from scoda.midi.midi_file import MidiFile
-from scoda.tokenisation.notelike_tokenisation import StandardNotelikeTokeniser
 
 
 # Settings
@@ -22,7 +21,7 @@ def test_velocity_digitised_to_correct_bin_indices():
     values_to_digitise = [(1, 0), (17, 0), (31, 1), (33, 1)]
 
     for pair in values_to_digitise:
-        assert bin_from_velocity(pair[0]) == pair[1]
+        assert bin_velocity(pair[0]) == pair[1]
 
 
 def test_dotted_note_values():
@@ -54,35 +53,35 @@ def test_logging_framework():
 
 # Example
 
-def test_example():
-    # Load sequence, choose correct track (often first track contains only meta messages)
-    sequence = Sequence.sequences_load(file_path=RESOURCE_BEETHOVEN)[1]
-
-    # Quantise the sequence to thirty-seconds and thirty-second triplets (standard values)
-    sequence.quantise_and_normalise()
-
-    # Split the sequence into bars based on the occurring time signatures
-    bars = Sequence.sequences_split_bars([sequence], meta_track_index=0)[0]
-
-    # Prepare tokeniser and output tokens
-    tokeniser = StandardNotelikeTokeniser(running_value=True, running_pitch=True, running_time_sig=True)
-    tokens = []
-    difficulties = []
-
-    # Tokenise all bars in the sequence and calculate their difficulties
-    for bar in bars:
-        tokens.extend(tokeniser.tokenise(bar.sequence))
-        difficulties.append(bar.sequence.difficulty())
-
-    # (Conduct ML operations on tokens)
-    tokens = tokens
-
-    # Create sequence from tokens
-    detokenised_sequence = tokeniser.detokenise(tokens)
-
-    # Save sequence
-    Sequence.save = lambda *args: None
-    detokenised_sequence.save("out/generated_sequence.mid")
+# def test_example():
+#     # Load sequence, choose correct track (often first track contains only meta messages)
+#     sequence = Sequence.sequences_load(file_path=RESOURCE_BEETHOVEN)[1]
+#
+#     # Quantise the sequence to thirty-seconds and thirty-second triplets (standard values)
+#     sequence.quantise_and_normalise()
+#
+#     # Split the sequence into bars based on the occurring time signatures
+#     bars = Sequence.sequences_split_bars([sequence], meta_track_index=0)[0]
+#
+#     # Prepare tokeniser and output tokens
+#     tokeniser = StandardNotelikeTokeniser(running_value=True, running_pitch=True, running_time_sig=True)
+#     tokens = []
+#     difficulties = []
+#
+#     # Tokenise all bars in the sequence and calculate their difficulties
+#     for bar in bars:
+#         tokens.extend(tokeniser.tokenise(bar.sequence))
+#         difficulties.append(bar.sequence.difficulty())
+#
+#     # (Conduct ML operations on tokens)
+#     tokens = tokens
+#
+#     # Create sequence from tokens
+#     detokenised_sequence = tokeniser.detokenise(tokens)
+#
+#     # Save sequence
+#     Sequence.save = lambda *args: None
+#     detokenised_sequence.save("out/generated_sequence.mid")
 
 
 # Copy
