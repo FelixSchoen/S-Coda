@@ -7,10 +7,11 @@ from scoda.misc.music_theory import MusicMapping
 
 class MidiMessage:
 
-    def __init__(self, message_type=None, control=None, denominator=None, numerator=None, key=None, note=None,
-                 time=None, velocity=None, program=None) -> None:
+    def __init__(self, message_type=None, channel=None, control=None, denominator=None, numerator=None, key=None,
+                 note=None, time=None, velocity=None, program=None) -> None:
         super().__init__()
         self.message_type = message_type
+        self.channel = channel
         self.control = control
         self.denominator = denominator
         self.numerator = numerator
@@ -25,6 +26,9 @@ class MidiMessage:
         msg = MidiMessage()
 
         msg.time = mido_message.time
+
+        if hasattr(mido_message, "channel"):
+            msg.channel = mido_message.channel
 
         if mido_message.type == "note_on" and mido_message.velocity > 0:
             msg.message_type = MessageType.NOTE_ON
@@ -53,9 +57,10 @@ class MidiMessage:
 
     @staticmethod
     def parse_internal_message(message: Message) -> MidiMessage:
-        return MidiMessage(message_type=message.message_type, time=message.time, note=message.note,
-                           velocity=message.velocity, control=message.control, numerator=message.numerator,
-                           denominator=message.denominator, key=message.key, program=message.program)
+        return MidiMessage(message_type=message.message_type, channel=message.channel, time=message.time,
+                           note=message.note, velocity=message.velocity, control=message.control,
+                           numerator=message.numerator, denominator=message.denominator, key=message.key,
+                           program=message.program)
 
     def __str__(self) -> str:
-        return f"MidiMessage(type={self.message_type}, time={self.time}, note={self.note})"
+        return f"MidiMessage(type={self.message_type}, channel={self.channel}, time={self.time}, note={self.note})"

@@ -82,19 +82,20 @@ class MidiFile:
                 # Note On
                 if msg.message_type == MessageType.NOTE_ON and any(i in indices for indices in track_indices):
                     current_sequence.add_absolute_message(
-                        Message(message_type=MessageType.NOTE_ON, note=msg.note, velocity=msg.velocity,
-                                time=rounded_point_in_time))
+                        Message(message_type=MessageType.NOTE_ON, channel=msg.channel, note=msg.note,
+                                velocity=msg.velocity, time=rounded_point_in_time))
                 # Note Off
                 elif msg.message_type == MessageType.NOTE_OFF and any(i in indices for indices in track_indices):
                     current_sequence.add_absolute_message(
-                        Message(message_type=MessageType.NOTE_OFF, note=msg.note, time=rounded_point_in_time))
+                        Message(message_type=MessageType.NOTE_OFF, channel=msg.channel, note=msg.note,
+                                time=rounded_point_in_time))
                 # Time Signature
                 elif msg.message_type == MessageType.TIME_SIGNATURE:
                     if i not in meta_track_indices:
                         MidiFile.LOGGER.debug("MidiFile: Encountered time signature change in unexpected track.")
 
                     meta_sequence.add_absolute_message(
-                        Message(message_type=MessageType.TIME_SIGNATURE, numerator=msg.numerator,
+                        Message(message_type=MessageType.TIME_SIGNATURE, channel=msg.channel, numerator=msg.numerator,
                                 denominator=msg.denominator, time=rounded_point_in_time))
                 # Key Signature
                 elif msg.message_type == MessageType.KEY_SIGNATURE:
@@ -102,16 +103,17 @@ class MidiFile:
                         MidiFile.LOGGER.debug("MidiFile: Encountered key signature change in unexpected track.")
 
                     meta_sequence.add_absolute_message(
-                        Message(message_type=MessageType.KEY_SIGNATURE, key=msg.key, time=rounded_point_in_time))
+                        Message(message_type=MessageType.KEY_SIGNATURE, channel=msg.channel, key=msg.key,
+                                time=rounded_point_in_time))
                 # Control change
                 elif msg.message_type == MessageType.CONTROL_CHANGE:
                     meta_sequence.add_absolute_message(
-                        Message(message_type=MessageType.CONTROL_CHANGE, velocity=msg.velocity, control=msg.control,
-                                time=rounded_point_in_time))
+                        Message(message_type=MessageType.CONTROL_CHANGE, channel=msg.channel, velocity=msg.velocity,
+                                control=msg.control, time=rounded_point_in_time))
                 # Program change
                 elif msg.message_type == MessageType.PROGRAM_CHANGE:
                     current_sequence.add_absolute_message(
-                        Message(message_type=MessageType.PROGRAM_CHANGE, program=msg.program,
+                        Message(message_type=MessageType.PROGRAM_CHANGE, channel=msg.channel, program=msg.program,
                                 time=rounded_point_in_time))
                 # Unknown, e.g. MetaMessage (will be ignored)
                 else:

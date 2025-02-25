@@ -218,7 +218,7 @@ class Sequence:
         """See `scoda.sequence.absolute_sequence.AbsoluteSequence.get_message_timings_of_type`.
 
         """
-        return self.abs.get_message_timings_of_type(message_types)
+        return self.abs.get_message_times_of_type(message_types)
 
     def get_sequence_duration(self) -> float:
         """See `scoda.sequence.absolute_sequence.AbsoluteSequence.get_sequence_length`.

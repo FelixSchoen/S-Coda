@@ -8,14 +8,21 @@ class Message:
     """Class representing a musical message.
     """
 
-    def __init__(self, message_type: MessageType = None, channel: int = None, note: int = None, velocity: int = None,
+    def __init__(self,
+                 message_type: MessageType = None,
+                 channel: int = None,
+                 time: int = None,
+                 note: int = None,
+                 velocity: int = None,
                  control: int = None,
-                 numerator: int = None, denominator: int = None, key: Key = None, time: int = None,
+                 numerator: int = None,
+                 denominator: int = None,
+                 key: Key = None,
                  program: int = None) -> None:
         super().__init__()
         self.message_type = message_type
-        self.time = time
         self.channel = channel
+        self.time = time
         self.note = note
         self.velocity = velocity
         self.control = control
@@ -60,34 +67,37 @@ class Message:
     #     ))
 
     def __repr__(self) -> str:
-        representation = f"[{self.message_type.value}]:"
+        representation = f"({self.message_type.value}:"
 
         if self.time is not None:
-            representation += f" time={self.time}"
+            representation += f", time={self.time}"
 
         if self.channel is not None:
-            representation += f" instrument={self.channel}"
+            representation += f", channel={self.channel}"
 
         if self.note is not None:
-            representation += f" note={self.note}"
+            representation += f", note={self.note}"
 
         if self.velocity is not None:
-            representation += f" velocity={self.velocity}"
+            representation += f", velocity={self.velocity}"
 
         if self.control is not None:
-            representation += f" control={self.control}"
+            representation += f", control={self.control}"
 
         if self.program is not None:
-            representation += f" program={self.program}"
+            representation += f", program={self.program}"
 
         if self.numerator is not None:
-            representation += f" numerator={self.numerator}"
+            representation += f", numerator={self.numerator}"
 
         if self.denominator is not None:
-            representation += f" denominator={self.denominator}"
+            representation += f", denominator={self.denominator}"
 
         if self.key is not None:
-            representation += f" key={self.key.value}"
+            representation += f", key={self.key.value}"
+
+        representation += ")"
+        representation = representation.replace(",", "", 1)
 
         return representation
 

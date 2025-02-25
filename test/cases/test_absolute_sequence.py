@@ -35,12 +35,12 @@ def test_get_timing_of_message_type():
     sequences = util_midi_to_sequences()
     sequence = sequences[0]
 
-    timings = sequence.get_message_timings_of_type([MessageType.TIME_SIGNATURE])
+    timings = sequence.get_message_times_of_type([MessageType.TIME_SIGNATURE])
     points_in_time = [timing[0] - timings[i - 1][0] if i >= 1 else timing[0] for i, timing in enumerate(timings)]
 
     split_sequences = sequence.split(points_in_time)
 
-    assert all(len(seq.get_message_timings_of_type([MessageType.TIME_SIGNATURE])) <= 1 for seq in split_sequences)
+    assert all(len(seq.get_message_times_of_type([MessageType.TIME_SIGNATURE])) <= 1 for seq in split_sequences)
 
 
 def test_merge():

@@ -307,10 +307,12 @@ class AbsoluteSequence(AbstractSequence):
 
     # Misc. Methods
 
-    def get_message_time_pairings(self, message_types: list[MessageType] = None, standard_length=PPQN,
-                                  impute_notes=True) -> list[
+    def get_message_time_pairings(self,
+                                  message_types: list[MessageType] = None,
+                                  standard_length=PPQN,
+                                  impute_notes=True) -> dict[
         list[Message]]:
-        """Creates an ordered list containing lists of messages of the given types.
+        """Creates a dictionary where the keys correspond to channels and the items to lists of messages of the given types.
         These lists contain all entries for messages that belong together, e.g., open and close note messages.
 
         Args:
@@ -318,7 +320,7 @@ class AbsoluteSequence(AbstractSequence):
             standard_length: The length used for notes that have not been closed.
             impute_notes: If unclosed notes should be closed and unopened ones should be ignored.
 
-        Returns: An array of tuples of two messages constituting a note.
+        Returns: A dictionary of lists of messages belonging together.
 
         """
         if message_types is None:
@@ -326,67 +328,55 @@ class AbsoluteSequence(AbstractSequence):
 
         self.normalise_absolute()
 
+        notes: dict[list[Message]] = dict()
         open_messages = dict()
-        notes: [[]] = []
         i = 0
 
         # Collect notes
         for msg in self.messages:
             if msg.message_type in message_types:
+                # Set defaults
+                notes.setdefault(msg.channel, [])
+                open_messages.setdefault(msg.channel, dict())
+
                 # Add notes to open messages
                 if msg.message_type == MessageType.NOTE_ON:
-                    if msg.channel not in open_messages:
-                        open_messages[msg.channel] = {}
-
-                    if msg.note in open_messages and impute_notes:
+                    # Check if note was not previously closed
+                    if msg.note in open_messages[msg.channel] and impute_notes:
                         AbsoluteSequence.LOGGER.warning(
                             f"Time Pairings: Note {msg.note} at time {msg.time} not previously stopped.")
                         index = open_messages[msg.channel].pop(msg.note)
-                        notes[index].append(Message(message_type=MessageType.NOTE_OFF, note=msg.note, time=msg.time,
-                                                    channel=msg.channel))
+                        notes[msg.channel][index].append(
+                            Message(message_type=MessageType.NOTE_OFF, note=msg.note,
+                                    time=msg.time, channel=msg.channel))
 
+                    notes[msg.channel].append([msg])
                     open_messages[msg.channel][msg.note] = i
-                    notes.insert(i, [msg])
                     i += 1
 
                 # Add closing message to fitting open message
                 elif msg.message_type == MessageType.NOTE_OFF:
+                    # Check if note was not previously started
                     if msg.channel not in open_messages or msg.note not in open_messages[msg.channel]:
                         if impute_notes:
                             AbsoluteSequence.LOGGER.warning(
                                 f"Time Pairings: Note {msg.note} at time {msg.time} not previously started.")
                     else:
                         index = open_messages[msg.channel].pop(msg.note)
-                        notes[index].append(msg)
+                        notes[msg.channel][index].append(msg)
 
                 else:
-                    notes.insert(i, [msg])
+                    notes[msg.channel].append([msg])
                     i += 1
 
         # Check unclosed notes
-        for pairing in notes:
-            if len(pairing) == 1 and pairing[0].message_type == MessageType.NOTE_ON and impute_notes:
-                pairing.append(Message(message_type=MessageType.NOTE_OFF, time=pairing[0].time + standard_length,
-                                       channel=pairing[0].channel))
+        for channel in notes:
+            for pairing in notes[channel]:
+                if len(pairing) == 1 and pairing[0].message_type == MessageType.NOTE_ON and impute_notes:
+                    pairing.append(Message(message_type=MessageType.NOTE_OFF, time=pairing[0].time + standard_length,
+                                           channel=pairing[0].channel))
 
         return notes
-
-    def get_message_timings_of_type(self, message_types: list[MessageType]) -> list[tuple[int, Message]]:
-        """Searches for messages that fit one of the given types.
-
-        Args:
-            message_types: Which message types to search for.
-
-        Returns: A list containing the found messages and their absolute points in time.
-
-        """
-        timings = []
-
-        for msg in self.messages:
-            if msg.message_type in message_types:
-                timings.append((msg.time, msg))
-
-        return timings
 
     def get_sequence_duration(self) -> int:
         """Calculates the overall duration of this sequence, given in ticks.
