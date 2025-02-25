@@ -218,26 +218,26 @@ class AbsoluteSequence(AbstractSequence):
         self.messages = quantised_messages
         self.normalise_absolute()
 
-    def quantise_note_lengths(self, possible_durations=None, standard_length=PPQN, do_not_extend=False) -> None:
+    def quantise_note_lengths(self, note_values=None, standard_length=PPQN, do_not_extend=False) -> None:
         """Quantises the note lengths of this sequence, only affecting the ending of the notes.
 
         Quantises notes to the given values, ensuring that all notes are of one of the sizes defined by the
         parameters. See `scoda.utils.utils.get_note_durations`, `scoda.utils.utils.get_tuplet_durations` and
-        `scoda.utils.utils.get_dotted_note_durations` for generating the `possible_durations` array. Tries to shorten
+        `scoda.utils.utils.get_dotted_note_durations` for generating the `note_values` array. Tries to shorten
         or extend the end of each note in such a way that the note duration is exactly one of the values given in
-        `possible_durations`. If this is not possible (e.g., due to an overlap with another note that would occur),
+        `note_values`. If this is not possible (e.g., due to an overlap with another note that would occur),
         the note that can neither be shortened nor lengthened will be removed from the sequence. Note that this is
         only the case if the note was shorter than the smallest legal duration specified, and thus cannot be shortened.
 
         Args:
-            possible_durations: An array containing exactly the valid note durations in ticks.
+            note_values: An array containing exactly the valid note durations in ticks.
             standard_length: Note length for notes which are not closed.
             do_not_extend: Determines if notes are only allowed to be shortened, e.g., for bars.
 
         """
         # Construct possible durations
-        if possible_durations is None:
-            possible_durations = get_default_note_values()
+        if note_values is None:
+            note_values = get_default_note_values()
 
         # Construct current durations
         notes = self.get_message_time_pairings(standard_length=standard_length)
@@ -255,27 +255,27 @@ class AbsoluteSequence(AbstractSequence):
         for i, pairing in enumerate(notes):
             note = pairing[0].note
             current_duration = pairing[1].time - pairing[0].time
-            valid_durations = copy.copy(possible_durations)
+            valid_durations = copy.copy(note_values)
 
             # Check if the current note is not the last note, in this case clashes with a next note could exist
             index = note_occurrences[note].index(pairing)
             if index != len(note_occurrences[note]) - 1:
                 possible_next_pairing = note_occurrences[note][index + 1]
 
-                # Possible durations contains the same as valid durations at the beginning
-                for possible_duration in possible_durations:
-                    possible_correction = possible_duration - current_duration
+                # Note values contains the same as valid durations at the beginning
+                for note_value in note_values:
+                    possible_correction = note_value - current_duration
 
                     # If we cannot extend the note, remove the time from possible times
                     if pairing[1].time + possible_correction > possible_next_pairing[0].time:
-                        valid_durations.remove(possible_duration)
+                        valid_durations.remove(note_value)
 
             # If we are not allowed to extend note lengths, remove all positive corrections
-            for possible_duration in possible_durations:
-                possible_correction = possible_duration - current_duration
+            for note_value in note_values:
+                possible_correction = note_value - current_duration
 
-                if possible_correction > 0 and do_not_extend and possible_duration in valid_durations:
-                    valid_durations.remove(possible_duration)
+                if possible_correction > 0 and do_not_extend and note_value in valid_durations:
+                    valid_durations.remove(note_value)
 
             # Check if we have to remove the note
             if len(valid_durations) == 0:
@@ -303,7 +303,7 @@ class AbsoluteSequence(AbstractSequence):
         they will occur in this order after the sort.
 
         """
-        self.messages.sort(key=lambda x: (x.time, x.message_type, x.note))
+        self.messages.sort(key=lambda x: (x.time, x.message_type, x.channel, x.note))
 
     # Misc. Methods
 
@@ -335,23 +335,28 @@ class AbsoluteSequence(AbstractSequence):
             if msg.message_type in message_types:
                 # Add notes to open messages
                 if msg.message_type == MessageType.NOTE_ON:
+                    if msg.channel not in open_messages:
+                        open_messages[msg.channel] = {}
+
                     if msg.note in open_messages and impute_notes:
                         AbsoluteSequence.LOGGER.warning(
                             f"Time Pairings: Note {msg.note} at time {msg.time} not previously stopped.")
-                        index = open_messages.pop(msg.note)
-                        notes[index].append(Message(message_type=MessageType.NOTE_OFF, note=msg.note, time=msg.time))
+                        index = open_messages[msg.channel].pop(msg.note)
+                        notes[index].append(Message(message_type=MessageType.NOTE_OFF, note=msg.note, time=msg.time,
+                                                    channel=msg.channel))
 
-                    open_messages[msg.note] = i
+                    open_messages[msg.channel][msg.note] = i
                     notes.insert(i, [msg])
                     i += 1
 
                 # Add closing message to fitting open message
                 elif msg.message_type == MessageType.NOTE_OFF:
-                    if msg.note not in open_messages and impute_notes:
-                        AbsoluteSequence.LOGGER.warning(
-                            f"Time Pairings: Note {msg.note} at time {msg.time} not previously started.")
+                    if msg.channel not in open_messages or msg.note not in open_messages[msg.channel]:
+                        if impute_notes:
+                            AbsoluteSequence.LOGGER.warning(
+                                f"Time Pairings: Note {msg.note} at time {msg.time} not previously started.")
                     else:
-                        index = open_messages.pop(msg.note)
+                        index = open_messages[msg.channel].pop(msg.note)
                         notes[index].append(msg)
 
                 else:
@@ -361,7 +366,8 @@ class AbsoluteSequence(AbstractSequence):
         # Check unclosed notes
         for pairing in notes:
             if len(pairing) == 1 and pairing[0].message_type == MessageType.NOTE_ON and impute_notes:
-                pairing.append(Message(message_type=MessageType.NOTE_OFF, time=pairing[0].time + standard_length))
+                pairing.append(Message(message_type=MessageType.NOTE_OFF, time=pairing[0].time + standard_length,
+                                       channel=pairing[0].channel))
 
         return notes
 

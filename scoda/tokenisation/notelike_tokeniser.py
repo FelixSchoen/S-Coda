@@ -71,7 +71,7 @@ class MultiTrackLargeVocabularyNotelikeTokeniser:
         # Merge sequences
         for i, sequence_bar in enumerate(sequences_bar):
             for msg in sequence_bar.abs.messages:
-                msg.instrument = i
+                msg.channel = i
         sequence_bar = Sequence()
         sequence_bar.merge(sequences_bar)
 
@@ -89,7 +89,7 @@ class MultiTrackLargeVocabularyNotelikeTokeniser:
                 self.cur_rest_buffer = 0
 
             if msg_type == MessageType.NOTE_ON:
-                msg_instrument = event_pairing[0].instrument
+                msg_instrument = event_pairing[0].channel
                 msg_note = event_pairing[0].note
                 msg_value = event_pairing[1].time - msg_time
                 msg_velocity = self.velocity_bins[bin_velocity(event_pairing[0].velocity, self.velocity_bins)]

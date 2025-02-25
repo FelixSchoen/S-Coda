@@ -200,16 +200,16 @@ class Sequence:
         self.abs.quantise(step_sizes)
         self._rel_stale = True
 
-    def quantise_note_lengths(self, possible_durations=None, standard_length=PPQN, do_not_extend=False) -> None:
+    def quantise_note_lengths(self, note_values=None, standard_length=PPQN, do_not_extend=False) -> None:
         """See `scoda.sequence.absolute_sequence.AbsoluteSequence.quantise_note_lengths`."""
-        self.abs.quantise_note_lengths(possible_durations, standard_length=standard_length, do_not_extend=do_not_extend)
+        self.abs.quantise_note_lengths(note_values, standard_length=standard_length, do_not_extend=do_not_extend)
         self._rel_stale = True
 
-    def quantise_and_normalise(self, step_sizes: list[int] = None, possible_durations=None, standard_length=PPQN,
+    def quantise_and_normalise(self, step_sizes: list[int] = None, note_values=None, standard_length=PPQN,
                                do_not_extend=False):
         """Quantises and normalises the sequence."""
         self.quantise(step_sizes)
-        self.quantise_note_lengths(possible_durations, standard_length, do_not_extend)
+        self.quantise_note_lengths(note_values, standard_length, do_not_extend)
         self.normalise()
 
     # Misc. Methods
@@ -495,7 +495,8 @@ class Sequence:
                         x_scale: list[int] = None,
                         y_scale: list[int] = (NOTE_LOWER_BOUND, NOTE_UPPER_BOUND + 1),
                         show_velocity: bool = True,
-                        x_tick_spacing=PPQN) -> pyplot:
+                        x_tick_spacing=PPQN,
+                        figsize: tuple[int, int] = (10, 6)) -> pyplot:
         """Creates a piano roll from the given sequence.
 
         Creates a visualisation in form of a piano roll from the given sequence, where each note is visualised using
@@ -512,10 +513,11 @@ class Sequence:
             y_scale: The scale of the y-axis, if not given will be chosen in such a way that all notes fit exactly
             show_velocity: Whether to show the velocity by changing the opacity of some notes
             x_tick_spacing: Spacing of the ticks on the x-axis
+            figsize: Size of the figure (width, height)
 
         """
-        # Create new figure
-        fig = plt.figure(dpi=300)
+        # Create new figure with specified size
+        fig = plt.figure(dpi=300, figsize=figsize)
 
         # Create subplots for each of the sequence
         gs = fig.add_gridspec(len(sequences), hspace=0.1)

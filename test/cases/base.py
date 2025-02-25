@@ -34,8 +34,10 @@ RESOURCE_MOZART = RESOURCES_ROOT.joinpath("mozart_331_1.mid")
 RESOURCE_RACHMANINOW = RESOURCES_ROOT.joinpath("rachmaninow_op23_5.mid")
 RESOURCE_SWEEP = RESOURCES_ROOT.joinpath("sweep.mid")
 RESOURCE_EMPTY_BARS = RESOURCES_ROOT.joinpath("empty_bars.mid")
+RESOURCE_MULTI_TRACK = RESOURCES_ROOT.joinpath("multi_track.mid")
 RESOURCES = [RESOURCE_SWEEP, RESOURCE_EMPTY_BARS,
              RESOURCE_BEETHOVEN, RESOURCE_CHOPIN, RESOURCE_MOZART, RESOURCE_RACHMANINOW]
+RESOURCES_MULTI_TRACK = [RESOURCE_MULTI_TRACK] + RESOURCES
 
 
 def util_midi_to_sequences(file=None, lead_tracks=None, acmp_tracks=None, meta_tracks=None):

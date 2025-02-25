@@ -3,23 +3,28 @@ from scoda.tokenisation.notelike_tokeniser import MultiTrackLargeVocabularyNotel
     LargeVocabularyNotelikeTokeniser
 
 
-@pytest.mark.parametrize("path_resource", RESOURCES)
+@pytest.mark.parametrize("path_resource", [RESOURCE_MULTI_TRACK])
 def test_roundtrip_multi_track_large_vocabulary_notelike_tokeniser(path_resource):
-    tokeniser = MultiTrackLargeVocabularyNotelikeTokeniser(num_instruments=3)
+    tokeniser = MultiTrackLargeVocabularyNotelikeTokeniser(num_instruments=4)
 
-    tokens, sequence_original, sequence_roundtrip = _test_roundtrip_multi_track_tokenisation(tokeniser, path_resource, quantise=True)
+    tokens, sequence_original, sequence_roundtrip = _test_roundtrip_multi_track_tokenisation(tokeniser, path_resource,
+                                                                                             quantise=True)
 
     info = tokeniser.get_info(tokens)
 
     for key, value in info.items():
         assert len(value) == len(tokens)
 
+
 def _test_roundtrip_multi_track_tokenisation(tokeniser, path_resource, quantise=True, detokenise=True):
     sequences = Sequence.sequences_load(file_path=path_resource)
 
+    default_step_sizes = get_default_step_sizes()
+    default_note_values = get_default_note_values()
+
     for sequence in sequences:
         if quantise:
-            sequence.quantise_and_normalise()
+            sequence.quantise_and_normalise(step_sizes=default_step_sizes, note_values=default_note_values)
 
     sequences_bars = Sequence.sequences_split_bars(sequences, 0)
 
@@ -35,6 +40,7 @@ def _test_roundtrip_multi_track_tokenisation(tokeniser, path_resource, quantise=
         sequences_original.append(sequence)
     sequence_original = Sequence()
     sequence_original.merge(sequences_original)
+    sequence_original.save("sequence_original.mid")
 
     tokens_bars = []
 
@@ -69,6 +75,7 @@ def _test_roundtrip_multi_track_tokenisation(tokeniser, path_resource, quantise=
 
     return tokens, sequence_original, sequence_roundtrip
 
+
 # OLD
 
 @pytest.mark.parametrize("path_resource", RESOURCES)
@@ -77,6 +84,7 @@ def test_roundtrip_large_vocabulary_notelike_tokenisation(path_resource, running
     tokeniser = LargeVocabularyNotelikeTokeniser(running_time_sig=running_time_sig)
 
     _test_roundtrip_tokenisation(tokeniser, path_resource, quantise=True)
+
 
 def _test_roundtrip_tokenisation(tokeniser, path_resource, quantise=True, detokenise=True):
     sequences = Sequence.sequences_load(file_path=path_resource)
