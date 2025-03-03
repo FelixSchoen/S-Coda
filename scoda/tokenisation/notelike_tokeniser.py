@@ -68,6 +68,8 @@ class MultiTrackLargeVocabularyNotelikeTokeniser:
         str]:
         tokens = []
 
+        assert len(sequences_bar) == self.num_instruments
+
         # Merge sequences
         for i, sequence_bar in enumerate(sequences_bar):
             for msg in sequence_bar.abs.messages:
@@ -75,10 +77,15 @@ class MultiTrackLargeVocabularyNotelikeTokeniser:
         sequence_bar = Sequence()
         sequence_bar.merge(sequences_bar)
 
-        message_pairings = sequence_bar.abs.get_message_time_pairings(
+        interleaved_pairings = sequence_bar.get_interleaved_message_pairings(
             [MessageType.NOTE_ON, MessageType.NOTE_OFF, MessageType.TIME_SIGNATURE, MessageType.INTERNAL])
 
-        for event_pairing in message_pairings:
+        for interleaved_pairing in interleaved_pairings:
+            event_pairing = interleaved_pairing[1]
+
+            msg_channel = interleaved_pairing[0]
+            assert msg_channel == event_pairing[0].channel
+
             msg_type = event_pairing[0].message_type
             msg_time = event_pairing[0].time
 

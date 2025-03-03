@@ -414,7 +414,7 @@ class AbsoluteSequence(AbstractSequence):
     def get_interleaved_message_pairings(self,
                                          message_types: list[MessageType] = None,
                                          standard_length=PPQN,
-                                         impute_notes=True):
+                                         impute_notes=True) -> list[tuple[int, list[Message]]]:
         """Creates a list of tuples of channels and messages sorted by their absolute starting times.
 
         Args:
@@ -433,13 +433,17 @@ class AbsoluteSequence(AbstractSequence):
         message_pairings_list = list(message_pairings.items())
         track_cur_times = [0 for _ in range(len(message_pairings))]
         track_cur_index = [0 for _ in range(len(message_pairings))]
+        track_max_index = [len(message_pairings_list[i][1]) for i in range(len(message_pairings_list))]
 
         has_next = len(message_pairings_list) > 0
 
         while has_next:
-            next_channel = track_cur_times.index(min(track_cur_times))
-            next_message = message_pairings_list[next_channel][1][track_cur_index[next_channel]]
-            interleaved_pairings.append((next_channel, next_message))
+            track_val_times = [track_cur_times[i] if track_cur_index[i] < track_max_index[i] else float('inf')
+                               for i in range(len(message_pairings))]
+            next_channel = track_val_times.index(min(track_val_times))
+            next_message_pair = message_pairings_list[next_channel][1][track_cur_index[next_channel]]
+            interleaved_pairings.append((next_channel, next_message_pair))
+            track_cur_times[next_channel] = next_message_pair[0].time
             track_cur_index[next_channel] += 1
             has_next = any(
                 track_cur_index[i] < len(message_pairings_list[i][1]) for i in range(len(message_pairings_list)))

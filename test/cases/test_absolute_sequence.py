@@ -6,7 +6,7 @@ def test_cutoff():
     sequence = Sequence.sequences_load(file_path=RESOURCE_CHOPIN, track_indices=[[0]], meta_track_indices=[0])[0]
     sequence.cutoff(48, 24)
 
-    for note_pair in sequence.abs.get_message_time_pairings():
+    for note_pair in sequence.get_message_time_pairings():
         assert note_pair[1].time - note_pair[0].time <= 48
 
 
@@ -20,8 +20,8 @@ def test_equivalence():
 
 def test_get_interleaved_message_pairings():
     sequence = util_midi_to_sequences()[0]
-    message_pairings = sequence.abs.get_message_time_pairings()
-    interleaved_pairings = sequence.abs.get_interleaved_message_pairings()
+    message_pairings = sequence.get_message_time_pairings()
+    interleaved_pairings = sequence.get_interleaved_message_pairings()
 
     message_pairings_items = 0
     interleaved_pairings_items = len(interleaved_pairings)
@@ -35,7 +35,7 @@ def test_get_interleaved_message_pairings():
 
 def test_get_message_time_pairings():
     sequence = util_midi_to_sequences()[0]
-    note_array = sequence.abs.get_message_time_pairings()
+    note_array = sequence.get_message_time_pairings()
 
     for i in range(len(note_array) - 1):
         assert note_array[i][0].time <= note_array[i + 1][0].time
@@ -91,7 +91,7 @@ def test_quantise_note_lengths():
     dotted_durations = get_dotted_note_durations(normal_durations, DOTTED_ITERATIONS)
     possible_durations = normal_durations + triplet_durations + dotted_durations
 
-    for note_pair in sequence.abs.get_message_time_pairings():
+    for note_pair in sequence.get_message_time_pairings():
         assert note_pair[1].time - note_pair[0].time in possible_durations
 
 

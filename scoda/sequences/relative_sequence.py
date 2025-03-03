@@ -62,9 +62,12 @@ class RelativeSequence(AbstractSequence):
         from scoda.sequences.absolute_sequence import AbsoluteSequence
         absolute_sequence = AbsoluteSequence()
         current_point_in_time = 0
+        last_valid_channel = None
         cap_message_exists = True
 
         for msg in self.messages:
+            last_valid_channel = msg.channel if msg.channel is not None else last_valid_channel
+
             if msg.message_type == MessageType.WAIT:
                 current_point_in_time += msg.time
                 cap_message_exists = False
@@ -77,7 +80,8 @@ class RelativeSequence(AbstractSequence):
         absolute_sequence.normalise_absolute()
 
         if not cap_message_exists:
-            absolute_sequence.add_message(Message(message_type=MessageType.INTERNAL, time=current_point_in_time))
+            absolute_sequence.add_message(
+                Message(message_type=MessageType.INTERNAL, channel=last_valid_channel, time=current_point_in_time))
 
         return absolute_sequence
 

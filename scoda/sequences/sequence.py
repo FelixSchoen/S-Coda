@@ -214,6 +214,28 @@ class Sequence:
 
     # Misc. Methods
 
+    def get_message_time_pairings(self,
+                                  message_types: list[MessageType] = None,
+                                  standard_length=PPQN,
+                                  impute_notes=True) -> dict[list[Message]]:
+        """See `scoda.sequence.absolute_sequence.AbsoluteSequence.get_message_time_pairings`.
+
+        """
+        return self.abs.get_message_time_pairings(message_types=message_types,
+                                                  standard_length=standard_length,
+                                                  impute_notes=impute_notes)
+
+    def get_interleaved_message_pairings(self,
+                                         message_types: list[MessageType] = None,
+                                         standard_length=PPQN,
+                                         impute_notes=True) -> list[tuple[int, list[Message]]]:
+        """See `scoda.sequence.absolute_sequence.AbsoluteSequence.get_interleaved_message_pairings`.
+
+        """
+        return self.abs.get_interleaved_message_pairings(message_types=message_types,
+                                                         standard_length=standard_length,
+                                                         impute_notes=impute_notes)
+
     def get_message_times_of_type(self, message_types: [MessageType]) -> list[tuple[int, Message]]:
         """See `scoda.sequence.absolute_sequence.AbsoluteSequence.get_message_timings_of_type`.
 
