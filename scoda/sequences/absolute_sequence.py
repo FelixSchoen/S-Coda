@@ -411,6 +411,41 @@ class AbsoluteSequence(AbstractSequence):
 
         return notes
 
+    def get_interleaved_message_pairings(self,
+                                         message_types: list[MessageType] = None,
+                                         standard_length=PPQN,
+                                         impute_notes=True):
+        """Creates a list of tuples of channels and messages sorted by their absolute starting times.
+
+        Args:
+            message_types: All message types to include.
+            standard_length: The length used for notes that have not been closed.
+            impute_notes: If unclosed notes should be closed and unopened ones should be ignored.
+
+        Returns: A list of channel-message pairs sorted by their start times.
+
+        """
+        interleaved_pairings = []
+        message_pairings = self.get_message_time_pairings(message_types=message_types,
+                                                          standard_length=standard_length,
+                                                          impute_notes=impute_notes)
+
+        message_pairings_list = list(message_pairings.items())
+        track_cur_times = [0 for _ in range(len(message_pairings))]
+        track_cur_index = [0 for _ in range(len(message_pairings))]
+
+        has_next = len(message_pairings_list) > 0
+
+        while has_next:
+            next_channel = track_cur_times.index(min(track_cur_times))
+            next_message = message_pairings_list[next_channel][1][track_cur_index[next_channel]]
+            interleaved_pairings.append((next_channel, next_message))
+            track_cur_index[next_channel] += 1
+            has_next = any(
+                track_cur_index[i] < len(message_pairings_list[i][1]) for i in range(len(message_pairings_list)))
+
+        return interleaved_pairings
+
     def get_message_times_of_type(self, message_types: list[MessageType]) -> list[tuple[int, Message]]:
         """Searches for messages that fit one of the given types.
 

@@ -18,6 +18,21 @@ def test_equivalence():
     assert sequence_a != sequence_b
 
 
+def test_get_interleaved_message_pairings():
+    sequence = util_midi_to_sequences()[0]
+    message_pairings = sequence.abs.get_message_time_pairings()
+    interleaved_pairings = sequence.abs.get_interleaved_message_pairings()
+
+    message_pairings_items = 0
+    interleaved_pairings_items = len(interleaved_pairings)
+
+    for channel in message_pairings.keys():
+        for _ in message_pairings[channel]:
+            message_pairings_items += 1
+
+    assert message_pairings_items == interleaved_pairings_items
+
+
 def test_get_message_time_pairings():
     sequence = util_midi_to_sequences()[0]
     note_array = sequence.abs.get_message_time_pairings()
