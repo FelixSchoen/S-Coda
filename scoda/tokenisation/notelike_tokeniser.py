@@ -75,10 +75,10 @@ class MultiTrackLargeVocabularyNotelikeTokeniser:
         sequence_bar = Sequence()
         sequence_bar.merge(sequences_bar)
 
-        event_pairings = sequence_bar.abs.get_message_time_pairings(
+        message_pairings = sequence_bar.abs.get_message_time_pairings(
             [MessageType.NOTE_ON, MessageType.NOTE_OFF, MessageType.TIME_SIGNATURE, MessageType.INTERNAL])
 
-        for event_pairing in event_pairings:
+        for event_pairing in message_pairings:
             msg_type = event_pairing[0].message_type
             msg_time = event_pairing[0].time
 

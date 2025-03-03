@@ -214,7 +214,7 @@ class Sequence:
 
     # Misc. Methods
 
-    def get_message_timings_of_type(self, message_types: [MessageType]) -> list[tuple[int, Message]]:
+    def get_message_times_of_type(self, message_types: [MessageType]) -> list[tuple[int, Message]]:
         """See `scoda.sequence.absolute_sequence.AbsoluteSequence.get_message_timings_of_type`.
 
         """
@@ -422,8 +422,8 @@ class Sequence:
 
         # Determine signature timings
         meta_track = sequences[meta_track_index]
-        time_signature_timings = meta_track.get_message_timings_of_type([MessageType.TIME_SIGNATURE])
-        key_signature_timings = meta_track.get_message_timings_of_type([MessageType.KEY_SIGNATURE])
+        time_signature_timings = meta_track.get_message_times_of_type([MessageType.TIME_SIGNATURE])
+        key_signature_timings = meta_track.get_message_times_of_type([MessageType.KEY_SIGNATURE])
 
         tracks_bars = [[] for _ in sequences]
 

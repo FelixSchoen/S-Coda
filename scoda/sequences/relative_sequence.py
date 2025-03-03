@@ -53,6 +53,34 @@ class RelativeSequence(AbstractSequence):
 
         return self.to_absolute_sequence() == o.to_absolute_sequence()
 
+    def to_absolute_sequence(self) -> AbsoluteSequence:
+        """Converts this `RelativeSequence` to an `AbsoluteSequence`.
+
+        Returns: The absolute representation of this sequence.
+
+        """
+        from scoda.sequences.absolute_sequence import AbsoluteSequence
+        absolute_sequence = AbsoluteSequence()
+        current_point_in_time = 0
+        cap_message_exists = True
+
+        for msg in self.messages:
+            if msg.message_type == MessageType.WAIT:
+                current_point_in_time += msg.time
+                cap_message_exists = False
+            else:
+                message_to_add = copy.copy(msg)
+                message_to_add.time = current_point_in_time
+                absolute_sequence._add_message_unsorted(message_to_add)
+                cap_message_exists = True
+
+        absolute_sequence.normalise_absolute()
+
+        if not cap_message_exists:
+            absolute_sequence.add_message(Message(message_type=MessageType.INTERNAL, time=current_point_in_time))
+
+        return absolute_sequence
+
     # Basic Methods
 
     def add_message(self, msg: Message) -> None:
@@ -411,34 +439,6 @@ class RelativeSequence(AbstractSequence):
                 duration += msg.time
 
         return duration / PPQN
-
-    def to_absolute_sequence(self) -> AbsoluteSequence:
-        """Converts this `RelativeSequence` to an `AbsoluteSequence`.
-
-        Returns: The absolute representation of this sequence.
-
-        """
-        from scoda.sequences.absolute_sequence import AbsoluteSequence
-        absolute_sequence = AbsoluteSequence()
-        current_point_in_time = 0
-        cap_message_exists = True
-
-        for msg in self.messages:
-            if msg.message_type == MessageType.WAIT:
-                current_point_in_time += msg.time
-                cap_message_exists = False
-            else:
-                message_to_add = copy.copy(msg)
-                message_to_add.time = current_point_in_time
-                absolute_sequence._add_message_unsorted(message_to_add)
-                cap_message_exists = True
-
-        absolute_sequence.normalise_absolute()
-
-        if not cap_message_exists:
-            absolute_sequence.add_message(Message(message_type=MessageType.INTERNAL, time=current_point_in_time))
-
-        return absolute_sequence
 
     def to_midi_track(self) -> MidiTrack:
         """Converts the sequence to a `MidiTrack`.

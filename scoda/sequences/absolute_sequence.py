@@ -43,19 +43,51 @@ class AbsoluteSequence(AbstractSequence):
         if not isinstance(o, AbsoluteSequence):
             return False
 
-        self_array = self.get_message_time_pairings()
-        other_array = o.get_message_time_pairings()
+        self_pairings = self.get_message_time_pairings()
+        other_pairings = o.get_message_time_pairings()
 
-        if len(self_array) != len(other_array):
-            return False
-
-        for self_pair, other_pair in zip(self_array, other_array):
-            if self_pair[0].time != other_pair[0].time or \
-                    self_pair[0].note != other_pair[0].note or \
-                    self_pair[1].time != other_pair[1].time:
+        for key_channel in self_pairings.keys():
+            if key_channel not in other_pairings:
                 return False
 
+            self_notes = self_pairings[key_channel]
+            other_notes = other_pairings[key_channel]
+
+            if len(self_notes) != len(other_notes):
+                return False
+
+            for self_pair, other_pair in zip(self_notes, other_notes):
+                if self_pair[0].time != other_pair[0].time or \
+                        self_pair[0].note != other_pair[0].note or \
+                        self_pair[1].time != other_pair[1].time:
+                    return False
+
         return True
+
+    def to_relative_sequence(self) -> RelativeSequence:
+        """Converts this AbsoluteSequence to a RelativeSequence.
+
+        Returns: The relative representation of this sequence.
+
+        """
+        from scoda.sequences.relative_sequence import RelativeSequence
+        relative_sequence = RelativeSequence()
+        current_point_in_time = 0
+
+        for msg in self.messages:
+            time = msg.time
+            # Check if we have to add wait messages
+            if time > current_point_in_time:
+                relative_sequence.add_message(
+                    Message(message_type=MessageType.WAIT, time=time - current_point_in_time))
+                current_point_in_time = time
+
+            if msg.message_type != MessageType.INTERNAL:
+                message_to_add = copy.copy(msg)
+                message_to_add.time = None
+                relative_sequence.add_message(message_to_add)
+
+        return relative_sequence
 
     # Basic Methods
 
@@ -75,17 +107,19 @@ class AbsoluteSequence(AbstractSequence):
             reduced_length: The length violating notes are assigned.
 
         """
-        note_array = self.get_message_time_pairings()
+        message_pairings = self.get_message_time_pairings()
 
-        for entry in note_array:
-            if len(entry) == 1:
-                if not entry[0].message_type == MessageType.NOTE_ON:
-                    raise SequenceException("Cutoff: Note was closed without having been opened.")
-                self.add_message(
-                    Message(message_type=MessageType.NOTE_OFF, note=entry[0].note, time=entry[0].time + maximum_length))
-            else:
-                if entry[1].time - entry[0].time > maximum_length:
-                    entry[1].time = entry[0].time + reduced_length
+        for channel_pairings in message_pairings.values():
+            for entry in channel_pairings:
+                if len(entry) == 1:
+                    if not entry[0].message_type == MessageType.NOTE_ON:
+                        raise SequenceException("Cutoff: Note was closed without having been opened.")
+                    self.add_message(
+                        Message(message_type=MessageType.NOTE_OFF, note=entry[0].note,
+                                time=entry[0].time + maximum_length))
+                else:
+                    if entry[1].time - entry[0].time > maximum_length:
+                        entry[1].time = entry[0].time + reduced_length
 
         self.normalise_absolute()
 
@@ -240,58 +274,60 @@ class AbsoluteSequence(AbstractSequence):
             note_values = get_default_note_values()
 
         # Construct current durations
-        notes = self.get_message_time_pairings(standard_length=standard_length)
-        # Track when each type of note occurs, in order to check for possible overlaps
-        note_occurrences = dict()
+        message_pairings = self.get_message_time_pairings(standard_length=standard_length)
         quantised_messages = []
 
-        # Construct array keeping track of when each note occurs
-        for pairing in notes:
-            note = pairing[0].note
-            note_occurrences.setdefault(note, [])
-            note_occurrences[note].append(pairing)
+        for channel_pairings in message_pairings.values():
+            # Track when each type of note occurs, in order to check for possible overlaps
+            note_occurrences = dict()
 
-        # Handle each note, pairing consists of start and stop message
-        for i, pairing in enumerate(notes):
-            note = pairing[0].note
-            current_duration = pairing[1].time - pairing[0].time
-            valid_durations = copy.copy(note_values)
+            # Construct array keeping track of when each note occurs
+            for pairing in channel_pairings:
+                note = pairing[0].note
+                note_occurrences.setdefault(note, [])
+                note_occurrences[note].append(pairing)
 
-            # Check if the current note is not the last note, in this case clashes with a next note could exist
-            index = note_occurrences[note].index(pairing)
-            if index != len(note_occurrences[note]) - 1:
-                possible_next_pairing = note_occurrences[note][index + 1]
+            # Handle each note, pairing consists of start and stop message
+            for i, pairing in enumerate(channel_pairings):
+                note = pairing[0].note
+                current_duration = pairing[1].time - pairing[0].time
+                valid_durations = copy.copy(note_values)
 
-                # Note values contains the same as valid durations at the beginning
+                # Check if the current note is not the last note, in this case clashes with a next note could exist
+                index = note_occurrences[note].index(pairing)
+                if index != len(note_occurrences[note]) - 1:
+                    possible_next_pairing = note_occurrences[note][index + 1]
+
+                    # Note values contains the same as valid durations at the beginning
+                    for note_value in note_values:
+                        possible_correction = note_value - current_duration
+
+                        # If we cannot extend the note, remove the time from possible times
+                        if pairing[1].time + possible_correction > possible_next_pairing[0].time:
+                            valid_durations.remove(note_value)
+
+                # If we are not allowed to extend note lengths, remove all positive corrections
                 for note_value in note_values:
                     possible_correction = note_value - current_duration
 
-                    # If we cannot extend the note, remove the time from possible times
-                    if pairing[1].time + possible_correction > possible_next_pairing[0].time:
+                    if possible_correction > 0 and do_not_extend and note_value in valid_durations:
                         valid_durations.remove(note_value)
 
-            # If we are not allowed to extend note lengths, remove all positive corrections
-            for note_value in note_values:
-                possible_correction = note_value - current_duration
+                # Check if we have to remove the note
+                if len(valid_durations) == 0:
+                    notes[i] = []
+                else:
+                    current_duration = pairing[1].time - pairing[0].time
+                    best_fit = valid_durations[find_minimal_distance(current_duration, valid_durations)]
+                    correction = best_fit - current_duration
+                    pairing[1].time += correction
 
-                if possible_correction > 0 and do_not_extend and note_value in valid_durations:
-                    valid_durations.remove(note_value)
+            for pairing in channel_pairings:
+                quantised_messages.extend(pairing)
 
-            # Check if we have to remove the note
-            if len(valid_durations) == 0:
-                notes[i] = []
-            else:
-                current_duration = pairing[1].time - pairing[0].time
-                best_fit = valid_durations[find_minimal_distance(current_duration, valid_durations)]
-                correction = best_fit - current_duration
-                pairing[1].time += correction
-
-        for pairing in notes:
-            quantised_messages.extend(pairing)
-
-        for msg in self.messages:
-            if msg.message_type is not MessageType.NOTE_ON and msg.message_type is not MessageType.NOTE_OFF:
-                quantised_messages.append(msg)
+            for msg in self.messages:
+                if msg.message_type is not MessageType.NOTE_ON and msg.message_type is not MessageType.NOTE_OFF:
+                    quantised_messages.append(msg)
 
         self.messages = quantised_messages
         self.normalise_absolute()
@@ -303,7 +339,7 @@ class AbsoluteSequence(AbstractSequence):
         they will occur in this order after the sort.
 
         """
-        self.messages.sort(key=lambda x: (x.time, x.message_type, x.channel, x.note))
+        self.messages.sort(key=lambda x: (x.time, -1 if x.channel is None else x.channel, x.message_type, x.note))
 
     # Misc. Methods
 
@@ -328,9 +364,8 @@ class AbsoluteSequence(AbstractSequence):
 
         self.normalise_absolute()
 
-        notes: dict[list[Message]] = dict()
+        notes = dict()
         open_messages = dict()
-        i = 0
 
         # Collect notes
         for msg in self.messages:
@@ -351,8 +386,7 @@ class AbsoluteSequence(AbstractSequence):
                                     time=msg.time, channel=msg.channel))
 
                     notes[msg.channel].append([msg])
-                    open_messages[msg.channel][msg.note] = i
-                    i += 1
+                    open_messages[msg.channel][msg.note] = len(notes[msg.channel]) - 1
 
                 # Add closing message to fitting open message
                 elif msg.message_type == MessageType.NOTE_OFF:
@@ -367,7 +401,6 @@ class AbsoluteSequence(AbstractSequence):
 
                 else:
                     notes[msg.channel].append([msg])
-                    i += 1
 
         # Check unclosed notes
         for channel in notes:
@@ -378,6 +411,23 @@ class AbsoluteSequence(AbstractSequence):
 
         return notes
 
+    def get_message_times_of_type(self, message_types: list[MessageType]) -> list[tuple[int, Message]]:
+        """Searches for messages that fit one of the given types.
+
+        Args:
+            message_types: Which message types to search for.
+
+        Returns: A list containing the found messages and their absolute points in time.
+
+        """
+        timings = []
+
+        for msg in self.messages:
+            if msg.message_type in message_types:
+                timings.append((msg.time, msg))
+
+        return timings
+
     def get_sequence_duration(self) -> int:
         """Calculates the overall duration of this sequence, given in ticks.
 
@@ -385,31 +435,6 @@ class AbsoluteSequence(AbstractSequence):
 
         """
         return self.messages[-1].time
-
-    def to_relative_sequence(self) -> RelativeSequence:
-        """Converts this AbsoluteSequence to a RelativeSequence.
-
-        Returns: The relative representation of this sequence.
-
-        """
-        from scoda.sequences.relative_sequence import RelativeSequence
-        relative_sequence = RelativeSequence()
-        current_point_in_time = 0
-
-        for msg in self.messages:
-            time = msg.time
-            # Check if we have to add wait messages
-            if time > current_point_in_time:
-                relative_sequence.add_message(
-                    Message(message_type=MessageType.WAIT, time=time - current_point_in_time))
-                current_point_in_time = time
-
-            if msg.message_type != MessageType.INTERNAL:
-                message_to_add = copy.copy(msg)
-                message_to_add.time = None
-                relative_sequence.add_message(message_to_add)
-
-        return relative_sequence
 
     # Difficulty Methods
 

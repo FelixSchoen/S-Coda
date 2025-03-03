@@ -137,7 +137,7 @@ class MidiFile:
 
         # Set standard time if not set
         if not any(timing_tuple[0] == 0 for timing_tuple in
-                   meta_track.get_message_timings_of_type([MessageType.TIME_SIGNATURE])):
+                   meta_track.get_message_times_of_type([MessageType.TIME_SIGNATURE])):
             meta_track.add_absolute_message(
                 Message(message_type=MessageType.TIME_SIGNATURE, numerator=4, denominator=4, time=0))
 
