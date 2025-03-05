@@ -94,12 +94,12 @@ def test_copy_of_elements():
     sequence_copy = copy.copy(sequence)
     composition_copy = copy.copy(composition)
 
-    for msg_orig, msg_copy in zip(sequence.rel.messages, sequence_copy.rel.messages):
+    for msg_orig, msg_copy in zip(sequence.rel._messages, sequence_copy.rel._messages):
         assert msg_orig.message_type == msg_copy.message_type
         assert msg_orig != msg_copy
 
     for track_orig, track_copy in zip(composition.tracks, composition_copy.tracks):
         for bar_orig, bar_copy in zip(track_orig.bars, track_copy.bars):
-            for msg_orig, msg_copy in zip(bar_orig.sequence.rel.messages, bar_copy.sequence.rel.messages):
+            for msg_orig, msg_copy in zip(bar_orig.sequence.rel._messages, bar_copy.sequence.rel._messages):
                 assert msg_orig.message_type == msg_copy.message_type
                 assert msg_orig != msg_copy

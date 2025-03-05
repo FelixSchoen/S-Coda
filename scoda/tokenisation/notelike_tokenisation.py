@@ -72,8 +72,7 @@ class MultiTrackLargeVocabularyNotelikeTokeniser:
 
         # Merge sequences
         for i, sequence_bar in enumerate(sequences_bar):
-            for msg in sequence_bar.abs.messages:
-                msg.channel = i
+            sequence_bar.set_channel(i)
         sequence_bar = Sequence()
         sequence_bar.merge(sequences_bar)
 
@@ -458,16 +457,16 @@ class BaseLargeVocabularyNotelikeTokeniser(BaseNotelikeTokeniser, ABC):
 
     def tokenise(self, sequence: Sequence, apply_buffer: bool = True, reset_time: bool = True) -> list[int]:
         tokens = []
-        event_pairings = sequence.abs.get_message_time_pairings(
+        message_pairings = sequence.abs.get_message_pairings(
             [MessageType.NOTE_ON, MessageType.NOTE_OFF, MessageType.TIME_SIGNATURE, MessageType.INTERNAL])
 
-        for event_pairing in event_pairings:
-            msg_type = event_pairing[0].message_type
-            msg_time = event_pairing[0].time
+        for message_pairing in message_pairings:
+            msg_type = message_pairing[0].message_type
+            msg_time = message_pairing[0].time
 
             if msg_type == MessageType.NOTE_ON:
-                msg_note = event_pairing[0].note
-                msg_value = event_pairing[1].time - msg_time
+                msg_note = message_pairing[0].note
+                msg_value = message_pairing[1].time - msg_time
 
                 if not (21 <= msg_note <= 108):
                     raise TokenisationException(f"Invalid note pitch: {msg_note}")
@@ -488,8 +487,8 @@ class BaseLargeVocabularyNotelikeTokeniser(BaseNotelikeTokeniser, ABC):
                 self.cur_time_target = max(self.cur_time_target, self.cur_time + msg_value)
                 self.prv_note = msg_note
             elif msg_type == MessageType.TIME_SIGNATURE:
-                msg_numerator = event_pairing[0].numerator
-                msg_denominator = event_pairing[0].denominator
+                msg_numerator = message_pairing[0].numerator
+                msg_denominator = message_pairing[0].denominator
 
                 numerator = self._time_signature_to_eights(msg_numerator, msg_denominator)
 

@@ -12,7 +12,7 @@ class AbstractSequence(ABC):
 
     def __init__(self) -> None:
         super().__init__()
-        self.messages = []
+        self._messages = []
 
     @abstractmethod
     def add_message(self, msg: Message) -> None:

@@ -164,6 +164,11 @@ class Sequence:
         """
         return Sequence.sequences_save([self], file_path)
 
+    def set_channel(self, channel: int) -> None:
+        """See `scoda.sequence.relative_sequence.RelativeSequence.set_channel`."""
+        self.rel.set_channel(channel)
+        self._abs_stale = True
+
     def split(self, capacities: list[int]) -> list[Sequence]:
         """See `scoda.sequence.relative_sequence.RelativeSequence.split`."""
         relative_sequences = self.rel.split(capacities)
@@ -214,16 +219,16 @@ class Sequence:
 
     # Misc. Methods
 
-    def get_message_time_pairings(self,
-                                  message_types: list[MessageType] = None,
-                                  standard_length=PPQN,
-                                  impute_notes=True) -> dict[list[Message]]:
-        """See `scoda.sequence.absolute_sequence.AbsoluteSequence.get_message_time_pairings`.
+    def get_message_pairings(self,
+                             message_types: list[MessageType] = None,
+                             standard_length=PPQN,
+                             impute_notes=True) -> dict[list[Message]]:
+        """See `scoda.sequence.absolute_sequence.AbsoluteSequence.get_message_pairings`.
 
         """
-        return self.abs.get_message_time_pairings(message_types=message_types,
-                                                  standard_length=standard_length,
-                                                  impute_notes=impute_notes)
+        return self.abs.get_message_pairings(message_types=message_types,
+                                             standard_length=standard_length,
+                                             impute_notes=impute_notes)
 
     def get_interleaved_message_pairings(self,
                                          message_types: list[MessageType] = None,
@@ -556,30 +561,31 @@ class Sequence:
 
         # Draw notes
         for i, sequence in enumerate(sequences):
-            note_array = sequence.abs.get_message_time_pairings()
+            channel_pairings = sequence.abs.get_message_pairings()
 
-            for note in note_array:
-                start_time = note[0].time
-                duration = note[1].time - start_time
-                pitch = note[0].note
+            for message_pairings in channel_pairings.values():
+                for note in message_pairings:
+                    start_time = note[0].time
+                    duration = note[1].time - start_time
+                    pitch = note[0].note
 
-                # Keep track of scales
-                if pitch < y_scale_min:
-                    y_scale_min = pitch
-                if pitch > y_scale_max:
-                    y_scale_max = pitch
+                    # Keep track of scales
+                    if pitch < y_scale_min:
+                        y_scale_min = pitch
+                    if pitch > y_scale_max:
+                        y_scale_max = pitch
 
-                # Calculate opacity based on velocity
-                opacity = simple_regression(1, 1, 0, 0.5, note[0].velocity / VELOCITY_MAX)
+                    # Calculate opacity based on velocity
+                    opacity = simple_regression(1, 1, 0, 0.5, note[0].velocity / VELOCITY_MAX)
 
-                # Draw rectangle
-                axs[i].add_patch(
-                    Rectangle((start_time, pitch), duration, 1,
-                              facecolor=(0, 0, 0, 1 if not show_velocity else opacity)))
+                    # Draw rectangle
+                    axs[i].add_patch(
+                        Rectangle((start_time, pitch), duration, 1,
+                                  facecolor=(0, 0, 0, 1 if not show_velocity else opacity)))
 
             # Get length of sequence (if wait messages occur after notes)
             length = 0
-            for msg in sequence.rel.messages:
+            for msg in sequence.rel._messages:
                 if msg.message_type == MessageType.WAIT:
                     length += msg.time
 

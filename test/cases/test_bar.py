@@ -8,7 +8,7 @@ def test_copy():
 
     bar_copy = copy.copy(bar)
 
-    assert len(bar_copy.sequence.rel.messages) == len(bar.sequence.rel.messages)
+    assert len(bar_copy.sequence.rel._messages) == len(bar.sequence.rel._messages)
 
 
 def test_to_sequence():

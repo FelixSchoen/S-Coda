@@ -42,8 +42,8 @@ class RelativeSequence(AbstractSequence):
     def __copy__(self):
         cpy = RelativeSequence()
 
-        for message in self.messages:
-            cpy.messages.append(copy.copy(message))
+        for message in self._messages:
+            cpy._messages.append(copy.copy(message))
 
         return cpy
 
@@ -65,7 +65,7 @@ class RelativeSequence(AbstractSequence):
         default_channel = None
         cap_message_exists = True
 
-        for msg in self.messages:
+        for msg in self._messages:
             if default_channel is None and msg.channel is not None:
                 default_channel = msg.channel
 
@@ -90,7 +90,7 @@ class RelativeSequence(AbstractSequence):
 
     def add_message(self, msg: Message) -> None:
         """Adds the given message to the sequence."""
-        self.messages.append(msg)
+        self._messages.append(msg)
 
     def concatenate(self, sequences: list[RelativeSequence]) -> None:
         """Concatenates the sequence with the given sequences, resulting in this sequence containing the combined
@@ -101,7 +101,7 @@ class RelativeSequence(AbstractSequence):
 
         """
         for seq in sequences:
-            self.messages.extend(seq.messages)
+            self._messages.extend(seq._messages)
 
     def normalise_relative(self) -> None:
         """Removes invalid open and close messages. Consolidates wait messages. Removes double time signatures and key signatures.
@@ -116,7 +116,7 @@ class RelativeSequence(AbstractSequence):
         current_key = None
         default_channel = None
 
-        for msg in self.messages:
+        for msg in self._messages:
             if default_channel is None and msg.channel is not None:
                 default_channel = msg.channel
 
@@ -174,7 +174,7 @@ class RelativeSequence(AbstractSequence):
                     if msg in messages_normalized:
                         messages_normalized.remove(msg)
 
-        self.messages = messages_normalized
+        self._messages = messages_normalized
 
     def pad(self, padding_length) -> None:
         """Pads the sequence to a minimum fixed length.
@@ -186,7 +186,7 @@ class RelativeSequence(AbstractSequence):
         current_length = 0
         default_channel = None
 
-        for msg in self.messages:
+        for msg in self._messages:
             if default_channel is None and msg.channel is not None:
                 default_channel = msg.channel
 
@@ -197,8 +197,12 @@ class RelativeSequence(AbstractSequence):
                     break
 
         if current_length < padding_length:
-            self.messages.append(
+            self._messages.append(
                 Message(message_type=MessageType.WAIT, channel=default_channel, time=padding_length - current_length))
+
+    def set_channel(self, channel: int) -> None:
+        for msg in self._messages:
+            msg.channel = channel
 
     def split(self, capacities: list[int]) -> list[RelativeSequence]:
         """Splits the sequence into parts of the given capacity.
@@ -214,7 +218,7 @@ class RelativeSequence(AbstractSequence):
 
         """
         split_sequences = []
-        working_memory = copy.copy(self.messages)
+        working_memory = copy.copy(self._messages)
 
         current_sequence = RelativeSequence()
         open_messages = dict()
@@ -228,7 +232,7 @@ class RelativeSequence(AbstractSequence):
             while remaining_capacity >= 0:
                 # Check if end-of-sequence was reached prematurely
                 if len(working_memory) == 0:
-                    if len(current_sequence.messages) > 0:
+                    if len(current_sequence._messages) > 0:
                         split_sequences.append(current_sequence)
                         current_sequence = next_sequence
                     break
@@ -270,7 +274,7 @@ class RelativeSequence(AbstractSequence):
                         next_sequence_queue.append(
                             Message(message_type=MessageType.WAIT, channel=msg.channel, time=carry_time))
 
-                        if len(current_sequence.messages) > 0:
+                        if len(current_sequence._messages) > 0:
                             split_sequences.append(current_sequence)
                         working_memory[0:0] = next_sequence_queue
                         current_sequence = next_sequence
@@ -283,10 +287,10 @@ class RelativeSequence(AbstractSequence):
 
         # Check if still capacity left
         if len(working_memory) > 0:
-            current_sequence.messages.extend(working_memory)
+            current_sequence._messages.extend(working_memory)
 
         # Add current sequence if it is not empty
-        if len(current_sequence.messages) > 0:
+        if len(current_sequence._messages) > 0:
             split_sequences.append(current_sequence)
 
         return split_sequences
@@ -310,7 +314,7 @@ class RelativeSequence(AbstractSequence):
         if factor == 1:
             return
         if factor > 1:
-            for msg in self.messages:
+            for msg in self._messages:
                 if msg.message_type == MessageType.WAIT:
                     msg.time = msg.time * factor
         # Handle special case, have to consider time signatures
@@ -343,7 +347,7 @@ class RelativeSequence(AbstractSequence):
                 if all(cbar.time_signature_numerator == current_bar.time_signature_numerator and
                        cbar.time_signature_denominator == current_bar.time_signature_denominator
                        for cbar in consecutive_bars):
-                    for msg in [msg for cbar in consecutive_bars for msg in cbar.sequence.rel.messages]:
+                    for msg in [msg for cbar in consecutive_bars for msg in cbar.sequence.rel._messages]:
                         if msg.message_type == MessageType.WAIT:
                             msg.time = msg.time * factor
 
@@ -352,7 +356,7 @@ class RelativeSequence(AbstractSequence):
                     bar_index += len(consecutive_bars)
                 # Not all have same time signature
                 else:
-                    for msg in current_bar.sequence.rel.messages:
+                    for msg in current_bar.sequence.rel._messages:
                         if msg.message_type == MessageType.WAIT:
                             msg.time = msg.time * factor
                         elif msg.message_type == MessageType.TIME_SIGNATURE:
@@ -365,7 +369,7 @@ class RelativeSequence(AbstractSequence):
 
                     bar_index += 1
 
-            self.messages = modified_messages
+            self._messages = modified_messages
             self.normalise_relative()
 
     def transpose(self, transpose_by: int) -> bool:
@@ -381,7 +385,7 @@ class RelativeSequence(AbstractSequence):
         """
         had_to_shift = False
 
-        for msg in self.messages:
+        for msg in self._messages:
             if msg.message_type == MessageType.NOTE_ON or msg.message_type == MessageType.NOTE_OFF:
                 msg.note += transpose_by
                 while msg.note < NOTE_LOWER_BOUND:
@@ -403,7 +407,7 @@ class RelativeSequence(AbstractSequence):
         Returns: `True` if the sequence is empty, `False` otherwise.
 
         """
-        for msg in self.messages:
+        for msg in self._messages:
             if msg.message_type == MessageType.NOTE_ON:
                 return False
         return True
@@ -414,7 +418,7 @@ class RelativeSequence(AbstractSequence):
         Returns: The best-fitting key for this bar.
 
         """
-        for msg in self.messages:
+        for msg in self._messages:
             if msg.message_type == MessageType.KEY_SIGNATURE:
                 return msg.key
             if msg.message_type == MessageType.WAIT:
@@ -424,7 +428,7 @@ class RelativeSequence(AbstractSequence):
         for _ in MusicMapping.KeyNoteMapping:
             key_candidates.append(0)
 
-        for msg in self.messages:
+        for msg in self._messages:
             if msg.message_type == MessageType.NOTE_ON:
                 for i, (_, key_notes) in enumerate(MusicMapping.KeyNoteMapping.items()):
                     if Note(msg.note % 12) not in key_notes[0]:
@@ -453,7 +457,7 @@ class RelativeSequence(AbstractSequence):
         """
         duration = 0
 
-        for msg in self.messages:
+        for msg in self._messages:
             if msg.message_type == MessageType.WAIT:
                 duration += msg.time
 
@@ -467,7 +471,7 @@ class RelativeSequence(AbstractSequence):
         """
         track = MidiTrack()
 
-        for msg in self.messages:
+        for msg in self._messages:
             track.messages.append(MidiMessage.parse_internal_message(msg))
 
         return track
@@ -486,7 +490,7 @@ class RelativeSequence(AbstractSequence):
         note_mapping = MusicMapping.KeyNoteMapping[key]
         violations = 0
 
-        for msg in self.messages:
+        for msg in self._messages:
             if msg.message_type == MessageType.NOTE_ON:
                 if Note(msg.note % 12) not in note_mapping[0]:
                     violations += 1
@@ -508,7 +512,7 @@ class RelativeSequence(AbstractSequence):
         notes_to_open = set()
         notes_to_close = set()
 
-        for msg in self.messages:
+        for msg in self._messages:
             if msg.message_type == MessageType.NOTE_ON:
                 notes_to_open.add(msg.note)
             elif msg.message_type == MessageType.NOTE_OFF:
@@ -553,7 +557,7 @@ class RelativeSequence(AbstractSequence):
         current_notes = []
         distances = []
 
-        for msg in self.messages:
+        for msg in self._messages:
             if msg.message_type == MessageType.WAIT and len(current_notes) > 0:
                 notes_played.append(sorted(current_notes))
                 current_notes = []
@@ -592,7 +596,7 @@ class RelativeSequence(AbstractSequence):
         """
         key_signature = key
 
-        for msg in self.messages:
+        for msg in self._messages:
             if msg.message_type == MessageType.KEY_SIGNATURE:
                 if key_signature is not None and key_signature is not msg.key:
                     RelativeSequence.LOGGER.info(f"Key was {key_signature}, now is {msg.key}.")
@@ -623,7 +627,7 @@ class RelativeSequence(AbstractSequence):
         if self.get_sequence_duration_relation() == 0:
             return 0
 
-        for msg in self.messages:
+        for msg in self._messages:
             if msg.message_type == MessageType.NOTE_ON:
                 amount_notes_played += 1
 
@@ -644,7 +648,7 @@ class RelativeSequence(AbstractSequence):
         """
         note_classes = []
 
-        for msg in self.messages:
+        for msg in self._messages:
             if msg.message_type == MessageType.NOTE_ON and msg.note not in note_classes:
                 note_classes.append(msg.note)
 
@@ -671,7 +675,7 @@ class RelativeSequence(AbstractSequence):
         notes_played = []
         current_bin = []
 
-        for msg in self.messages:
+        for msg in self._messages:
             if msg.message_type == MessageType.WAIT and len(current_bin) > 0:
                 notes_played.extend(sorted(current_bin, key=lambda message: message.note))
             elif msg.message_type == MessageType.NOTE_ON:

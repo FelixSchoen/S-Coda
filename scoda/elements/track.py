@@ -19,7 +19,7 @@ class Track:
         self.program = None
 
         seq = Bar.to_sequence(bars)
-        program_changes = [msg for msg in seq.rel.messages if msg.message_type == MessageType.PROGRAM_CHANGE]
+        program_changes = [msg for msg in seq.rel._messages if msg.message_type == MessageType.PROGRAM_CHANGE]
         if len(program_changes) > 0:
             if not all(msg.program == program_changes[0].program for msg in program_changes):
                 raise TrackException("Type of instrument inconsistent")

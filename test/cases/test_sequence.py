@@ -5,9 +5,9 @@ from scoda.enumerations.message_type import MessageType
 def test_difficulty():
     bars = util_split_into_bars()
     bar = bars[0][0]
-    for msg in bar.sequence.rel.messages:
+    for msg in bar.sequence.rel._messages:
         if msg.message_type == MessageType.KEY_SIGNATURE:
-            bar.sequence.rel.messages.remove(msg)
+            bar.sequence.rel._messages.remove(msg)
             bar.sequence._abs_stale = True
     bar.KEY_SIGNATURE = None
 
@@ -21,7 +21,7 @@ def test_sequences_load():
 
     assert sequences is not None
     for sequence in sequences[:2]:
-        assert len(sequence.rel.messages) > 0
+        assert len(sequence.rel._messages) > 0
 
 
 def test_plot_pianorolls():

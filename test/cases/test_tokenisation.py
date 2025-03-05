@@ -1,5 +1,5 @@
 from base import *
-from scoda.tokenisation.notelike_tokeniser import MultiTrackLargeVocabularyNotelikeTokeniser, \
+from scoda.tokenisation.notelike_tokenisation import MultiTrackLargeVocabularyNotelikeTokeniser, \
     LargeVocabularyNotelikeTokeniser
 
 
@@ -48,13 +48,11 @@ def _test_roundtrip_multi_track_tokenisation(tokeniser, path_resource, quantise=
             bar.sequence.quantise_and_normalise(step_sizes=default_step_sizes, note_values=default_note_values)
 
             first_channel = None
-            for msg in bar.sequence.abs.messages:
+            for msg in bar.sequence.abs._messages:
                 if first_channel is None:
                     first_channel = msg.channel
                 else:
                     assert msg.channel == first_channel
-
-    return
 
     tokens_bars = []
 
