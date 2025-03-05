@@ -56,6 +56,8 @@ class MidiFile:
         # PPQN scaling
         scaling_factor = PPQN / self.PPQN
 
+        default_channel = None
+
         # Iterate over all tracks contained in this file
         for i, track in enumerate(self.tracks):
             # Skip tracks not specified
@@ -75,6 +77,9 @@ class MidiFile:
 
             # Parse messages
             for j, msg in enumerate(track.messages):
+                if default_channel is None and msg.channel is not None:
+                    default_channel = msg.channel
+
                 # Add time induced by message
                 current_point_in_time += (msg.time * scaling_factor)
                 rounded_point_in_time = round(current_point_in_time)
@@ -139,7 +144,8 @@ class MidiFile:
         if not any(timing_tuple[0] == 0 for timing_tuple in
                    meta_track.get_message_times_of_type([MessageType.TIME_SIGNATURE])):
             meta_track.add_absolute_message(
-                Message(message_type=MessageType.TIME_SIGNATURE, numerator=4, denominator=4, time=0))
+                Message(message_type=MessageType.TIME_SIGNATURE, channel=default_channel, numerator=4, denominator=4,
+                        time=0))
 
         return merged_sequences
 

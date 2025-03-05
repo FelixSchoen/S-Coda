@@ -451,8 +451,8 @@ class Sequence:
 
         if len(time_signature_timings) == 0:
             time_signature_timings = [(0,
-                                       Message(message_type=MessageType.TIME_SIGNATURE, numerator=current_ts_numerator,
-                                               denominator=current_ts_denominator))]
+                                       Message(message_type=MessageType.TIME_SIGNATURE, channel=None,
+                                               numerator=current_ts_numerator, denominator=current_ts_denominator))]
 
         # Keep track of when bars are of equal length
         tracks_synchronised = False

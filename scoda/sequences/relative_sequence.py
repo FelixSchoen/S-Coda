@@ -62,11 +62,12 @@ class RelativeSequence(AbstractSequence):
         from scoda.sequences.absolute_sequence import AbsoluteSequence
         absolute_sequence = AbsoluteSequence()
         current_point_in_time = 0
-        last_valid_channel = None
+        default_channel = None
         cap_message_exists = True
 
         for msg in self.messages:
-            last_valid_channel = msg.channel if msg.channel is not None else last_valid_channel
+            if default_channel is None and msg.channel is not None:
+                default_channel = msg.channel
 
             if msg.message_type == MessageType.WAIT:
                 current_point_in_time += msg.time
@@ -81,7 +82,7 @@ class RelativeSequence(AbstractSequence):
 
         if not cap_message_exists:
             absolute_sequence.add_message(
-                Message(message_type=MessageType.INTERNAL, channel=last_valid_channel, time=current_point_in_time))
+                Message(message_type=MessageType.INTERNAL, channel=default_channel, time=current_point_in_time))
 
         return absolute_sequence
 
@@ -113,8 +114,12 @@ class RelativeSequence(AbstractSequence):
         current_ts_numerator = None
         current_ts_denominator = None
         current_key = None
+        default_channel = None
 
         for msg in self.messages:
+            if default_channel is None and msg.channel is not None:
+                default_channel = msg.channel
+
             if msg.message_type == MessageType.WAIT:
                 wait_buffer += msg.time
             else:
@@ -150,14 +155,16 @@ class RelativeSequence(AbstractSequence):
 
                 # Insert consolidated wait message
                 if wait_buffer > 0:
-                    messages_normalized.append(Message(message_type=MessageType.WAIT, time=wait_buffer))
+                    messages_normalized.append(
+                        Message(message_type=MessageType.WAIT, channel=msg.channel, time=wait_buffer))
                     wait_buffer = 0
 
                 messages_normalized.append(msg)
 
         # Repeat procedure for wait messages that occur at the end of the sequence
         if wait_buffer > 0:
-            messages_normalized.append(Message(message_type=MessageType.WAIT, time=wait_buffer))
+            messages_normalized.append(
+                Message(message_type=MessageType.WAIT, channel=default_channel, time=wait_buffer))
 
         for key in open_messages.keys():
             note_list = open_messages.get(key, [])
@@ -177,8 +184,12 @@ class RelativeSequence(AbstractSequence):
 
         """
         current_length = 0
+        default_channel = None
 
         for msg in self.messages:
+            if default_channel is None and msg.channel is not None:
+                default_channel = msg.channel
+
             if msg.message_type == MessageType.WAIT:
                 current_length += msg.time
 
@@ -186,7 +197,8 @@ class RelativeSequence(AbstractSequence):
                     break
 
         if current_length < padding_length:
-            self.messages.append(Message(message_type=MessageType.WAIT, time=padding_length - current_length))
+            self.messages.append(
+                Message(message_type=MessageType.WAIT, channel=default_channel, time=padding_length - current_length))
 
     def split(self, capacities: list[int]) -> list[RelativeSequence]:
         """Splits the sequence into parts of the given capacity.
@@ -246,14 +258,17 @@ class RelativeSequence(AbstractSequence):
 
                         if remaining_capacity > 0:
                             current_sequence.add_message(
-                                Message(message_type=MessageType.WAIT, time=remaining_capacity))
+                                Message(message_type=MessageType.WAIT, channel=msg.channel, time=remaining_capacity))
 
                         for key, value in open_messages.items():
-                            current_sequence.add_message(Message(message_type=MessageType.NOTE_OFF, note=value.note))
+                            current_sequence.add_message(
+                                Message(message_type=MessageType.NOTE_OFF, channel=value.channel, note=value.note))
                             next_sequence_queue.append(
-                                Message(message_type=MessageType.NOTE_ON, note=value.note, velocity=value.velocity))
+                                Message(message_type=MessageType.NOTE_ON, channel=value.channel, note=value.note,
+                                        velocity=value.velocity))
 
-                        next_sequence_queue.append(Message(message_type=MessageType.WAIT, time=carry_time))
+                        next_sequence_queue.append(
+                            Message(message_type=MessageType.WAIT, channel=msg.channel, time=carry_time))
 
                         if len(current_sequence.messages) > 0:
                             split_sequences.append(current_sequence)

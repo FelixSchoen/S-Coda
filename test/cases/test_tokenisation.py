@@ -22,8 +22,8 @@ def _test_roundtrip_multi_track_tokenisation(tokeniser, path_resource, quantise=
     default_step_sizes = get_default_step_sizes()
     default_note_values = get_default_note_values()
 
-    for sequence in sequences:
-        if quantise:
+    if quantise:
+        for sequence in sequences:
             sequence.quantise_and_normalise(step_sizes=default_step_sizes, note_values=default_note_values)
 
     sequences_bars = Sequence.sequences_split_bars(sequences, 0)
@@ -31,20 +31,37 @@ def _test_roundtrip_multi_track_tokenisation(tokeniser, path_resource, quantise=
     if quantise:
         for sequence_bars in sequences_bars:
             for bar in sequence_bars:
-                bar.sequence.quantise_and_normalise()
+                bar.sequence.quantise_and_normalise(step_sizes=default_step_sizes, note_values=default_note_values)
 
     sequences_original = []
-    for sequence_bars in sequences_bars:
+    for i, sequence_bars in enumerate(sequences_bars):
         sequence = Sequence()
         sequence.concatenate([bar.sequence for bar in sequence_bars])
         sequences_original.append(sequence)
-    sequence_original = Sequence()
-    sequence_original.merge(sequences_original)
-    sequence_original.save("sequence_original.mid")
+
+    for i, sequence_original in enumerate(sequences_original):
+        sequence_original.save(f"out/sequence_original_{i}.mid")
+
+    # TODO
+    for i, sequence_bars in enumerate(sequences_bars):
+        for j, bar in enumerate(sequence_bars):
+            bar.sequence.quantise_and_normalise(step_sizes=default_step_sizes, note_values=default_note_values)
+
+            first_channel = None
+            for msg in bar.sequence.abs.messages:
+                if first_channel is None:
+                    first_channel = msg.channel
+                else:
+                    assert msg.channel == first_channel
+
+    return
 
     tokens_bars = []
 
     for i, bars in enumerate(zip(*sequences_bars)):
+        # LOGGER.info(f"Processing bar {i}")
+        # for j, bar in enumerate(bars):
+        #     bar.sequence.save(f"out/bar_{i}_{j}.mid")
         bar_tokens = tokeniser.tokenise([bar.sequence for bar in bars])
         tokens_bars.append(bar_tokens)
 
@@ -65,11 +82,17 @@ def _test_roundtrip_multi_track_tokenisation(tokeniser, path_resource, quantise=
     assert decoded == tokens
 
     sequences_roundtrip = tokeniser.detokenise(decoded)
+
+    for i, sequence_roundtrip in enumerate(sequences_roundtrip):
+        sequence_roundtrip.save(f"out/sequence_roundtrip_{i}.mid")
+
+    return
+
     sequence_roundtrip = Sequence()
     sequence_roundtrip.merge(sequences_roundtrip)
 
     if quantise:
-        sequence_roundtrip.quantise_and_normalise()
+        sequence_roundtrip.quantise_and_normalise(step_sizes=default_step_sizes, note_values=default_note_values)
 
     assert sequence_original == sequence_roundtrip
 

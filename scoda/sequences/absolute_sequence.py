@@ -79,7 +79,7 @@ class AbsoluteSequence(AbstractSequence):
             # Check if we have to add wait messages
             if time > current_point_in_time:
                 relative_sequence.add_message(
-                    Message(message_type=MessageType.WAIT, time=time - current_point_in_time))
+                    Message(message_type=MessageType.WAIT, channel=msg.channel, time=time - current_point_in_time))
                 current_point_in_time = time
 
             if msg.message_type != MessageType.INTERNAL:
@@ -115,7 +115,7 @@ class AbsoluteSequence(AbstractSequence):
                     if not entry[0].message_type == MessageType.NOTE_ON:
                         raise SequenceException("Cutoff: Note was closed without having been opened.")
                     self.add_message(
-                        Message(message_type=MessageType.NOTE_OFF, note=entry[0].note,
+                        Message(message_type=MessageType.NOTE_OFF, channel=entry[0].channel, note=entry[0].note,
                                 time=entry[0].time + maximum_length))
                 else:
                     if entry[1].time - entry[0].time > maximum_length:
@@ -190,7 +190,8 @@ class AbsoluteSequence(AbstractSequence):
                 if msg.note in open_messages:
                     AbsoluteSequence.LOGGER.warning(f"Quantisation: Note {msg.note} not previously stopped.")
                     quantised_messages.append(
-                        Message(message_type=MessageType.NOTE_OFF, note=msg.note, time=message_to_append.time))
+                        Message(message_type=MessageType.NOTE_OFF, channel=msg.channel, note=msg.note,
+                                time=message_to_append.time))
                     open_messages.pop(msg.note, None)
                     message_timings[msg.note].append(message_to_append.time)
 
@@ -315,7 +316,7 @@ class AbsoluteSequence(AbstractSequence):
 
                 # Check if we have to remove the note
                 if len(valid_durations) == 0:
-                    notes[i] = []
+                    channel_pairings[i] = []
                 else:
                     current_duration = pairing[1].time - pairing[0].time
                     best_fit = valid_durations[find_minimal_distance(current_duration, valid_durations)]
@@ -379,11 +380,11 @@ class AbsoluteSequence(AbstractSequence):
                     # Check if note was not previously closed
                     if msg.note in open_messages[msg.channel] and impute_notes:
                         AbsoluteSequence.LOGGER.warning(
-                            f"Time Pairings: Note {msg.note} at time {msg.time} not previously stopped.")
+                            f"Time Pairings: Note {msg.channel}:{msg.note} at time {msg.time} not previously stopped.")
                         index = open_messages[msg.channel].pop(msg.note)
                         notes[msg.channel][index].append(
-                            Message(message_type=MessageType.NOTE_OFF, note=msg.note,
-                                    time=msg.time, channel=msg.channel))
+                            Message(message_type=MessageType.NOTE_OFF, channel=msg.channel, note=msg.note,
+                                    time=msg.time))
 
                     notes[msg.channel].append([msg])
                     open_messages[msg.channel][msg.note] = len(notes[msg.channel]) - 1
@@ -394,7 +395,7 @@ class AbsoluteSequence(AbstractSequence):
                     if msg.channel not in open_messages or msg.note not in open_messages[msg.channel]:
                         if impute_notes:
                             AbsoluteSequence.LOGGER.warning(
-                                f"Time Pairings: Note {msg.note} at time {msg.time} not previously started.")
+                                f"Time Pairings: Note {msg.channel}:{msg.note} at time {msg.time} not previously started.")
                     else:
                         index = open_messages[msg.channel].pop(msg.note)
                         notes[msg.channel][index].append(msg)
@@ -406,8 +407,8 @@ class AbsoluteSequence(AbstractSequence):
         for channel in notes:
             for pairing in notes[channel]:
                 if len(pairing) == 1 and pairing[0].message_type == MessageType.NOTE_ON and impute_notes:
-                    pairing.append(Message(message_type=MessageType.NOTE_OFF, time=pairing[0].time + standard_length,
-                                           channel=pairing[0].channel))
+                    pairing.append(Message(message_type=MessageType.NOTE_OFF, channel=pairing[0].channel,
+                                           time=pairing[0].time + standard_length))
 
         return notes
 

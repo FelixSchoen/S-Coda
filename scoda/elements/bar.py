@@ -13,7 +13,7 @@ from scoda.settings.settings import PPQN
 class Bar:
     """Class representing a single bar, its length defined by a time signature."""
 
-    def __init__(self, sequence: Sequence, numerator: int, denominator: int, key=None) -> None:
+    def __init__(self, sequence: Sequence, numerator: int, denominator: int, key=None, default_channel=0) -> None:
         super().__init__()
 
         self.sequence: Sequence = sequence
@@ -50,6 +50,7 @@ class Bar:
         relative_sequence.messages = [msg for msg in relative_sequence.messages if
                                       msg.message_type != MessageType.TIME_SIGNATURE]
         relative_sequence.messages.insert(0, Message(message_type=MessageType.TIME_SIGNATURE,
+                                                     channel=default_channel,
                                                      numerator=self.time_signature_numerator,
                                                      denominator=self.time_signature_denominator))
 
