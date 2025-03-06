@@ -6,7 +6,7 @@
     "note_lower_bound": 21,
     "note_upper_bound": 108,
     "note_value_lower_bound": 4,
-    "note_value_upper_bound": 4,
+    "note_value_upper_bound": 1,
     "dotted_iterations": 1,
     "tuplets_valid": [
       [

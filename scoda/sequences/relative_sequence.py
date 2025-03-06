@@ -117,25 +117,28 @@ class RelativeSequence(AbstractSequence):
         default_channel = None
 
         for msg in self._messages:
+            # Infer default channel
             if default_channel is None and msg.channel is not None:
                 default_channel = msg.channel
+
+            open_messages.setdefault(msg.channel, dict())
 
             if msg.message_type == MessageType.WAIT:
                 wait_buffer += msg.time
             else:
                 if msg.message_type == MessageType.NOTE_ON:
-                    note_list = open_messages.get(msg.note, [])
+                    note_list = open_messages[msg.channel].get(msg.note, [])
                     note_list.append(msg)
-                    open_messages[msg.note] = note_list
+                    open_messages[msg.channel][msg.note] = note_list
 
                     # Skip message if note is already open
                     if len(note_list) != 1:
                         continue
                 elif msg.message_type == MessageType.NOTE_OFF:
-                    note_list = open_messages.get(msg.note, [])
+                    note_list = open_messages[msg.channel].get(msg.note, [])
                     if len(note_list) > 0:
                         note_list.pop(-1)
-                    open_messages[msg.note] = note_list
+                    open_messages[msg.channel][msg.note] = note_list
 
                     # Skip message if note not yet closed
                     if len(note_list) != 0:
@@ -166,10 +169,10 @@ class RelativeSequence(AbstractSequence):
             messages_normalized.append(
                 Message(message_type=MessageType.WAIT, channel=default_channel, time=wait_buffer))
 
-        for key in open_messages.keys():
-            note_list = open_messages.get(key, [])
-
-            if len(note_list) > 0:
+        # Remove unclosed notes
+        for channel in open_messages.keys():
+            for key in open_messages.keys():
+                note_list = open_messages[channel].get(key, [])
                 for msg in note_list:
                     if msg in messages_normalized:
                         messages_normalized.remove(msg)

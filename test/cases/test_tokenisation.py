@@ -17,6 +17,8 @@ def test_roundtrip_multi_track_large_vocabulary_notelike_tokeniser(path_resource
 
 
 def _test_roundtrip_multi_track_tokenisation(tokeniser, path_resource, quantise=True, detokenise=True):
+    debug = False
+
     sequences = Sequence.sequences_load(file_path=path_resource)
 
     default_step_sizes = get_default_step_sizes()
@@ -36,23 +38,19 @@ def _test_roundtrip_multi_track_tokenisation(tokeniser, path_resource, quantise=
     sequences_original = []
     for i, sequence_bars in enumerate(sequences_bars):
         sequence = Sequence()
-        sequence.concatenate([bar.sequence for bar in sequence_bars])
-        sequences_original.append(sequence)
+        bars = []
 
-    for i, sequence_original in enumerate(sequences_original):
-        sequence_original.save(f"out/sequence_original_{i}.mid")
-
-    # TODO
-    for i, sequence_bars in enumerate(sequences_bars):
         for j, bar in enumerate(sequence_bars):
             bar.sequence.quantise_and_normalise(step_sizes=default_step_sizes, note_values=default_note_values)
+            bars.append(bar.sequence)
 
-            first_channel = None
-            for msg in bar.sequence.abs._messages:
-                if first_channel is None:
-                    first_channel = msg.channel
-                else:
-                    assert msg.channel == first_channel
+        sequence.concatenate(bars)
+        sequences_original.append(sequence)
+
+    # TODO
+    if debug:
+        for i, sequence_original in enumerate(sequences_original):
+            sequence_original.save(f"out/sequence_original_{i}.mid")
 
     tokens_bars = []
 
@@ -62,6 +60,7 @@ def _test_roundtrip_multi_track_tokenisation(tokeniser, path_resource, quantise=
         #     bar.sequence.save(f"out/bar_{i}_{j}.mid")
         bar_tokens = tokeniser.tokenise([bar.sequence for bar in bars])
         tokens_bars.append(bar_tokens)
+        pass
 
     tokens = []
 
@@ -83,8 +82,6 @@ def _test_roundtrip_multi_track_tokenisation(tokeniser, path_resource, quantise=
 
     for i, sequence_roundtrip in enumerate(sequences_roundtrip):
         sequence_roundtrip.save(f"out/sequence_roundtrip_{i}.mid")
-
-    return
 
     sequence_roundtrip = Sequence()
     sequence_roundtrip.merge(sequences_roundtrip)

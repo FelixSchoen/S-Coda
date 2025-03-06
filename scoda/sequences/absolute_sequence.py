@@ -432,22 +432,33 @@ class AbsoluteSequence(AbstractSequence):
                                                      impute_notes=impute_notes)
 
         channel_pairings_list = list(channel_pairings.items())
-        track_cur_times = [0 for _ in range(len(channel_pairings))]
-        track_cur_index = [0 for _ in range(len(channel_pairings))]
-        track_max_index = [len(channel_pairings_list[i][1]) for i in range(len(channel_pairings_list))]
+        channel_cur_times = [0 for _ in range(len(channel_pairings_list))]
+        channel_cur_index = [0 for _ in range(len(channel_pairings_list))]
+        channel_max_index = [len(channel_pairings_list[i][1]) for i in range(len(channel_pairings_list))]
+        channel_ids = [channel_pairings_list[i][0] for i in range(len(channel_pairings_list))]
 
         has_next = len(channel_pairings_list) > 0
 
         while has_next:
-            track_val_times = [track_cur_times[i] if track_cur_index[i] < track_max_index[i] else float('inf')
-                               for i in range(len(channel_pairings))]
-            next_channel = track_val_times.index(min(track_val_times))
-            next_message_pairing = channel_pairings_list[next_channel][1][track_cur_index[next_channel]]
+            # Build list of current times for each channel
+            track_val_times = [channel_cur_times[i] if channel_cur_index[i] < channel_max_index[i] else float('inf')
+                               for i in range(len(channel_ids))]
+
+            # Get channel ID and index of channel in list and obtain next message pairing
+            next_channel_index = track_val_times.index(min(track_val_times))
+            next_channel = channel_ids[next_channel_index]
+            next_message_pairing = channel_pairings_list[next_channel_index][1][channel_cur_index[next_channel_index]]
+
+            # Append message to interleaved list
             interleaved_pairings.append((next_channel, next_message_pairing))
-            track_cur_times[next_channel] = next_message_pairing[0].time
-            track_cur_index[next_channel] += 1
+
+            # Update current times and indices
+            channel_cur_times[next_channel_index] = next_message_pairing[0].time
+            channel_cur_index[next_channel_index] += 1
             has_next = any(
-                track_cur_index[i] < len(channel_pairings_list[i][1]) for i in range(len(channel_pairings_list)))
+                channel_cur_index[i] < len(channel_pairings_list[i][1]) for i in range(len(channel_pairings_list)))
+
+            assert next_channel == next_message_pairing[0].channel
 
         return interleaved_pairings
 
