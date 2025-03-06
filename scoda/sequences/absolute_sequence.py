@@ -144,9 +144,11 @@ class AbsoluteSequence(AbstractSequence):
 
         while self_index <= len(self_interleaved_channel_pairings) and other_index <= len(other_interleaved_channel_pairings):
             # Adjust indices (this is done to compare sequences of different lengths)
+            if self_index == len(self_interleaved_channel_pairings) and other_index == len(other_interleaved_channel_pairings):
+                break
             if self_index == len(self_interleaved_channel_pairings):
                 self_index -= 1
-            if other_index == len(self_interleaved_channel_pairings):
+            if other_index == len(other_interleaved_channel_pairings):
                 other_index -= 1
 
             self_msg = self_interleaved_channel_pairings[self_index][1][0]
@@ -161,34 +163,32 @@ class AbsoluteSequence(AbstractSequence):
                 elif other_msg.message_type == MessageType.TIME_SIGNATURE and ignore_time_signatures:
                     other_index += 1
                     continue
+            else:
+                # Check if message types are note on
+                if self_msg.message_type == MessageType.NOTE_ON and other_msg.message_type == MessageType.NOTE_ON:
+                    self_duration = self_interleaved_channel_pairings[self_index][1][1].time - \
+                                    self_interleaved_channel_pairings[self_index][1][0].time
+                    other_duration = other_interleaved_channel_pairings[other_index][1][1].time - \
+                                     other_interleaved_channel_pairings[other_index][1][0].time
 
-            # Check if message types are note on
-            if self_msg.message_type == MessageType.NOTE_ON and other_msg.message_type == MessageType.NOTE_ON:
-                self_duration = self_interleaved_channel_pairings[self_index][1][1].time - \
-                                self_interleaved_channel_pairings[self_index][1][0].time
-                other_duration = other_interleaved_channel_pairings[other_index][1][1].time - \
-                                 other_interleaved_channel_pairings[other_index][1][0].time
-
-                if ((self_msg.channel == other_msg.channel or ignore_channel) and
-                        self_msg.note == other_msg.note and
-                        self_duration == other_duration and
-                        (self_msg.velocity == other_msg.velocity or ignore_velocity)):
+                    if ((self_msg.channel == other_msg.channel or ignore_channel) and
+                            self_msg.note == other_msg.note and
+                            self_duration == other_duration and
+                            (self_msg.velocity == other_msg.velocity or ignore_velocity)):
+                        self_index += 1
+                        other_index += 1
+                        continue
+                # Check if message types are time signature
+                elif self_msg.message_type == MessageType.TIME_SIGNATURE and other_msg.message_type == MessageType.TIME_SIGNATURE:
+                    if self_msg.numerator == other_msg.numerator and self_msg.denominator == other_msg.denominator or ignore_time_signatures:
+                        self_index += 1
+                        other_index += 1
+                        continue
+                # Do not compare other message types
+                elif self_msg.message_type == other_msg.message_type:
                     self_index += 1
                     other_index += 1
                     continue
-
-            # Check if message types are time signature
-            elif self_msg.message_type == MessageType.TIME_SIGNATURE and other_msg.message_type == MessageType.TIME_SIGNATURE:
-                if self_msg.numerator == other_msg.numerator and self_msg.denominator == other_msg.denominator or ignore_time_signatures:
-                    self_index += 1
-                    other_index += 1
-                    continue
-
-            # Do not compare other message types
-            elif self_msg.message_type == other_msg.message_type:
-                self_index += 1
-                other_index += 1
-                continue
 
             # Blanket case
             if log_differences:
