@@ -82,7 +82,7 @@ class RelativeSequence(AbstractSequence):
 
         if not cap_message_exists:
             absolute_sequence.add_message(
-                Message(message_type=MessageType.INTERNAL, channel=default_channel, time=current_point_in_time))
+                Message(message_type=MessageType.INTERNAL, channel=default_channel, time=int(current_point_in_time)))
 
         return absolute_sequence
 

@@ -17,7 +17,7 @@ def test_roundtrip_multi_track_large_vocabulary_notelike_tokeniser(path_resource
 
 
 def _test_roundtrip_multi_track_tokenisation(tokeniser, path_resource, quantise=True, detokenise=True):
-    debug = False
+    debug = True
 
     sequences = Sequence.sequences_load(file_path=path_resource)
 
@@ -80,16 +80,24 @@ def _test_roundtrip_multi_track_tokenisation(tokeniser, path_resource, quantise=
 
     sequences_roundtrip = tokeniser.detokenise(decoded)
 
-    for i, sequence_roundtrip in enumerate(sequences_roundtrip):
-        sequence_roundtrip.save(f"out/sequence_roundtrip_{i}.mid")
+    if debug:
+        for i, sequence_roundtrip in enumerate(sequences_roundtrip):
+            sequence_roundtrip.save(f"out/sequence_roundtrip_{i}.mid")
 
-    sequence_roundtrip = Sequence()
-    sequence_roundtrip.merge(sequences_roundtrip)
+    roundtrip_bars = Sequence.sequences_split_bars(sequences_roundtrip, 0)
 
-    if quantise:
-        sequence_roundtrip.quantise_and_normalise(step_sizes=default_step_sizes, note_values=default_note_values)
+    for c, (channel_original, channel_roundtrip) in enumerate(zip(sequences_bars, roundtrip_bars)):
+        for b, (bar_original, bar_roundtrip) in enumerate(zip(channel_original, channel_roundtrip)):
+            LOGGER.info(f"Channel {c} Bar {b}")
+            if c == 1 and b == 1:
+                pass
+            # assert bar_original.sequence == bar_roundtrip.sequence
+            assert bar_original.sequence.abs.equivalent(bar_roundtrip.sequence.abs)
 
-    assert sequence_original == sequence_roundtrip
+    pass
+
+    for sequence_original, sequence_roundtrip in zip(sequences_original, sequences_roundtrip):
+        assert sequence_original == sequence_roundtrip
 
     return tokens, sequence_original, sequence_roundtrip
 

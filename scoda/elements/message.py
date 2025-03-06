@@ -31,6 +31,11 @@ class Message:
         self.denominator = denominator
         self.key = key
 
+        # Defaults
+
+        if self.channel is None:
+            self.channel = 0
+
     def __copy__(self) -> Message:
         return Message(message_type=self.message_type, channel=self.channel, note=self.note, velocity=self.velocity,
                        control=self.control,

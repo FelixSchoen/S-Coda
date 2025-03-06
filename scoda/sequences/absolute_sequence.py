@@ -124,6 +124,100 @@ class AbsoluteSequence(AbstractSequence):
 
         self.normalise_absolute()
 
+    def equivalent(self,
+                   other,
+                   ignore_channel: bool = False,
+                   ignore_velocity: bool = False,
+                   ignore_time_signatures: bool = True,
+                   log_differences: bool = False) -> bool | tuple[bool, str]:
+        if not isinstance(other, AbsoluteSequence):
+            return False
+
+        message_types = [MessageType.NOTE_ON, MessageType.NOTE_OFF, MessageType.TIME_SIGNATURE]
+
+        # Construct pairings
+        self_interleaved_channel_pairings = self.get_interleaved_message_pairings(message_types=message_types)
+        other_interleaved_channel_pairings = other.get_interleaved_message_pairings(message_types=message_types)
+
+        self_index = 0
+        other_index = 0
+
+        while self_index <= len(self_interleaved_channel_pairings) and other_index <= len(other_interleaved_channel_pairings):
+            # Adjust indices (this is done to compare sequences of different lengths)
+            if self_index == len(self_interleaved_channel_pairings):
+                self_index -= 1
+            if other_index == len(self_interleaved_channel_pairings):
+                other_index -= 1
+
+            self_msg = self_interleaved_channel_pairings[self_index][1][0]
+            other_msg = other_interleaved_channel_pairings[other_index][1][0]
+
+            # Check if message types differ
+            if self_msg.message_type != other_msg.message_type:
+                # Check if we are to ignore time signatures
+                if self_msg.message_type == MessageType.TIME_SIGNATURE and ignore_time_signatures:
+                    self_index += 1
+                    continue
+                elif other_msg.message_type == MessageType.TIME_SIGNATURE and ignore_time_signatures:
+                    other_index += 1
+                    continue
+
+            # Check if message types are note on
+            if self_msg.message_type == MessageType.NOTE_ON and other_msg.message_type == MessageType.NOTE_ON:
+                self_duration = self_interleaved_channel_pairings[self_index][1][1].time - \
+                                self_interleaved_channel_pairings[self_index][1][0].time
+                other_duration = other_interleaved_channel_pairings[other_index][1][1].time - \
+                                 other_interleaved_channel_pairings[other_index][1][0].time
+
+                if ((self_msg.channel == other_msg.channel or ignore_channel) and
+                        self_msg.note == other_msg.note and
+                        self_duration == other_duration and
+                        (self_msg.velocity == other_msg.velocity or ignore_velocity)):
+                    self_index += 1
+                    other_index += 1
+                    continue
+
+            # Check if message types are time signature
+            elif self_msg.message_type == MessageType.TIME_SIGNATURE and other_msg.message_type == MessageType.TIME_SIGNATURE:
+                if self_msg.numerator == other_msg.numerator and self_msg.denominator == other_msg.denominator or ignore_time_signatures:
+                    self_index += 1
+                    other_index += 1
+                    continue
+
+            # Do not compare other message types
+            elif self_msg.message_type == other_msg.message_type:
+                self_index += 1
+                other_index += 1
+                continue
+
+            # Blanket case
+            if log_differences:
+                return (False,
+                        f"Failed equality check at self:{self_index}, other:{other_index}: {self_msg} != {other_msg}")
+            return False
+
+            pass
+
+        return True
+
+        # for key_channel in self_channel_pairings.keys():
+        #     if key_channel not in other_channel_pairings:
+        #         return False
+        #
+        #     self_message_pairings = self_channel_pairings[key_channel]
+        #     other_message_pairings = other_channel_pairings[key_channel]
+        #
+        #     if len(self_message_pairings) != len(other_message_pairings):
+        #         return False
+        #
+        #     for self_message_pair, other_message_pair in zip(self_message_pairings, other_message_pairings):
+        #         if self_message_pair[0].time != other_message_pair[0].time or \
+        #                 self_message_pair[0].note != other_message_pair[0].note or \
+        #                 self_message_pair[1].time != other_message_pair[1].time:
+        #             return False
+        #
+        # return True
+
     def merge(self, sequences: list[AbsoluteSequence]) -> None:
         """Merges this sequence with all the given ones.
 
@@ -327,9 +421,9 @@ class AbsoluteSequence(AbstractSequence):
             for message_pairing in message_pairings:
                 quantised_messages.extend(message_pairing)
 
-            for msg in self._messages:
-                if msg.message_type is not MessageType.NOTE_ON and msg.message_type is not MessageType.NOTE_OFF:
-                    quantised_messages.append(msg)
+        for msg in self._messages:
+            if msg.message_type is not MessageType.NOTE_ON and msg.message_type is not MessageType.NOTE_OFF:
+                quantised_messages.append(msg)
 
         self._messages = quantised_messages
         self.normalise_absolute()
@@ -432,16 +526,18 @@ class AbsoluteSequence(AbstractSequence):
                                                      impute_notes=impute_notes)
 
         channel_pairings_list = list(channel_pairings.items())
-        channel_cur_times = [0 for _ in range(len(channel_pairings_list))]
         channel_cur_index = [0 for _ in range(len(channel_pairings_list))]
         channel_max_index = [len(channel_pairings_list[i][1]) for i in range(len(channel_pairings_list))]
+        channel_nxt_times = [channel_pairings_list[n][1][channel_cur_index[n]][0].time
+                             if channel_cur_index[n] < channel_max_index[n] else float("inf")
+                             for n in range(len(channel_pairings_list))]
         channel_ids = [channel_pairings_list[i][0] for i in range(len(channel_pairings_list))]
 
         has_next = len(channel_pairings_list) > 0
 
         while has_next:
-            # Build list of current times for each channel
-            track_val_times = [channel_cur_times[i] if channel_cur_index[i] < channel_max_index[i] else float('inf')
+            # Build list of next times for each channel
+            track_val_times = [channel_nxt_times[i] if channel_cur_index[i] < channel_max_index[i] else float('inf')
                                for i in range(len(channel_ids))]
 
             # Get channel ID and index of channel in list and obtain next message pairing
@@ -452,9 +548,11 @@ class AbsoluteSequence(AbstractSequence):
             # Append message to interleaved list
             interleaved_pairings.append((next_channel, next_message_pairing))
 
-            # Update current times and indices
-            channel_cur_times[next_channel_index] = next_message_pairing[0].time
+            # Update next times and indices
             channel_cur_index[next_channel_index] += 1
+            channel_nxt_times = [channel_pairings_list[n][1][channel_cur_index[n]][0].time
+                                 if channel_cur_index[n] < channel_max_index[n] else float("inf")
+                                 for n in range(len(channel_pairings_list))]
             has_next = any(
                 channel_cur_index[i] < len(channel_pairings_list[i][1]) for i in range(len(channel_pairings_list)))
 
