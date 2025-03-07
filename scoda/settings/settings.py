@@ -62,9 +62,11 @@ SCALE_CUBIC: list[float]
 SCALE_LOGLIKE: list[float]
 
 
-def load_from_file():
-    settings_file_path = Path(__file__).parent.parent.joinpath("config/settings.json")
-    settings_file = open(settings_file_path)
+def load_from_file(path_settings: Path = None):
+    if path_settings is None:
+        path_settings = Path(__file__).parent.parent.joinpath("config/default_settings.json")
+
+    settings_file = open(path_settings)
     settings = json.load(settings_file)
 
     global PPQN
