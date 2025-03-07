@@ -2,11 +2,13 @@ from base import *
 from scoda.tokenisation.notelike_tokenisation import MultiTrackLargeVocabularyNotelikeTokeniser
 
 
-@pytest.mark.parametrize("path_resource", [RESOURCE_MULTI_TRACK])
-def test_roundtrip_multi_track_large_vocabulary_notelike_tokeniser(path_resource):
-    tokeniser = MultiTrackLargeVocabularyNotelikeTokeniser(num_instruments=4)
+@pytest.mark.parametrize("path_resource, num_tracks",
+                         list(zip(RESOURCES_MULTI_TRACK, RESOURCES_MULTI_TRACK_NUM_TRACKS)))
+def test_roundtrip_multi_track_large_vocabulary_notelike_tokeniser(path_resource, num_tracks):
+    tokeniser = MultiTrackLargeVocabularyNotelikeTokeniser(num_tracks=num_tracks)
 
     tokens, sequences_original, sequences_roundtrip = _test_roundtrip_multi_track_tokenisation(tokeniser, path_resource,
+                                                                                               merge_sequences=num_tracks == 1,
                                                                                                quantise=True)
 
     info = tokeniser.get_info(tokens)
@@ -15,11 +17,26 @@ def test_roundtrip_multi_track_large_vocabulary_notelike_tokeniser(path_resource
         assert len(value) == len(tokens)
 
 
-def _test_roundtrip_multi_track_tokenisation(tokeniser, path_resource, quantise=True, detokenise=True):
-    debug = True
+def test_roundtrip_manual_tokeniser():
+    path_resource = RESOURCE_BEETHOVEN
+    num_tracks = 1
+    tokeniser = MultiTrackLargeVocabularyNotelikeTokeniser(num_tracks=num_tracks)
+    _test_roundtrip_multi_track_tokenisation(tokeniser, path_resource,
+                                             merge_sequences=num_tracks == 1,
+                                             quantise=True)
+
+
+def _test_roundtrip_multi_track_tokenisation(tokeniser, path_resource, merge_sequences, quantise=True, detokenise=True):
+    debug = False
 
     # Load sequences
     sequences = Sequence.sequences_load(file_path=path_resource)
+
+    # Merge sequences
+    if merge_sequences:
+        sequence = sequences[0]
+        sequence.merge(sequences[1:])
+        sequences = [sequence]
 
     # Construct step sizes
     default_step_sizes = get_default_step_sizes()
@@ -48,6 +65,7 @@ def _test_roundtrip_multi_track_tokenisation(tokeniser, path_resource, quantise=
 
         sequence.concatenate(bars)
         sequences_original.append(sequence)
+    bars_original = Sequence.sequences_split_bars(sequences_original, 0)
 
     # Store original sequence
     if debug:
@@ -86,15 +104,22 @@ def _test_roundtrip_multi_track_tokenisation(tokeniser, path_resource, quantise=
         for i, sequence_roundtrip in enumerate(sequences_roundtrip):
             sequence_roundtrip.save(f"out/sequence_roundtrip_{i}.mid")
 
-        # Check equivalence per bar
-        roundtrip_bars = Sequence.sequences_split_bars(sequences_roundtrip, 0)
-        for c, (channel_original, channel_roundtrip) in enumerate(zip(sequences_bars, roundtrip_bars)):
-            for b, (bar_original, bar_roundtrip) in enumerate(zip(channel_original, channel_roundtrip)):
-                assert bar_original.sequence.equivalent(bar_roundtrip.sequence, ignore_channel=True,
-                                                        ignore_velocity=True)
+    # Check equivalence per bar
+    bars_roundtrip = Sequence.sequences_split_bars(sequences_roundtrip, 0)
+    for c, (channel_original, channel_roundtrip) in enumerate(zip(bars_original, bars_roundtrip)):
+        for b, (bar_original, bar_roundtrip) in enumerate(zip(channel_original, channel_roundtrip)):
+            result, reason = bar_original.sequence.equivalent(bar_roundtrip.sequence, ignore_channel=True,
+                                                              ignore_velocity=True, log_differences=True)
+            if not result:
+                LOGGER.warning(f"Error at channel {c}, bar {b}: {reason}")
+                assert False
 
     # Check equivalence of output sequence
     for sequence_original, sequence_roundtrip in zip(sequences_original, sequences_roundtrip):
-        assert sequence_original.equivalent(sequence_roundtrip, ignore_channel=True, ignore_velocity=True)
+        result, reason = sequence_original.equivalent(sequence_roundtrip, ignore_channel=True, ignore_velocity=True,
+                                                      log_differences=True)
+        if not result:
+            LOGGER.warning(reason)
+            assert False
 
     return tokens, sequences_original, sequences_roundtrip

@@ -22,12 +22,14 @@ class MultiTrackLargeVocabularyNotelikeTokeniser:
 
     def __init__(self,
                  ppqn: int = None,
-                 num_instruments: int = 1,
+                 num_tracks: int = 1,
                  pitch_range: Tuple[int, int] = (21, 108),
                  step_sizes: list[int] = None,
                  note_values: list[int] = None,
                  velocity_bins: int = 1,
-                 time_signature_range: Tuple[int, int] = (2, 16)):
+                 time_signature_range: Tuple[int, int] = (2, 16),
+                 flag_running_time_signature: bool = True,
+                 flag_simplify_time_signature: bool = True):
         self.dictionary = dict()
         self.inverse_dictionary = dict()
         self.dictionary_size = 0
@@ -35,9 +37,12 @@ class MultiTrackLargeVocabularyNotelikeTokeniser:
         self.ppqn = ppqn
         self.step_sizes = step_sizes
         self.note_values = note_values
-        self.num_instruments = num_instruments
+        self.num_tracks = num_tracks
         self.pitch_range = pitch_range
         self.time_signature_range = time_signature_range
+
+        self.flag_running_time_signature = flag_running_time_signature
+        self.flag_simplify_time_signature = flag_simplify_time_signature
 
         # Default Values
         if self.ppqn is None:
@@ -68,7 +73,7 @@ class MultiTrackLargeVocabularyNotelikeTokeniser:
         str]:
         tokens = []
 
-        assert len(sequences_bar) == self.num_instruments
+        assert len(sequences_bar) == self.num_tracks
 
         # Merge sequences
         for i, sequence_bar in enumerate(sequences_bar):
@@ -95,7 +100,7 @@ class MultiTrackLargeVocabularyNotelikeTokeniser:
                 self.cur_rest_buffer = 0
 
             if msg_type == MessageType.NOTE_ON:
-                msg_instrument = event_pairing[0].channel
+                msg_channel = event_pairing[0].channel
                 msg_note = event_pairing[0].note
                 msg_value = event_pairing[1].time - msg_time
                 msg_velocity = self.velocity_bins[bin_velocity(event_pairing[0].velocity, self.velocity_bins)]
@@ -105,7 +110,7 @@ class MultiTrackLargeVocabularyNotelikeTokeniser:
                 if msg_value not in self.note_values:
                     raise TokenisationException(f"Invalid note value: {msg_value}")
 
-                tokens.append(f"{TokenisationPrefixes.INSTRUMENT.value}_{msg_instrument:02}-"
+                tokens.append(f"{TokenisationPrefixes.TRACK.value}_{msg_channel:02}-"
                               f"{TokenisationPrefixes.PITCH.value}_{msg_note:03}-"
                               f"{TokenisationPrefixes.VALUE.value}_{msg_value:02}-"
                               f"{TokenisationPrefixes.VELOCITY.value}_{msg_velocity:03}")
@@ -134,7 +139,7 @@ class MultiTrackLargeVocabularyNotelikeTokeniser:
 
     def detokenise(self, tokens: List[str]) -> List[Sequence]:
         # Setup Values
-        sequences = [Sequence() for _ in range(self.num_instruments)]
+        sequences = [Sequence() for _ in range(self.num_tracks)]
         cur_time = 0
         cur_time_bar = 0
         cur_time_signature_numerator = DEFAULT_TIME_SIGNATURE_NUMERATOR
@@ -157,16 +162,16 @@ class MultiTrackLargeVocabularyNotelikeTokeniser:
                 cur_time += int(token_parts[0][1])
                 cur_time_bar += int(token_parts[0][1])
                 cur_bar_capacity_remaining -= int(token_parts[0][1])
-            elif part_main == TokenisationPrefixes.INSTRUMENT.value:
-                note_instrument = int(token_parts[0][1])
+            elif part_main == TokenisationPrefixes.TRACK.value:
+                note_track = int(token_parts[0][1])
                 note_pitch = int(token_parts[1][1])
                 note_value = int(token_parts[2][1])
                 note_velocity = int(token_parts[3][1])
 
-                sequences[note_instrument].add_absolute_message(
+                sequences[note_track].add_absolute_message(
                     Message(message_type=MessageType.NOTE_ON, note=note_pitch, time=cur_time, velocity=note_velocity)
                 )
-                sequences[note_instrument].add_absolute_message(
+                sequences[note_track].add_absolute_message(
                     Message(message_type=MessageType.NOTE_OFF, note=note_pitch, time=cur_time + note_value)
                 )
             elif part_main == TokenisationPrefixes.TIME_SIGNATURE.value:
@@ -174,11 +179,34 @@ class MultiTrackLargeVocabularyNotelikeTokeniser:
                     LOGGER.warning(
                         f"Skipping time signature change mid-bar at time {cur_time} (bar time {cur_time_bar})")
                 else:
-                    cur_time_signature_numerator = int(token_parts[0][1])
-                    cur_time_signature_denominator = int(token_parts[0][2])
+                    switched = False
+
+                    new_time_signature_numerator = int(token_parts[0][1])
+                    new_time_signature_denominator = int(token_parts[0][2])
+
+                    if cur_time_signature_numerator != new_time_signature_numerator or \
+                            cur_time_signature_denominator != new_time_signature_denominator:
+                        switched = True
+
+                    cur_time_signature_numerator = new_time_signature_numerator
+                    cur_time_signature_denominator = new_time_signature_denominator
                     cur_bar_capacity_total = int(
                         self.ppqn * 4 * cur_time_signature_numerator / cur_time_signature_denominator)
                     cur_bar_capacity_remaining = cur_bar_capacity_total
+
+                    if self.flag_simplify_time_signature and \
+                            cur_time_signature_numerator % 2 == 0 and \
+                            cur_time_signature_denominator % 2 == 0:
+                        cur_time_signature_numerator = int(cur_time_signature_numerator / 2)
+                        cur_time_signature_denominator = int(cur_time_signature_denominator / 2)
+
+                    if switched or not self.flag_running_time_signature:
+                        sequences[0].add_absolute_message(
+                            Message(message_type=MessageType.TIME_SIGNATURE,
+                                    time=cur_time,
+                                    numerator=cur_time_signature_numerator,
+                                    denominator=cur_time_signature_denominator)
+                        )
             else:
                 raise TokenisationException(f"Invalid token: {token}")
 
@@ -227,7 +255,7 @@ class MultiTrackLargeVocabularyNotelikeTokeniser:
 
                 info_pitch.append(math.nan)
                 info_cof.append(math.nan)
-            elif part_main == TokenisationPrefixes.INSTRUMENT.value:
+            elif part_main == TokenisationPrefixes.TRACK.value:
                 note_pitch = int(token_parts[1][1])
 
                 info_pitch.append(note_pitch)
@@ -280,11 +308,11 @@ class MultiTrackLargeVocabularyNotelikeTokeniser:
             self.dictionary[f"{TokenisationPrefixes.REST.value}_{step_size:02}"] = self.dictionary_size
             self.dictionary_size += 1
 
-        for i_ins in range(self.num_instruments):
+        for i_ins in range(self.num_tracks):
             for pitch in range(self.pitch_range[0], self.pitch_range[1] + 1):
                 for note_value in self.note_values:
                     for velocity_bin in self.velocity_bins:
-                        self.dictionary[(f"{TokenisationPrefixes.INSTRUMENT.value}_{i_ins:02}-"
+                        self.dictionary[(f"{TokenisationPrefixes.TRACK.value}_{i_ins:02}-"
                                          f"{TokenisationPrefixes.PITCH.value}_{pitch:03}-"
                                          f"{TokenisationPrefixes.VALUE.value}_{note_value:02}-"
                                          f"{TokenisationPrefixes.VELOCITY.value}_{velocity_bin:03}")] = self.dictionary_size
@@ -299,9 +327,6 @@ class MultiTrackLargeVocabularyNotelikeTokeniser:
 
     def _flush_buffer(self, time: int) -> List[str]:
         tokens = []
-
-        if time >= 40:
-            pass
 
         while any(time >= rest for rest in self.step_sizes):
             for rest in reversed(self.step_sizes):

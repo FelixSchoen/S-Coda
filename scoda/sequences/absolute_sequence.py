@@ -194,11 +194,13 @@ class AbsoluteSequence(AbstractSequence):
             if log_differences:
                 return (False,
                         f"Failed equality check at self:{self_index}, other:{other_index}: {self_msg} != {other_msg}")
-            return False
+            else:
+                return False
 
-            pass
-
-        return True
+        if log_differences:
+            return True, "Sequences are equivalent with regard to the input parameters"
+        else:
+            return True
 
         # for key_channel in self_channel_pairings.keys():
         #     if key_channel not in other_channel_pairings:

@@ -8,7 +8,7 @@ class TokenisationPrefixes(Enum):
     BAR = "bar"
     REST = "rst"
     NOTE = "nte"
-    INSTRUMENT = "ins"
+    TRACK = "trk"
     PITCH = "pit"
     VALUE = "val"
     VELOCITY = "vel"
