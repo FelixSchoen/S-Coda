@@ -257,6 +257,12 @@ class Sequence:
         """
         return self.abs.get_message_times_of_type(message_types)
 
+    def get_sequence_channel(self) -> int | None:
+        """See `scoda.sequence.absolute_sequence.AbsoluteSequence.get_sequence_channel`.
+
+        """
+        return self.abs.get_sequence_channel()
+
     def get_sequence_duration(self) -> float:
         """See `scoda.sequence.absolute_sequence.AbsoluteSequence.get_sequence_length`.
 
@@ -268,6 +274,12 @@ class Sequence:
 
         """
         return self.rel.get_sequence_duration_relation()
+
+    def is_channel_consistent(self) -> bool:
+        """See `scoda.sequence.absolute_sequence.AbsoluteSequence.is_channel_consistent`.
+
+        """
+        return self.abs.is_channel_consistent()
 
     def is_empty(self) -> bool:
         """See `scoda.sequence.relative_sequence.RelativeSequence.is_empty`.

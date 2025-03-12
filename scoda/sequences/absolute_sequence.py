@@ -142,9 +142,11 @@ class AbsoluteSequence(AbstractSequence):
         self_index = 0
         other_index = 0
 
-        while self_index <= len(self_interleaved_channel_pairings) and other_index <= len(other_interleaved_channel_pairings):
+        while self_index <= len(self_interleaved_channel_pairings) and other_index <= len(
+                other_interleaved_channel_pairings):
             # Adjust indices (this is done to compare sequences of different lengths)
-            if self_index == len(self_interleaved_channel_pairings) and other_index == len(other_interleaved_channel_pairings):
+            if self_index == len(self_interleaved_channel_pairings) and other_index == len(
+                    other_interleaved_channel_pairings):
                 break
             if self_index == len(self_interleaved_channel_pairings):
                 self_index -= 1
@@ -504,7 +506,7 @@ class AbsoluteSequence(AbstractSequence):
             for pairing in message_pairings[channel]:
                 if len(pairing) == 1 and pairing[0].message_type == MessageType.NOTE_ON and impute_notes:
                     pairing.append(Message(message_type=MessageType.NOTE_OFF, channel=pairing[0].channel,
-                                           time=pairing[0].time + standard_length))
+                                           note=pairing[0].note, time=pairing[0].time + standard_length))
 
         return message_pairings
 
@@ -579,6 +581,12 @@ class AbsoluteSequence(AbstractSequence):
 
         return timings
 
+    def get_sequence_channel(self) -> int | None:
+        if not self.is_channel_consistent():
+            raise SequenceException("Sequence has inconsistent channels.")
+
+        return self._messages[0].channel
+
     def get_sequence_duration(self) -> int:
         """Calculates the overall duration of this sequence, given in ticks.
 
@@ -586,6 +594,17 @@ class AbsoluteSequence(AbstractSequence):
 
         """
         return self._messages[-1].time
+
+    def is_channel_consistent(self) -> bool:
+        """Checks if the channels of all messages in this sequence are consistent, i.e., the same.
+
+        Returns: True if the channel numbers are consistent, False otherwise.
+
+        """
+        for msg in self._messages:
+            if msg.channel != self._messages[0].channel:
+                return False
+        return True
 
     # Difficulty Methods
 

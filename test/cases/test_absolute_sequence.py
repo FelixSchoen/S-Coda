@@ -75,6 +75,13 @@ def test_get_message_time_pairings():
                     assert message_pairings[i][0].note <= message_pairings[i + 1][0].note
 
 
+def test_get_sequence_channel():
+    sequence = util_midi_to_sequences()[0]
+    channel = sequence.get_sequence_channel()
+
+    assert channel == sequence.abs._messages[0].channel
+
+
 def test_get_timing_of_message_type():
     sequences = util_midi_to_sequences()
     sequence = sequences[0]
@@ -85,6 +92,16 @@ def test_get_timing_of_message_type():
     split_sequences = sequence.split(points_in_time)
 
     assert all(len(seq.get_message_times_of_type([MessageType.TIME_SIGNATURE])) <= 1 for seq in split_sequences)
+
+
+def test_is_channel_consistent():
+    sequence = util_midi_to_sequences()[0]
+
+    assert sequence.is_channel_consistent()
+
+    sequence.abs._messages[0].channel = -1
+
+    assert not sequence.is_channel_consistent()
 
 
 def test_merge():
