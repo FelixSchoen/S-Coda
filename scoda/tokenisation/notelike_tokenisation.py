@@ -69,8 +69,10 @@ class MultiTrackLargeVocabularyNotelikeTokeniser:
         self.cur_time = 0
         self.cur_rest_buffer = 0
 
-    def tokenise(self, sequences_bar: list[Sequence], insert_bar_token: bool = True, reset_time: bool = True) -> List[
-        str]:
+    def tokenise(self,
+                 sequences_bar: list[Sequence],
+                 insert_bar_token: bool = True,
+                 reset_time: bool = True) -> List[str]:
         tokens = []
 
         assert len(sequences_bar) == self.num_tracks
@@ -137,7 +139,8 @@ class MultiTrackLargeVocabularyNotelikeTokeniser:
 
         return tokens
 
-    def detokenise(self, tokens: List[str]) -> List[Sequence]:
+    def detokenise(self,
+                   tokens: List[str]) -> List[Sequence]:
         # Setup Values
         sequences = [Sequence() for _ in range(self.num_tracks)]
         cur_time = 0
@@ -212,13 +215,17 @@ class MultiTrackLargeVocabularyNotelikeTokeniser:
 
         return sequences
 
-    def encode(self, tokens: List[str]) -> List[int]:
+    def encode(self,
+               tokens: List[str]) -> List[int]:
         return [self.dictionary[token] for token in tokens]
 
-    def decode(self, tokens: List[int]) -> List[str]:
+    def decode(self,
+               tokens: List[int]) -> List[str]:
         return [self.inverse_dictionary[token] for token in tokens]
 
-    def get_info(self, tokens: List[str]) -> dict[str, list[int]]:
+    def get_info(self,
+                 tokens: List[str],
+                 flag_impute_values) -> dict[str, list[int]]:
         info_pos = []
         info_time = []
         info_time_bar = []
@@ -233,6 +240,7 @@ class MultiTrackLargeVocabularyNotelikeTokeniser:
         cur_time_signature_denominator = DEFAULT_TIME_SIGNATURE_DENOMINATOR
         cur_bar_capacity_total = int(self.ppqn * 4 * cur_time_signature_numerator / cur_time_signature_denominator)
         cur_bar_capacity_remaining = cur_bar_capacity_total
+        prv_pitch = 69 # Concert pitch A4
 
         for token in tokens:
             token_parts = self._split_token(token)
@@ -246,15 +254,23 @@ class MultiTrackLargeVocabularyNotelikeTokeniser:
                 cur_time_bar = 0
                 cur_bar_capacity_remaining = cur_bar_capacity_total
 
-                info_pitch.append(math.nan)
-                info_cof.append(math.nan)
+                if not flag_impute_values:
+                    info_pitch.append(math.nan)
+                    info_cof.append(math.nan)
+                else:
+                    info_pitch.append(prv_pitch)
+                    info_cof.append(CircleOfFifths.get_position(prv_pitch))
             elif part_main == TokenisationPrefixes.REST.value:
                 cur_time += int(token_parts[0][1])
                 cur_time_bar += int(token_parts[0][1])
                 cur_bar_capacity_remaining -= int(token_parts[0][1])
 
-                info_pitch.append(math.nan)
-                info_cof.append(math.nan)
+                if not flag_impute_values:
+                    info_pitch.append(math.nan)
+                    info_cof.append(math.nan)
+                else:
+                    info_pitch.append(prv_pitch)
+                    info_cof.append(CircleOfFifths.get_position(prv_pitch))
             elif part_main == TokenisationPrefixes.TRACK.value:
                 note_pitch = int(token_parts[1][1])
 
@@ -271,11 +287,19 @@ class MultiTrackLargeVocabularyNotelikeTokeniser:
                         self.ppqn * 4 * cur_time_signature_numerator / cur_time_signature_denominator)
                     cur_bar_capacity_remaining = cur_bar_capacity_total
 
-                info_pitch.append(math.nan)
-                info_cof.append(math.nan)
+                if not flag_impute_values:
+                    info_pitch.append(math.nan)
+                    info_cof.append(math.nan)
+                else:
+                    info_pitch.append(prv_pitch)
+                    info_cof.append(CircleOfFifths.get_position(prv_pitch))
             else:
-                info_pitch.append(math.nan)
-                info_cof.append(math.nan)
+                if not flag_impute_values:
+                    info_pitch.append(math.nan)
+                    info_cof.append(math.nan)
+                else:
+                    info_pitch.append(prv_pitch)
+                    info_cof.append(CircleOfFifths.get_position(prv_pitch))
 
             info_pos.append(cur_pos)
             cur_pos += 1
@@ -286,7 +310,8 @@ class MultiTrackLargeVocabularyNotelikeTokeniser:
                 "info_pitch": info_pitch,
                 "info_circle_of_fifths": info_cof}
 
-    def _split_token(self, token: str):
+    def _split_token(self,
+                     token: str):
         parts = token.split("-")
         sub_parts = [part.split("_") for part in parts]
         return sub_parts
@@ -325,7 +350,8 @@ class MultiTrackLargeVocabularyNotelikeTokeniser:
 
         self.inverse_dictionary = {v: k for k, v in self.dictionary.items()}
 
-    def _flush_buffer(self, time: int) -> List[str]:
+    def _flush_buffer(self,
+                      time: int) -> List[str]:
         tokens = []
 
         while any(time >= rest for rest in self.step_sizes):
