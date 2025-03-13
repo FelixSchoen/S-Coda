@@ -225,7 +225,7 @@ class MultiTrackLargeVocabularyNotelikeTokeniser:
 
     def get_info(self,
                  tokens: List[str],
-                 flag_impute_values) -> dict[str, list[int]]:
+                 flag_impute_values: bool = False) -> dict[str, list[int]]:
         info_pos = []
         info_time = []
         info_time_bar = []
@@ -240,7 +240,7 @@ class MultiTrackLargeVocabularyNotelikeTokeniser:
         cur_time_signature_denominator = DEFAULT_TIME_SIGNATURE_DENOMINATOR
         cur_bar_capacity_total = int(self.ppqn * 4 * cur_time_signature_numerator / cur_time_signature_denominator)
         cur_bar_capacity_remaining = cur_bar_capacity_total
-        prv_pitch = 69 # Concert pitch A4
+        prv_pitch = 69  # Concert pitch A4
 
         for token in tokens:
             token_parts = self._split_token(token)
