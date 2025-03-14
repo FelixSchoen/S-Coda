@@ -31,5 +31,7 @@ def get_logger(logger_designation: str = "scoda") -> logging.Logger:
 
     return loggers[logger_designation]
 
+def get_root_logger() -> logging.Logger:
+    return logging.getLogger("scoda")
 
 setup()
