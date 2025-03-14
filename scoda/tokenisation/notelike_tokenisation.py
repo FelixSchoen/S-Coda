@@ -1,12 +1,8 @@
 import math
-from abc import ABC, abstractmethod
-from typing import Tuple, List, Any
-
-import numpy as np
+from typing import Tuple, List
 
 from scoda.elements.message import Message
 from scoda.enumerations.message_type import MessageType
-from scoda.enumerations.tokenisation_flags import TokenisationFlags
 from scoda.enumerations.tokenisation_prefixes import TokenisationPrefixes
 from scoda.exceptions.tokenisation_exception import TokenisationException
 from scoda.misc.music_theory import CircleOfFifths
@@ -154,7 +150,13 @@ class MultiTrackLargeVocabularyNotelikeTokeniser:
             token_parts = self._split_token(token)
             part_main = token_parts[0][0]
 
-            if part_main == TokenisationPrefixes.BAR.value:
+            if part_main == TokenisationPrefixes.PAD.value:
+                continue
+            elif part_main == TokenisationPrefixes.START.value:
+                continue
+            elif part_main == TokenisationPrefixes.STOP.value:
+                continue
+            elif part_main == TokenisationPrefixes.BAR.value:
                 cur_time += cur_bar_capacity_remaining
                 cur_time_bar = 0
                 cur_bar_capacity_remaining = cur_bar_capacity_total
@@ -179,7 +181,7 @@ class MultiTrackLargeVocabularyNotelikeTokeniser:
                 )
             elif part_main == TokenisationPrefixes.TIME_SIGNATURE.value:
                 if cur_time_bar > 0:
-                    LOGGER.warning(
+                    LOGGER.info(
                         f"Skipping time signature change mid-bar at time {cur_time} (bar time {cur_time_bar})")
                 else:
                     switched = False
@@ -278,7 +280,7 @@ class MultiTrackLargeVocabularyNotelikeTokeniser:
                 info_cof.append(CircleOfFifths.get_position(note_pitch))
             elif part_main == TokenisationPrefixes.TIME_SIGNATURE.value:
                 if cur_time_bar > 0:
-                    LOGGER.warning(
+                    LOGGER.info(
                         f"Skipping time signature change mid-bar at time {cur_time} (bar time {cur_time_bar})")
                 else:
                     cur_time_signature_numerator = int(token_parts[0][1])

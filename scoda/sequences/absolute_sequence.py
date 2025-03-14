@@ -287,7 +287,7 @@ class AbsoluteSequence(AbstractSequence):
 
                 # Check if note was not yet closed
                 if msg.note in open_messages:
-                    AbsoluteSequence.LOGGER.warning(f"Quantisation: Note {msg.note} not previously stopped.")
+                    AbsoluteSequence.LOGGER.info(f"Quantisation: Note {msg.note} not previously stopped.")
                     quantised_messages.append(
                         Message(message_type=MessageType.NOTE_OFF, channel=msg.channel, note=msg.note,
                                 time=message_to_append.time))
@@ -477,7 +477,7 @@ class AbsoluteSequence(AbstractSequence):
                 if msg.message_type == MessageType.NOTE_ON:
                     # Check if note was not previously closed
                     if msg.note in open_messages[msg.channel] and impute_notes:
-                        AbsoluteSequence.LOGGER.warning(
+                        AbsoluteSequence.LOGGER.info(
                             f"Time Pairings: Note {msg.channel}:{msg.note} at time {msg.time} not previously stopped.")
                         index = open_messages[msg.channel].pop(msg.note)
                         message_pairings[msg.channel][index].append(
@@ -492,7 +492,7 @@ class AbsoluteSequence(AbstractSequence):
                     # Check if note was not previously started
                     if msg.channel not in open_messages or msg.note not in open_messages[msg.channel]:
                         if impute_notes:
-                            AbsoluteSequence.LOGGER.warning(
+                            AbsoluteSequence.LOGGER.info(
                                 f"Time Pairings: Note {msg.channel}:{msg.note} at time {msg.time} not previously started.")
                     else:
                         index = open_messages[msg.channel].pop(msg.note)
@@ -672,7 +672,7 @@ class AbsoluteSequence(AbstractSequence):
                 elif duration in dotted_durations:
                     notes_dotted.append(message_pairing)
                 else:
-                    AbsoluteSequence.LOGGER.warning(f"Difficulty Rhythm: Note value {duration} not in known values.")
+                    AbsoluteSequence.LOGGER.info(f"Difficulty Rhythm: Note value {duration} not in known values.")
 
         rhythm_occurrences = 0
 

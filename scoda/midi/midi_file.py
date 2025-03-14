@@ -97,7 +97,7 @@ class MidiFile:
                 # Time Signature
                 elif msg.message_type == MessageType.TIME_SIGNATURE:
                     if i not in meta_track_indices:
-                        MidiFile.LOGGER.debug("MidiFile: Encountered time signature change in unexpected track.")
+                        MidiFile.LOGGER.info("MidiFile: Encountered time signature change in unexpected track.")
 
                     meta_sequence.add_absolute_message(
                         Message(message_type=MessageType.TIME_SIGNATURE, channel=msg.channel, numerator=msg.numerator,
@@ -105,7 +105,7 @@ class MidiFile:
                 # Key Signature
                 elif msg.message_type == MessageType.KEY_SIGNATURE:
                     if i not in meta_track_indices:
-                        MidiFile.LOGGER.debug("MidiFile: Encountered key signature change in unexpected track.")
+                        MidiFile.LOGGER.info("MidiFile: Encountered key signature change in unexpected track.")
 
                     meta_sequence.add_absolute_message(
                         Message(message_type=MessageType.KEY_SIGNATURE, channel=msg.channel, key=msg.key,
