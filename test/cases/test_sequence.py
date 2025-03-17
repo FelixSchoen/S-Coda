@@ -2,6 +2,20 @@ from base import *
 from scoda.enumerations.message_type import MessageType
 
 
+def test_messages_abs():
+    sequence = util_midi_to_sequences()[0]
+    for _ in sequence.messages_abs():
+        pass
+    assert sequence._rel_stale is True
+
+
+def test_messages_rel():
+    sequence = util_midi_to_sequences()[0]
+    for _ in sequence.messages_rel():
+        pass
+    assert sequence._abs_stale is True
+
+
 def test_difficulty():
     bars = util_split_into_bars()
     bar = bars[0][0]

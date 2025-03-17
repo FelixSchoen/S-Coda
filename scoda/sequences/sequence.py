@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import copy
 from pathlib import Path
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Generator
 
 import numpy as np
 from matplotlib import pyplot as plt, pyplot
@@ -89,10 +89,12 @@ class Sequence:
     def abs(self) -> AbsoluteSequence:
         """Returns a reference to the absolute representation of this sequence.
 
-        Note that if the sequence is modified without interacting via the interface provided by this object,
-        the sequence stored in this object might corrupt.
+        Note:
+             If the sequence is modified without interacting via the interface provided by this object, the sequence
+             stored in this object might corrupt.
 
-        Returns: The stored AbsoluteSequence
+        Returns:
+            The stored AbsoluteSequence
 
         """
         if self._abs_stale:
@@ -104,10 +106,12 @@ class Sequence:
     def rel(self) -> RelativeSequence:
         """Returns a reference to the relative representation of this sequence.
 
-        Note that if the sequence is modified without interacting via the interface provided by this object,
-        the sequence stored in this object might corrupt.
+        Note:
+             If the sequence is modified without interacting via the interface provided by this object, the sequence
+             stored in this object might corrupt.
 
-        Returns: The stored RelativeSequence
+        Returns:
+            The stored RelativeSequence
 
         """
         if self._rel_stale:
@@ -122,9 +126,9 @@ class Sequence:
         self.abs.add_message(msg)
         self._rel_stale = True
 
-    def add_relative_message(self, msg) -> None:
+    def add_relative_message(self, msg, index=None) -> None:
         """See `scoda.sequence.relative_sequence.RelativeSequence.add_message`."""
-        self.rel.add_message(msg)
+        self.rel.add_message(msg, index=None)
         self._abs_stale = True
 
     def concatenate(self, sequences: list[Sequence]) -> None:
@@ -153,9 +157,65 @@ class Sequence:
         self._rel_stale = True
         self.normalise()
 
+    def messages_abs(self) -> Generator[Message]:
+        """Yields the messages of the absolute sequence.
+
+        Note:
+            Editing message out-of-turn can lead to inconsistencies. Do not intertwine message edits with other function
+            calls without calling `message_abs()` again.
+
+        """
+        try:
+            for message in self.abs._messages:
+                self._rel_stale = True
+                yield message
+        finally:
+            self._rel_stale = True
+
+    def messages_rel(self) -> Generator[Message]:
+        """Yields the messages of the relative sequence.
+
+        Note:
+            Editing message out-of-turn can lead to inconsistencies. Do not intertwine message edits with other function
+            calls without calling `message_rel()` again.
+
+        """
+        try:
+            for message in self.rel._messages:
+                self._abs_stale = True
+                yield message
+        finally:
+            self._abs_stale = True
+
     def normalise(self) -> None:
         """See `scoda.sequence.relative_sequence.RelativeSequence.normalise_relative`."""
         self.rel.normalise_relative()
+        self._abs_stale = True
+
+    def overwrite_absolute_messages(self, messages: list[Message]) -> None:
+        """Overwrites the messages of the absolute sequence.
+
+        Note:
+            The reference to the passed list of messages becomes stale.
+
+        """
+        abs = AbsoluteSequence()
+        for msg in messages:
+            abs.add_message(msg)
+        self._abs = abs
+        self._rel_stale = True
+
+    def overwrite_relative_messages(self, messages: list[Message]) -> None:
+        """Overwrites the messages of the relative sequence.
+
+        Note:
+            The reference to the passed list of messages becomes stale.
+
+        """
+        rel = RelativeSequence()
+        for msg in messages:
+            rel.add_message(msg)
+        self._rel = rel
         self._abs_stale = True
 
     def pad(self, padding_length) -> None:
@@ -195,8 +255,8 @@ class Sequence:
 
     def transpose(self, transpose_by: int) -> bool:
         """See `scoda.sequence.relative_sequence.RelativeSequence.transpose`."""
-        self._abs_stale = True
         shifted = self.rel.transpose(transpose_by)
+        self._abs_stale = True
 
         # Possible that notes overlap
         if shifted:

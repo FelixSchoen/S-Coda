@@ -88,9 +88,12 @@ class RelativeSequence(AbstractSequence):
 
     # Basic Methods
 
-    def add_message(self, msg: Message) -> None:
-        """Adds the given message to the sequence."""
-        self._messages.append(msg)
+    def add_message(self, msg: Message, index=None) -> None:
+        """Adds the given message to the sequence at the (optionally) given index."""
+        if index is None:
+            self._messages.append(msg)
+        else:
+            self._messages.insert(index, msg)
 
     def concatenate(self, sequences: list[RelativeSequence]) -> None:
         """Concatenates the sequence with the given sequences, resulting in this sequence containing the combined
