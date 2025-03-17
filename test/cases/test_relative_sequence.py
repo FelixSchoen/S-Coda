@@ -15,8 +15,9 @@ def test_concatenate():
     duration_post = sequence.get_sequence_duration()
 
     assert duration_0 + duration_1 == duration_post
-    assert all(msg in sequence.rel._messages for msg in sequence_0.rel._messages)
-    assert all(msg in sequence.rel._messages for msg in sequence_1.rel._messages)
+    relative_messages = list(sequence.messages_rel())
+    assert all(msg in relative_messages for msg in sequence_0.messages_rel())
+    assert all(msg in relative_messages for msg in sequence_1.messages_rel())
 
 
 def test_normalise_relative():
@@ -74,7 +75,7 @@ def test_scale():
 def test_scale_then_create_composition():
     sequences = util_midi_to_sequences()
 
-    assert all(msg.message_type != MessageType.TIME_SIGNATURE for msg in sequences[1].rel._messages)
+    assert all(msg.message_type != MessageType.TIME_SIGNATURE for msg in sequences[1].messages_rel())
 
     compositions = []
     scale_factors = [0.5, 1, 2]
@@ -109,14 +110,14 @@ def test_transpose():
     sequences = util_midi_to_sequences()
     sequence = sequences[0]
 
-    note_heights = [msg.note for msg in sequence.rel._messages if
+    note_heights = [msg.note for msg in sequence.messages_rel() if
                     msg.message_type == MessageType.NOTE_ON or msg.message_type == MessageType.NOTE_OFF]
 
     had_to_wrap = sequence.transpose(1)
 
     assert not had_to_wrap
 
-    note_heights_after_quantization = [msg.note for msg in sequence.rel._messages if
+    note_heights_after_quantization = [msg.note for msg in sequence.messages_rel() if
                                        msg.message_type == MessageType.NOTE_ON
                                        or msg.message_type == MessageType.NOTE_OFF]
 

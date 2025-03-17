@@ -29,13 +29,13 @@ def test_equivalence():
     assert not sequence_a.equivalent(sequence_b)
 
     sequence_c = copy.copy(sequence_a)
-    for msg in sequence_c.abs._messages:
+    for msg in sequence_c.messages_abs():
         msg.channel = -1
     assert sequence_a.equivalent(sequence_c, ignore_channel=True)
     assert not sequence_a.equivalent(sequence_c, ignore_channel=False)
 
     sequence_d = copy.copy(sequence_a)
-    for msg in sequence_d.abs._messages:
+    for msg in sequence_d.messages_abs():
         msg.velocity = -1
     assert sequence_a.equivalent(sequence_d, ignore_velocity=True)
     assert not sequence_a.equivalent(sequence_d, ignore_velocity=False)
@@ -79,7 +79,7 @@ def test_get_sequence_channel():
     sequence = util_midi_to_sequences()[0]
     channel = sequence.get_sequence_channel()
 
-    assert channel == sequence.abs._messages[0].channel
+    assert channel == next(sequence.messages_abs()).channel
 
 
 def test_get_timing_of_message_type():
@@ -99,7 +99,7 @@ def test_is_channel_consistent():
 
     assert sequence.is_channel_consistent()
 
-    sequence.abs._messages[0].channel = -1
+    next(sequence.messages_abs()).channel = -1
 
     assert not sequence.is_channel_consistent()
 
@@ -110,8 +110,8 @@ def test_merge():
 
     sequence.merge(sequences)
 
-    assert len(sequence.abs._messages) == len(sequences[0].abs._messages) + len(
-        sequences[1].abs._messages)
+    assert len(list(sequence.messages_abs())) == len(list(sequences[0].messages_abs())) + len(list(
+        sequences[1].messages_abs()))
     assert sequence.get_sequence_duration() == max([seq.get_sequence_duration() for seq in sequences])
 
 
@@ -121,7 +121,7 @@ def test_quantise():
 
     sequence.quantise([PPQN])
 
-    assert all(msg.time % PPQN == 0 for msg in sequence.abs._messages)
+    assert all(msg.time % PPQN == 0 for msg in sequence.messages_abs())
 
 
 def test_quantise_note_lengths():
@@ -150,7 +150,9 @@ def test_sort():
 
     sequence.abs.sort()
 
-    assert all(msg.time <= sequence.abs._messages[i + 1].time for i, msg in enumerate(sequence.abs._messages[:-1]))
+    messages_abs = list(sequence.messages_abs())
+
+    assert all(msg.time <= messages_abs[i + 1].time for i, msg in enumerate(messages_abs[:-1]))
 
 
 def test_sequence_duration():
@@ -158,7 +160,7 @@ def test_sequence_duration():
 
     for sequence in sequences:
         sequence_duration = 0
-        for msg in sequence.rel._messages:
+        for msg in sequence.messages_rel():
             if msg.message_type == MessageType.WAIT:
                 sequence_duration += msg.time
 

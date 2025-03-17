@@ -128,7 +128,7 @@ class Sequence:
 
     def add_relative_message(self, msg, index=None) -> None:
         """See `scoda.sequence.relative_sequence.RelativeSequence.add_message`."""
-        self.rel.add_message(msg, index=None)
+        self.rel.add_message(msg, index=index)
         self._abs_stale = True
 
     def concatenate(self, sequences: list[Sequence]) -> None:

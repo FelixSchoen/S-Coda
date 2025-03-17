@@ -35,8 +35,7 @@ class Bar:
             self.sequence.pad(self.time_signature_numerator * PPQN / (self.time_signature_denominator / 4))
 
         # Assert time signature is consistent
-        relative_sequence = self.sequence.rel
-        time_signatures = [msg for msg in relative_sequence._messages if
+        time_signatures = [msg for msg in self.sequence.messages_rel() if
                            msg.message_type == MessageType.TIME_SIGNATURE]
 
         if len(time_signatures) > 1:
@@ -46,13 +45,12 @@ class Bar:
             raise BarException("Time signatures not uniform")
 
         # Set time signature and remove all other time signature messages
-        relative_sequence = self.sequence.rel
-        relative_sequence._messages = [msg for msg in relative_sequence._messages if
-                                       msg.message_type != MessageType.TIME_SIGNATURE]
-        relative_sequence._messages.insert(0, Message(message_type=MessageType.TIME_SIGNATURE,
+        self.sequence.overwrite_relative_messages([msg for msg in self.sequence.messages_rel() if
+                                                   msg.message_type != MessageType.TIME_SIGNATURE])
+        self.sequence.add_relative_message(Message(message_type=MessageType.TIME_SIGNATURE,
                                                       channel=default_channel,
                                                       numerator=self.time_signature_numerator,
-                                                      denominator=self.time_signature_denominator))
+                                                      denominator=self.time_signature_denominator), index=0)
 
         self.sequence._abs_stale = True
 

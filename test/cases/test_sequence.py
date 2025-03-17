@@ -19,10 +19,8 @@ def test_messages_rel():
 def test_difficulty():
     bars = util_split_into_bars()
     bar = bars[0][0]
-    for msg in bar.sequence.rel._messages:
-        if msg.message_type == MessageType.KEY_SIGNATURE:
-            bar.sequence.rel._messages.remove(msg)
-            bar.sequence._abs_stale = True
+    relative_messages = [msg for msg in bar.sequence.messages_rel() if msg.message_type != MessageType.KEY_SIGNATURE]
+    bar.sequence.overwrite_relative_messages(relative_messages)
     bar.KEY_SIGNATURE = None
 
     difficulty = bar.difficulty()
@@ -35,7 +33,7 @@ def test_sequences_load():
 
     assert sequences is not None
     for sequence in sequences[:2]:
-        assert len(sequence.rel._messages) > 0
+        assert len(list(sequence.messages_rel())) > 0
 
 
 def test_plot_pianorolls():
