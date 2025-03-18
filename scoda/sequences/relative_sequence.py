@@ -39,14 +39,6 @@ class RelativeSequence(AbstractSequence):
     def __init__(self) -> None:
         super().__init__()
 
-    def __copy__(self):
-        cpy = RelativeSequence()
-
-        for message in self._messages:
-            cpy._messages.append(copy.copy(message))
-
-        return cpy
-
     def __eq__(self, o: object) -> bool:
         if not isinstance(o, RelativeSequence):
             return False

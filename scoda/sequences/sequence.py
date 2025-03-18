@@ -61,8 +61,8 @@ class Sequence:
             self._rel_stale = False
 
     def __copy__(self) -> Sequence:
-        copied_absolute_sequence = None if self.abs is None else copy.copy(self.abs)
-        copied_relative_sequence = None if self.rel is None else copy.copy(self.rel)
+        copied_absolute_sequence = None if self.abs is None or self._abs_stale else copy.copy(self.abs)
+        copied_relative_sequence = None if self.rel is None or self._rel_stale else copy.copy(self.rel)
 
         cpy = Sequence(copied_absolute_sequence, copied_relative_sequence)
 

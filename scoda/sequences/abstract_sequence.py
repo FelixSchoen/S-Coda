@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
+from copy import deepcopy
 
 from scoda.elements.message import Message
 
@@ -13,6 +14,16 @@ class AbstractSequence(ABC):
     def __init__(self) -> None:
         super().__init__()
         self._messages = []
+
+    def __deepcopy__(self, memodict=None):
+        if memodict is None:
+            memodict = {}
+
+        cpy = self.__class__()
+        memodict[id(self)] = cpy
+
+        cpy._messages = deepcopy(self._messages, memodict)
+        return cpy
 
     @abstractmethod
     def add_message(self, msg: Message) -> None:

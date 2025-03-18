@@ -31,14 +31,6 @@ class AbsoluteSequence(AbstractSequence):
     def __init__(self) -> None:
         super().__init__()
 
-    def __copy__(self) -> AbsoluteSequence:
-        cpy = AbsoluteSequence()
-
-        for message in self._messages:
-            cpy._messages.append(copy.copy(message))
-
-        return cpy
-
     def __eq__(self, o: object) -> bool:
         if not isinstance(o, AbsoluteSequence):
             return False
