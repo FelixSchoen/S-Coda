@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import warnings
 from copy import deepcopy
 
 from scoda.elements.bar import Bar
@@ -25,18 +26,17 @@ class Track:
                 raise TrackException("Type of instrument inconsistent")
             self.program = program_changes[0].program
 
-    def __copy__(self):
-        raise TrackException("Shallow copying not supported. Use deepcopy instead.")
-
-    def __deepcopy__(self, memodict=None):
-        if memodict is None:
-            memodict = {}
-
-        cpy_bars = [deepcopy(bar, memodict) for bar in self.bars]
-
-        cpy = self.__class__(cpy_bars, deepcopy(self.name, memodict))
-        memodict[id(self)] = cpy
+    def copy(self) -> Track:
+        cpy = self.__class__(self.bars.copy(), self.name)
         return cpy
+
+    def __copy__(self):
+        warnings.warn("Use .copy() instead of copy.copy() for better performance.", UserWarning)
+        return self.copy()
+
+    def __deepcopy__(self, memo):
+        warnings.warn("Use .copy() instead of copy.deepcopy() for better performance.", UserWarning)
+        return self.copy()
 
     def to_sequence(self) -> Sequence:
         return Bar.to_sequence(self.bars)

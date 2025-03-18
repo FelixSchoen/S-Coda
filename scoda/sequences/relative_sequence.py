@@ -26,8 +26,8 @@ class RelativeSequence(AbstractSequence):
 
     # General Methods
 
-    def __init__(self) -> None:
-        super().__init__()
+    def __init__(self, messages: list = None) -> None:
+        super().__init__(messages=messages)
 
     def __eq__(self, o: object) -> bool:
         if not isinstance(o, RelativeSequence):
@@ -55,7 +55,7 @@ class RelativeSequence(AbstractSequence):
                 current_point_in_time += msg.time
                 cap_message_exists = False
             else:
-                message_to_add = deepcopy(msg)
+                message_to_add = msg.copy()
                 message_to_add.time = current_point_in_time
                 absolute_sequence._add_message_unsorted(message_to_add)
                 cap_message_exists = True
@@ -206,7 +206,7 @@ class RelativeSequence(AbstractSequence):
 
         """
         split_sequences = []
-        working_memory = deepcopy(self._messages)
+        working_memory = [msg.copy() for msg in self._messages]
 
         current_sequence = RelativeSequence()
         open_messages = dict()
@@ -232,7 +232,7 @@ class RelativeSequence(AbstractSequence):
                 if msg.message_type == MessageType.NOTE_ON:
                     if remaining_capacity > 0:
                         current_sequence.add_message(msg)
-                        open_messages[msg.note] = deepcopy(msg)
+                        open_messages[msg.note] = msg.copy()
                     else:
                         next_sequence_queue.append(msg)
                 # For stop messages, add them to the current sequence

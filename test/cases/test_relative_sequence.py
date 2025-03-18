@@ -61,7 +61,7 @@ def test_scale():
     original_sequence = sequences[0]
     original_bars = Sequence.sequences_split_bars([original_sequence], quantise_note_lengths=False)[0]
 
-    scaled_sequence = deepcopy(original_sequence)
+    scaled_sequence = original_sequence.copy()
     scale_factor = 0.5
     scaled_sequence.scale(scale_factor)
     scaled_sequence.quantise_and_normalise()
@@ -85,7 +85,7 @@ def test_scale_then_create_composition():
         scaled_sequences = []
 
         for i, sequence in enumerate(sequences):
-            scaled_sequence = deepcopy(sequence)
+            scaled_sequence = sequence.copy()
 
             scaled_sequence.quantise_and_normalise()
             scaled_sequence.scale(scale_factor, meta_sequence=sequences[0])

@@ -24,8 +24,8 @@ class AbsoluteSequence(AbstractSequence):
 
     # General Methods
 
-    def __init__(self) -> None:
-        super().__init__()
+    def __init__(self, messages: list = None) -> None:
+        super().__init__(messages=messages)
 
     def __eq__(self, o: object) -> bool:
         if not isinstance(o, AbsoluteSequence):
@@ -71,7 +71,7 @@ class AbsoluteSequence(AbstractSequence):
                 current_point_in_time = time
 
             if msg.message_type != MessageType.INTERNAL:
-                message_to_add = deepcopy(msg)
+                message_to_add = msg.copy()
                 message_to_add.time = None
                 relative_sequence.add_message(message_to_add)
 
@@ -221,7 +221,7 @@ class AbsoluteSequence(AbstractSequence):
 
         """
         for sequence in sequences:
-            for msg in deepcopy(sequence._messages):
+            for msg in [msg.copy() for msg in sequence._messages]:
                 self._add_message_unsorted(msg)
 
         self.normalise_absolute()
@@ -259,7 +259,7 @@ class AbsoluteSequence(AbstractSequence):
 
         for msg in self._messages:
             message_original_time = msg.time
-            message_to_append = deepcopy(msg)
+            message_to_append = msg.copy()
 
             # Positions the note would land at according to each of the quantisation parameters
             positions_left = [(message_original_time // step_size) * step_size for step_size in step_sizes]
@@ -379,7 +379,8 @@ class AbsoluteSequence(AbstractSequence):
             for i, message_pairing in enumerate(message_pairings):
                 note = message_pairing[0].note
                 current_duration = message_pairing[1].time - message_pairing[0].time
-                valid_durations = deepcopy(note_values)
+                # TODO
+                valid_durations = note_values.copy()
 
                 # Check if the current note is not the last note, in this case clashes with a next note could exist
                 index = note_occurrences[note].index(message_pairing)

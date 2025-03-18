@@ -93,8 +93,8 @@ def test_copy_of_elements():
     sequence = sequences[0]
     composition = Composition.from_sequences(sequences)
 
-    sequence_copy = deepcopy(sequence)
-    composition_copy = deepcopy(composition)
+    sequence_copy = sequence.copy()
+    composition_copy = composition.copy()
 
     for msg_orig, msg_copy in zip(sequence.messages_rel(), sequence_copy.messages_rel()):
         assert msg_orig.message_type == msg_copy.message_type

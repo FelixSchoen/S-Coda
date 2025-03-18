@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import warnings
 from copy import deepcopy
 
 from scoda.elements.track import Track
@@ -15,18 +16,17 @@ class Composition:
         super().__init__()
         self.tracks = tracks
 
-    def __copy__(self):
-        raise CompositionException("Shallow copying not supported. Use deepcopy instead.")
-
-    def __deepcopy__(self, memodict=None):
-        if memodict is None:
-            memodict = {}
-
-        cpy_tracks = [deepcopy(track, memodict) for track in self.tracks]
-
-        cpy = self.__class__(cpy_tracks)
-        memodict[id(self)] = cpy
+    def copy(self) -> Composition:
+        cpy = self.__class__([track.copy() for track in self.tracks])
         return cpy
+
+    def __copy__(self):
+        warnings.warn("Use .copy() instead of copy.copy() for better performance.", UserWarning)
+        return self.copy()
+
+    def __deepcopy__(self, memo):
+        warnings.warn("Use .copy() instead of copy.deepcopy() for better performance.", UserWarning)
+        return self.copy()
 
     @staticmethod
     def from_midi_file(file_path: str, track_indices: [[int]],

@@ -131,7 +131,7 @@ class MidiFile:
         for sequences_to_merge in sequences:
             for seq in sequences_to_merge:
                 seq.normalise()
-            track = deepcopy(sequences_to_merge[0])
+            track = sequences_to_merge[0].copy()
             track.merge(sequences_to_merge[1:])
             merged_sequences.append(track)
 

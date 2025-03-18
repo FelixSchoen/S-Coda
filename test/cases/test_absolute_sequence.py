@@ -28,20 +28,20 @@ def test_equivalence():
     assert sequence_a.equivalent(sequence_a)
     assert not sequence_a.equivalent(sequence_b)
 
-    sequence_c = deepcopy(sequence_a)
+    sequence_c = sequence_a.copy()
     for msg in sequence_c.messages_abs():
         msg.channel = -1
     assert sequence_a.equivalent(sequence_c, ignore_channel=True)
     assert not sequence_a.equivalent(sequence_c, ignore_channel=False)
 
-    sequence_d = deepcopy(sequence_a)
+    sequence_d = sequence_a.copy()
     for msg in sequence_d.messages_abs():
         msg.velocity = -1
     assert sequence_a.equivalent(sequence_d, ignore_velocity=True)
     assert not sequence_a.equivalent(sequence_d, ignore_velocity=False)
 
-    sequence_e = deepcopy(sequence_a)
-    sequence_e.concatenate([deepcopy(sequence_a)])
+    sequence_e = sequence_a.copy()
+    sequence_e.concatenate([sequence_a.copy()])
     assert not sequence_a.equivalent(sequence_e)
     assert not sequence_e.equivalent(sequence_a)
 

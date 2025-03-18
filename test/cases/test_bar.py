@@ -6,7 +6,7 @@ def test_copy():
     bars = Sequence.sequences_split_bars(sequences)
     bar = bars[0][0]
 
-    bar_copy = deepcopy(bar)
+    bar_copy = bar.copy()
 
     assert len(list(bar_copy.sequence.messages_rel())) == len(list(bar.sequence.messages_rel()))
 

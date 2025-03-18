@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import copy
+import warnings
 from copy import deepcopy
 
 from scoda.elements.message import Message
@@ -55,19 +56,18 @@ class Bar:
 
         self.sequence._abs_stale = True
 
-    def __copy__(self):
-        raise BarException("Shallow copying not supported. Use deepcopy instead.")
-
-    def __deepcopy__(self, memodict=None):
-        if memodict is None:
-            memodict = {}
-
-        cpy_sequence = deepcopy(self.sequence, memodict)
-
-        cpy = self.__class__(cpy_sequence,
+    def copy(self) -> Bar:
+        cpy = self.__class__(self.sequence.copy(),
                              self.time_signature_numerator, self.time_signature_denominator, self.key_signature)
-        memodict[id(self)] = cpy
         return cpy
+
+    def __copy__(self):
+        warnings.warn("Use .copy() instead of copy.copy() for better performance.", UserWarning)
+        return self.copy()
+
+    def __deepcopy__(self, memo):
+        warnings.warn("Use .copy() instead of copy.deepcopy() for better performance.", UserWarning)
+        return self.copy()
 
     def is_empty(self) -> bool:
         return self.sequence.is_empty()

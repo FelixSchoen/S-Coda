@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from copy import deepcopy
+import warnings
 from pathlib import Path
 from typing import TYPE_CHECKING, Generator
 
@@ -59,24 +59,24 @@ class Sequence:
         else:
             raise SequenceException("Invalid sequence initialisation.")
 
-    def __copy__(self):
-        raise SequenceException("Shallow copying not supported. Use deepcopy instead.")
-
-    def __deepcopy__(self, memodict=None):
-        if memodict is None:
-            memodict = {}
-
+    def copy(self) -> Sequence:
         cpy_abs = None
         if not self._abs_stale:
-            cpy_abs = deepcopy(self.abs, memodict)
+            cpy_abs = self.abs.copy()
         cpy_rel = None
         if not self._rel_stale:
-            cpy_rel = deepcopy(self.rel, memodict)
+            cpy_rel = self.rel.copy()
 
         cpy = self.__class__(cpy_abs, cpy_rel)
-        memodict[id(self)] = cpy
-
         return cpy
+
+    def __copy__(self):
+        warnings.warn("Use .copy() instead of copy.copy() for better performance.", UserWarning)
+        return self.copy()
+
+    def __deepcopy__(self, memo):
+        warnings.warn("Use .copy() instead of copy.deepcopy() for better performance.", UserWarning)
+        return self.copy()
 
     def __eq__(self, o: object) -> bool:
         if not isinstance(o, Sequence):
@@ -429,7 +429,7 @@ class Sequence:
         """
         from scoda.elements.bar import Bar
 
-        sequences = deepcopy(sequences_input)
+        sequences = [sequence.copy() for sequence in sequences_input]
 
         # Split into bars, carry key and time signature
         current_point_in_time = 0

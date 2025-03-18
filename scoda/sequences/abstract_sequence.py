@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import warnings
 from abc import ABC, abstractmethod
 from copy import deepcopy
 
@@ -12,22 +13,24 @@ class AbstractSequence(ABC):
 
     """
 
-    def __init__(self) -> None:
+    def __init__(self, messages: list = None) -> None:
         super().__init__()
         self._messages = []
 
-    def __copy__(self):
-        raise SequenceException("Shallow copying not supported. Use deepcopy instead.")
+        if messages is not None:
+            self._messages.extend(messages)
 
-    def __deepcopy__(self, memodict=None):
-        if memodict is None:
-            memodict = {}
-
-        cpy = self.__class__()
-        memodict[id(self)] = cpy
-
-        cpy._messages = deepcopy(self._messages, memodict)
+    def copy(self) -> AbstractSequence:
+        cpy = self.__class__(messages=[msg.copy() for msg in self._messages])
         return cpy
+
+    def __copy__(self):
+        warnings.warn("Use .copy() instead of copy.copy() for better performance.", UserWarning)
+        return self.copy()
+
+    def __deepcopy__(self, memo):
+        warnings.warn("Use .copy() instead of copy.deepcopy() for better performance.", UserWarning)
+        return self.copy()
 
     @abstractmethod
     def add_message(self, msg: Message) -> None:
