@@ -18,7 +18,7 @@ def test_to_sequences():
 def test_save():
     composition = util_load_composition()
     path = Path(__file__).parent.parent / "out" / "out_comp.mid"
-    path.mkdir(parents=True, exist_ok=True)
+    path.parent.mkdir(parents=True, exist_ok=True)
     composition.save(path)
 
     sequences = util_midi_to_sequences(path)
