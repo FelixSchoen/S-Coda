@@ -9,7 +9,8 @@ def test_roundtrip_multi_track_large_vocabulary_notelike_tokeniser(path_resource
 
     tokens, sequences_original, sequences_roundtrip = _test_roundtrip_multi_track_tokenisation(tokeniser, path_resource,
                                                                                                merge_sequences=num_tracks == 1,
-                                                                                               quantise=True)
+                                                                                               quantise=True,
+                                                                                               iteration_identifier=path_resource.stem)
 
     info = tokeniser.get_info(tokens)
 
@@ -26,7 +27,7 @@ def test_roundtrip_manual_tokeniser():
                                              quantise=True)
 
 
-def _test_roundtrip_multi_track_tokenisation(tokeniser, path_resource, merge_sequences, quantise=True, detokenise=True):
+def _test_roundtrip_multi_track_tokenisation(tokeniser, path_resource, merge_sequences, quantise=True, detokenise=True, iteration_identifier=None):
     debug = False
 
     # Load sequences
@@ -70,7 +71,7 @@ def _test_roundtrip_multi_track_tokenisation(tokeniser, path_resource, merge_seq
     # Store original sequence
     if debug:
         for i, sequence_original in enumerate(sequences_original):
-            sequence_original.save(f"out/sequence_original_{i}.mid")
+            sequence_original.save(f"out/{iteration_identifier}_sequence_original_{i}.mid")
 
     # Tokenise bars
     tokens_bars = []
@@ -102,7 +103,7 @@ def _test_roundtrip_multi_track_tokenisation(tokeniser, path_resource, merge_seq
     if debug:
         # Store roundtrip sequence
         for i, sequence_roundtrip in enumerate(sequences_roundtrip):
-            sequence_roundtrip.save(f"out/sequence_roundtrip_{i}.mid")
+            sequence_roundtrip.save(f"out/{iteration_identifier}_sequence_roundtrip_{i}.mid")
 
     # Check equivalence per bar
     bars_roundtrip = Sequence.sequences_split_bars(sequences_roundtrip, 0)

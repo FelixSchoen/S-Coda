@@ -221,7 +221,7 @@ class AbsoluteSequence(AbstractSequence):
 
         """
         for sequence in sequences:
-            for msg in [msg.copy() for msg in sequence._messages]:
+            for msg in [msg for msg in sequence._messages]:
                 self._add_message_unsorted(msg)
 
         self.normalise_absolute()
@@ -259,7 +259,7 @@ class AbsoluteSequence(AbstractSequence):
 
         for msg in self._messages:
             message_original_time = msg.time
-            message_to_append = msg.copy()
+            message_to_append = msg
 
             # Positions the note would land at according to each of the quantisation parameters
             positions_left = [(message_original_time // step_size) * step_size for step_size in step_sizes]
@@ -379,8 +379,7 @@ class AbsoluteSequence(AbstractSequence):
             for i, message_pairing in enumerate(message_pairings):
                 note = message_pairing[0].note
                 current_duration = message_pairing[1].time - message_pairing[0].time
-                # TODO
-                valid_durations = note_values.copy()
+                valid_durations = copy.copy(note_values)
 
                 # Check if the current note is not the last note, in this case clashes with a next note could exist
                 index = note_occurrences[note].index(message_pairing)

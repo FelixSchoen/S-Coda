@@ -27,16 +27,8 @@ class Track:
             self.program = program_changes[0].program
 
     def copy(self) -> Track:
-        cpy = self.__class__(self.bars.copy(), self.name)
+        cpy = self.__class__([bar.copy() for bar in self.bars], self.name)
         return cpy
-
-    def __copy__(self):
-        warnings.warn("Use .copy() instead of copy.copy() for better performance.", UserWarning)
-        return self.copy()
-
-    def __deepcopy__(self, memo):
-        warnings.warn("Use .copy() instead of copy.deepcopy() for better performance.", UserWarning)
-        return self.copy()
 
     def to_sequence(self) -> Sequence:
         return Bar.to_sequence(self.bars)

@@ -61,14 +61,6 @@ class Bar:
                              self.time_signature_numerator, self.time_signature_denominator, self.key_signature)
         return cpy
 
-    def __copy__(self):
-        warnings.warn("Use .copy() instead of copy.copy() for better performance.", UserWarning)
-        return self.copy()
-
-    def __deepcopy__(self, memo):
-        warnings.warn("Use .copy() instead of copy.deepcopy() for better performance.", UserWarning)
-        return self.copy()
-
     def is_empty(self) -> bool:
         return self.sequence.is_empty()
 

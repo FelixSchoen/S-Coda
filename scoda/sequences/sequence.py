@@ -70,14 +70,6 @@ class Sequence:
         cpy = self.__class__(cpy_abs, cpy_rel)
         return cpy
 
-    def __copy__(self):
-        warnings.warn("Use .copy() instead of copy.copy() for better performance.", UserWarning)
-        return self.copy()
-
-    def __deepcopy__(self, memo):
-        warnings.warn("Use .copy() instead of copy.deepcopy() for better performance.", UserWarning)
-        return self.copy()
-
     def __eq__(self, o: object) -> bool:
         if not isinstance(o, Sequence):
             return False
@@ -429,7 +421,7 @@ class Sequence:
         """
         from scoda.elements.bar import Bar
 
-        sequences = [sequence.copy() for sequence in sequences_input]
+        sequences = [sequence for sequence in sequences_input]
 
         # Split into bars, carry key and time signature
         current_point_in_time = 0

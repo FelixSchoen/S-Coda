@@ -20,14 +20,6 @@ class Composition:
         cpy = self.__class__([track.copy() for track in self.tracks])
         return cpy
 
-    def __copy__(self):
-        warnings.warn("Use .copy() instead of copy.copy() for better performance.", UserWarning)
-        return self.copy()
-
-    def __deepcopy__(self, memo):
-        warnings.warn("Use .copy() instead of copy.deepcopy() for better performance.", UserWarning)
-        return self.copy()
-
     @staticmethod
     def from_midi_file(file_path: str, track_indices: [[int]],
                        meta_track_indices: [int], meta_track_index: int = 0) -> Composition:

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import copy
 import math
 from typing import TYPE_CHECKING
 
@@ -86,7 +87,7 @@ class RelativeSequence(AbstractSequence):
 
         """
         for seq in sequences:
-            self._messages.extend(seq._messages)
+            self._messages.extend([msg for msg in seq._messages])
 
     def normalise_relative(self) -> None:
         """Removes invalid open and close messages. Consolidates wait messages. Removes double time signatures and key signatures.
@@ -206,7 +207,7 @@ class RelativeSequence(AbstractSequence):
 
         """
         split_sequences = []
-        working_memory = [msg.copy() for msg in self._messages]
+        working_memory = copy.copy(self._messages)
 
         current_sequence = RelativeSequence()
         open_messages = dict()
@@ -232,7 +233,7 @@ class RelativeSequence(AbstractSequence):
                 if msg.message_type == MessageType.NOTE_ON:
                     if remaining_capacity > 0:
                         current_sequence.add_message(msg)
-                        open_messages[msg.note] = msg.copy()
+                        open_messages[msg.note] = msg
                     else:
                         next_sequence_queue.append(msg)
                 # For stop messages, add them to the current sequence
@@ -275,7 +276,7 @@ class RelativeSequence(AbstractSequence):
 
         # Check if still capacity left
         if len(working_memory) > 0:
-            current_sequence._messages.extend(working_memory)
+            current_sequence._messages.extend([msg for msg in working_memory])
 
         # Add current sequence if it is not empty
         if len(current_sequence._messages) > 0:

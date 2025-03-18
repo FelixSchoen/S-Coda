@@ -39,6 +39,16 @@ class Message:
         if self.channel is None:
             self.channel = 0
 
+    def equivalent(self, other) -> bool:
+        if not isinstance(other, Message):
+            return False
+
+        for self_field, other_field in zip(list(self.__dict__.keys()), list(other.__dict__.keys())):
+            if not self_field == other_field:
+                return False
+
+        return True
+
     def copy(self) -> Message:
         cpy = self.__class__(
             message_type=self.message_type,
@@ -53,14 +63,6 @@ class Message:
             key=self.key
         )
         return cpy
-
-    def __copy__(self):
-        warnings.warn("Use .copy() instead of copy.copy() for better performance.", UserWarning)
-        return self.copy()
-
-    def __deepcopy__(self, memo):
-        warnings.warn("Use .copy() instead of copy.deepcopy() for better performance.", UserWarning)
-        return self.copy()
 
     def __repr__(self) -> str:
         representation = f"({self.message_type.value}:"

@@ -1,11 +1,8 @@
 from __future__ import annotations
 
-import warnings
 from abc import ABC, abstractmethod
-from copy import deepcopy
 
 from scoda.elements.message import Message
-from scoda.exceptions.sequence_exception import SequenceException
 
 
 class AbstractSequence(ABC):
@@ -23,14 +20,6 @@ class AbstractSequence(ABC):
     def copy(self) -> AbstractSequence:
         cpy = self.__class__(messages=[msg.copy() for msg in self._messages])
         return cpy
-
-    def __copy__(self):
-        warnings.warn("Use .copy() instead of copy.copy() for better performance.", UserWarning)
-        return self.copy()
-
-    def __deepcopy__(self, memo):
-        warnings.warn("Use .copy() instead of copy.deepcopy() for better performance.", UserWarning)
-        return self.copy()
 
     @abstractmethod
     def add_message(self, msg: Message) -> None:
