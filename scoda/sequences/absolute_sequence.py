@@ -1,20 +1,16 @@
 from __future__ import annotations
 
 import copy
-from statistics import geometric_mean
+from copy import deepcopy
 from typing import TYPE_CHECKING
 
 from scoda.elements.message import Message
 from scoda.enumerations.message_type import MessageType
 from scoda.exceptions.sequence_exception import SequenceException
 from scoda.misc.scoda_logging import get_logger
-from scoda.misc.util import binary_insort, find_minimal_distance, regress, minmax, simple_regression, \
-    get_note_durations, \
-    get_tuplet_durations, get_dotted_note_durations, get_default_step_sizes, get_default_note_values
+from scoda.misc.util import binary_insort, find_minimal_distance, get_default_step_sizes, get_default_note_values
 from scoda.sequences.abstract_sequence import AbstractSequence
-from scoda.settings.settings import PPQN, DIFF_DUAL_NOTE_VALUES_UPPER_BOUND, \
-    DIFF_DUAL_NOTE_VALUES_LOWER_BOUND, NOTE_VALUE_UPPER_BOUND, NOTE_VALUE_LOWER_BOUND, VALID_TUPLETS, DOTTED_ITERATIONS, \
-    SCALE_LOGLIKE
+from scoda.settings.settings import PPQN
 
 if TYPE_CHECKING:
     from scoda.sequences.relative_sequence import RelativeSequence
@@ -75,7 +71,7 @@ class AbsoluteSequence(AbstractSequence):
                 current_point_in_time = time
 
             if msg.message_type != MessageType.INTERNAL:
-                message_to_add = copy.copy(msg)
+                message_to_add = deepcopy(msg)
                 message_to_add.time = None
                 relative_sequence.add_message(message_to_add)
 
@@ -225,7 +221,7 @@ class AbsoluteSequence(AbstractSequence):
 
         """
         for sequence in sequences:
-            for msg in copy.copy(sequence._messages):
+            for msg in deepcopy(sequence._messages):
                 self._add_message_unsorted(msg)
 
         self.normalise_absolute()
@@ -263,7 +259,7 @@ class AbsoluteSequence(AbstractSequence):
 
         for msg in self._messages:
             message_original_time = msg.time
-            message_to_append = copy.copy(msg)
+            message_to_append = deepcopy(msg)
 
             # Positions the note would land at according to each of the quantisation parameters
             positions_left = [(message_original_time // step_size) * step_size for step_size in step_sizes]
@@ -383,7 +379,7 @@ class AbsoluteSequence(AbstractSequence):
             for i, message_pairing in enumerate(message_pairings):
                 note = message_pairing[0].note
                 current_duration = message_pairing[1].time - message_pairing[0].time
-                valid_durations = copy.copy(note_values)
+                valid_durations = deepcopy(note_values)
 
                 # Check if the current note is not the last note, in this case clashes with a next note could exist
                 index = note_occurrences[note].index(message_pairing)
@@ -435,6 +431,7 @@ class AbsoluteSequence(AbstractSequence):
 
     # Misc. Methods
 
+    # TODO read only view
     def get_message_pairings(self,
                              message_types: list[MessageType] = None,
                              standard_length=PPQN,

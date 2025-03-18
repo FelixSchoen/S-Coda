@@ -1,12 +1,9 @@
 from __future__ import annotations
 
-import copy
 import math
-import re
-import time
-from statistics import mean
 from typing import TYPE_CHECKING
 
+from copy import deepcopy
 from scoda.elements.message import Message
 from scoda.enumerations.message_type import MessageType
 from scoda.exceptions.sequence_exception import SequenceException
@@ -14,15 +11,8 @@ from scoda.midi.midi_message import MidiMessage
 from scoda.midi.midi_track import MidiTrack
 from scoda.misc.music_theory import Note, Key, MusicMapping
 from scoda.misc.scoda_logging import get_logger
-from scoda.misc.util import minmax, simple_regression
 from scoda.sequences.abstract_sequence import AbstractSequence
-from scoda.settings.settings import NOTE_LOWER_BOUND, NOTE_UPPER_BOUND, PPQN, DIFF_DUAL_DISTANCES_UPPER_BOUND, \
-    DIFF_DUAL_DISTANCES_LOWER_BOUND, DIFF_DUAL_PATTERN_COVERAGE_UPPER_BOUND, DIFF_DUAL_PATTERN_COVERAGE_LOWER_BOUND, \
-    PATTERN_LENGTH_MIN, REGEX_PATTERN, REGEX_SUBPATTERN, DIFF_DUAL_NOTE_CLASSES_UPPER_BOUND, \
-    DIFF_DUAL_NOTE_CLASSES_LOWER_BOUND, \
-    DIFF_DUAL_NOTE_AMOUNT_UPPER_BOUND, DIFF_DUAL_NOTE_AMOUNT_LOWER_BOUND, PATTERN_SECONDS_SEARCH_DURATION, \
-    DIFF_DUAL_NOTE_CONCURRENT_UPPER_BOUND, DIFF_DUAL_NOTE_CONCURRENT_LOWER_BOUND, DIFF_DUAL_ACCIDENTALS_UPPER_BOUND, \
-    DIFF_DUAL_ACCIDENTALS_LOWER_BOUND
+from scoda.settings.settings import NOTE_LOWER_BOUND, NOTE_UPPER_BOUND, PPQN
 
 if TYPE_CHECKING:
     from scoda.sequences.absolute_sequence import AbsoluteSequence
@@ -65,7 +55,7 @@ class RelativeSequence(AbstractSequence):
                 current_point_in_time += msg.time
                 cap_message_exists = False
             else:
-                message_to_add = copy.copy(msg)
+                message_to_add = deepcopy(msg)
                 message_to_add.time = current_point_in_time
                 absolute_sequence._add_message_unsorted(message_to_add)
                 cap_message_exists = True
@@ -216,7 +206,7 @@ class RelativeSequence(AbstractSequence):
 
         """
         split_sequences = []
-        working_memory = copy.copy(self._messages)
+        working_memory = deepcopy(self._messages)
 
         current_sequence = RelativeSequence()
         open_messages = dict()
@@ -242,7 +232,7 @@ class RelativeSequence(AbstractSequence):
                 if msg.message_type == MessageType.NOTE_ON:
                     if remaining_capacity > 0:
                         current_sequence.add_message(msg)
-                        open_messages[msg.note] = copy.copy(msg)
+                        open_messages[msg.note] = deepcopy(msg)
                     else:
                         next_sequence_queue.append(msg)
                 # For stop messages, add them to the current sequence

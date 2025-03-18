@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-import copy
+from copy import deepcopy
 
 from scoda.elements.bar import Bar
 from scoda.enumerations.message_type import MessageType
@@ -25,10 +25,17 @@ class Track:
                 raise TrackException("Type of instrument inconsistent")
             self.program = program_changes[0].program
 
-    def __copy__(self) -> Track:
-        bars = [copy.copy(bar) for bar in self.bars]
+    def __copy__(self):
+        raise TrackException("Shallow copying not supported. Use deepcopy instead.")
 
-        cpy = Track(bars, self.name)
+    def __deepcopy__(self, memodict=None):
+        if memodict is None:
+            memodict = {}
+
+        cpy_bars = [deepcopy(bar, memodict) for bar in self.bars]
+
+        cpy = self.__class__(cpy_bars, deepcopy(self.name, memodict))
+        memodict[id(self)] = cpy
         return cpy
 
     def to_sequence(self) -> Sequence:

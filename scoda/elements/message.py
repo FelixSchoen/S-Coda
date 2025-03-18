@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from scoda.exceptions.sequence_exception import SequenceException
 from scoda.enumerations.message_type import MessageType
 from scoda.misc.music_theory import Key
 
@@ -35,6 +36,29 @@ class Message:
 
         if self.channel is None:
             self.channel = 0
+
+    def __copy__(self):
+        raise SequenceException("Shallow copying not supported. Use deepcopy instead.")
+
+    def __deepcopy__(self, memodict=None):
+        if memodict is None:
+            memodict = {}
+
+        cpy = self.__class__()
+        memodict[id(self)] = cpy
+
+        cpy.message_type = self.message_type
+        cpy.channel = self.channel
+        cpy.time = self.time
+        cpy.note = self.note
+        cpy.velocity = self.velocity
+        cpy.control = self.control
+        cpy.program = self.program
+        cpy.numerator = self.numerator
+        cpy.denominator = self.denominator
+        cpy.key = self.key
+
+        return cpy
 
     def __copy__(self) -> Message:
         return Message(message_type=self.message_type, channel=self.channel, note=self.note, velocity=self.velocity,

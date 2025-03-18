@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import copy
+from copy import deepcopy
 from typing import TYPE_CHECKING
 
 import mido
@@ -130,7 +131,7 @@ class MidiFile:
         for sequences_to_merge in sequences:
             for seq in sequences_to_merge:
                 seq.normalise()
-            track = copy.copy(sequences_to_merge[0])
+            track = deepcopy(sequences_to_merge[0])
             track.merge(sequences_to_merge[1:])
             merged_sequences.append(track)
 

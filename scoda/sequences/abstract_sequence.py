@@ -4,6 +4,7 @@ from abc import ABC, abstractmethod
 from copy import deepcopy
 
 from scoda.elements.message import Message
+from scoda.exceptions.sequence_exception import SequenceException
 
 
 class AbstractSequence(ABC):
@@ -14,6 +15,9 @@ class AbstractSequence(ABC):
     def __init__(self) -> None:
         super().__init__()
         self._messages = []
+
+    def __copy__(self):
+        raise SequenceException("Shallow copying not supported. Use deepcopy instead.")
 
     def __deepcopy__(self, memodict=None):
         if memodict is None:

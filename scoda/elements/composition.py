@@ -1,8 +1,9 @@
 from __future__ import annotations
 
-import copy
+from copy import deepcopy
 
 from scoda.elements.track import Track
+from scoda.exceptions.composition_exception import CompositionException
 from scoda.sequences.sequence import Sequence
 
 
@@ -14,10 +15,17 @@ class Composition:
         super().__init__()
         self.tracks = tracks
 
-    def __copy__(self) -> Composition:
-        tracks = [copy.copy(track) for track in self.tracks]
+    def __copy__(self):
+        raise CompositionException("Shallow copying not supported. Use deepcopy instead.")
 
-        cpy = Composition(tracks)
+    def __deepcopy__(self, memodict=None):
+        if memodict is None:
+            memodict = {}
+
+        cpy_tracks = [deepcopy(track, memodict) for track in self.tracks]
+
+        cpy = self.__class__(cpy_tracks)
+        memodict[id(self)] = cpy
         return cpy
 
     @staticmethod

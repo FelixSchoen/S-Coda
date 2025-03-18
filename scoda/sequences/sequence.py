@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-import copy
+from copy import deepcopy
 from pathlib import Path
 from typing import TYPE_CHECKING, Generator
 
@@ -10,10 +10,11 @@ from matplotlib.patches import Rectangle
 
 from scoda.elements.message import Message
 from scoda.enumerations.message_type import MessageType
+from scoda.exceptions.sequence_exception import SequenceException
 from scoda.midi.midi_file import MidiFile
 from scoda.midi.midi_track import MidiTrack
 from scoda.misc.music_theory import Key
-from scoda.misc.util import minmax, simple_regression
+from scoda.misc.util import simple_regression
 from scoda.sequences.absolute_sequence import AbsoluteSequence
 from scoda.sequences.relative_sequence import RelativeSequence
 from scoda.settings.settings import PPQN, NOTE_LOWER_BOUND, NOTE_UPPER_BOUND, VELOCITY_MAX
@@ -34,26 +35,46 @@ class Sequence:
 
     def __init__(self, absolute_sequence: AbsoluteSequence = None, relative_sequence: RelativeSequence = None) -> None:
         super().__init__()
-        self._abs_stale = True
-        self._rel_stale = True
+        self.invalidate_abs()
+        self.invalidate_rel()
 
-        if absolute_sequence is None:
+        if absolute_sequence is None and relative_sequence is None:
             self._abs = AbsoluteSequence()
-        else:
+            self._rel = None
+            self._abs_stale = False
+            self.invalidate_rel()
+        elif absolute_sequence is not None and relative_sequence is None:
             self._abs = absolute_sequence
             self._abs_stale = False
-
-        if relative_sequence is None:
-            self._rel = RelativeSequence()
-        else:
+            self.invalidate_rel()
+        elif relative_sequence is not None and absolute_sequence is None:
             self._rel = relative_sequence
+            self.invalidate_abs()
             self._rel_stale = False
+        elif absolute_sequence is not None and relative_sequence is not None:
+            self._abs = absolute_sequence
+            self._rel = relative_sequence
+            self._abs_stale = False
+            self._rel_stale = False
+        else:
+            raise SequenceException("Invalid sequence initialisation.")
 
-    def __copy__(self) -> Sequence:
-        copied_absolute_sequence = None if self.abs is None or self._abs_stale else copy.copy(self.abs)
-        copied_relative_sequence = None if self.rel is None or self._rel_stale else copy.copy(self.rel)
+    def __copy__(self):
+        raise SequenceException("Shallow copying not supported. Use deepcopy instead.")
 
-        cpy = Sequence(copied_absolute_sequence, copied_relative_sequence)
+    def __deepcopy__(self, memodict=None):
+        if memodict is None:
+            memodict = {}
+
+        cpy_abs = None
+        if not self._abs_stale:
+            cpy_abs = deepcopy(self.abs, memodict)
+        cpy_rel = None
+        if not self._rel_stale:
+            cpy_rel = deepcopy(self.rel, memodict)
+
+        cpy = self.__class__(cpy_abs, cpy_rel)
+        memodict[id(self)] = cpy
 
         return cpy
 
@@ -76,8 +97,10 @@ class Sequence:
 
         """
         if self._abs_stale:
-            self._abs_stale = False
+            if self._rel_stale:
+                raise SequenceException("Sequence references stale.")
             self._abs = self._rel.to_absolute_sequence()
+            self._abs_stale = False
         return self._abs
 
     @property
@@ -93,31 +116,41 @@ class Sequence:
 
         """
         if self._rel_stale:
-            self._rel_stale = False
+            if self._abs_stale:
+                raise SequenceException("Sequence references stale.")
             self._rel = self._abs.to_relative_sequence()
+            self._rel_stale = False
         return self._rel
+
+    def invalidate_abs(self) -> None:
+        """Invalidates the absolute representation of this sequence."""
+        self._abs_stale = True
+
+    def invalidate_rel(self) -> None:
+        """Invalidates the relative representation of this sequence."""
+        self._rel_stale = True
 
     # Basic Methods
 
     def add_absolute_message(self, msg) -> None:
         """See `scoda.sequence.absolute_sequence.AbsoluteSequence.add_message`."""
         self.abs.add_message(msg)
-        self._rel_stale = True
+        self.invalidate_rel()
 
     def add_relative_message(self, msg, index=None) -> None:
         """See `scoda.sequence.relative_sequence.RelativeSequence.add_message`."""
         self.rel.add_message(msg, index=index)
-        self._abs_stale = True
+        self.invalidate_abs()
 
     def concatenate(self, sequences: list[Sequence]) -> None:
         """See `scoda.sequence.relative_sequence.RelativeSequence.concatenate`."""
         self.rel.concatenate([seq.rel for seq in sequences])
-        self._abs_stale = True
+        self.invalidate_abs()
 
     def cutoff(self, maximum_length, reduced_length) -> None:
         """See `scoda.sequence.relative_sequence.AbsoluteSequence.cutoff`."""
         self.abs.cutoff(maximum_length=maximum_length, reduced_length=reduced_length)
-        self._rel_stale = True
+        self.invalidate_rel()
 
     def equivalent(self,
                    other,
@@ -132,7 +165,7 @@ class Sequence:
     def merge(self, sequences: list[Sequence]) -> None:
         """See `scoda.sequence.absolute_sequence.AbsoluteSequence.merge`."""
         self.abs.merge([seq.abs for seq in sequences])
-        self._rel_stale = True
+        self.invalidate_rel()
         self.normalise()
 
     def messages_abs(self) -> Generator[Message]:
@@ -145,10 +178,10 @@ class Sequence:
         """
         try:
             for message in self.abs._messages:
-                self._rel_stale = True
+                self.invalidate_rel()
                 yield message
         finally:
-            self._rel_stale = True
+            self.invalidate_rel()
 
     def messages_rel(self) -> Generator[Message]:
         """Yields the messages of the relative sequence.
@@ -160,15 +193,15 @@ class Sequence:
         """
         try:
             for message in self.rel._messages:
-                self._abs_stale = True
+                self.invalidate_abs()
                 yield message
         finally:
-            self._abs_stale = True
+            self.invalidate_abs()
 
     def normalise(self) -> None:
         """See `scoda.sequence.relative_sequence.RelativeSequence.normalise_relative`."""
         self.rel.normalise_relative()
-        self._abs_stale = True
+        self.invalidate_abs()
 
     def overwrite_absolute_messages(self, messages: list[Message]) -> None:
         """Overwrites the messages of the absolute sequence.
@@ -181,7 +214,7 @@ class Sequence:
         for msg in messages:
             abs.add_message(msg)
         self._abs = abs
-        self._rel_stale = True
+        self.invalidate_rel()
 
     def overwrite_relative_messages(self, messages: list[Message]) -> None:
         """Overwrites the messages of the relative sequence.
@@ -194,12 +227,12 @@ class Sequence:
         for msg in messages:
             rel.add_message(msg)
         self._rel = rel
-        self._abs_stale = True
+        self.invalidate_abs()
 
     def pad(self, padding_length) -> None:
         """See `scoda.sequence.relative_sequence.RelativeSequence.pad`."""
         self.rel.pad(padding_length)
-        self._abs_stale = True
+        self.invalidate_abs()
 
     def save(self, file_path: str) -> MidiFile:
         """Saves the given sequence as a MIDI file.
@@ -215,7 +248,7 @@ class Sequence:
     def set_channel(self, channel: int) -> None:
         """See `scoda.sequence.relative_sequence.RelativeSequence.set_channel`."""
         self.rel.set_channel(channel)
-        self._abs_stale = True
+        self.invalidate_abs()
 
     def split(self, capacities: list[int]) -> list[Sequence]:
         """See `scoda.sequence.relative_sequence.RelativeSequence.split`."""
@@ -226,7 +259,7 @@ class Sequence:
     def scale(self, factor, meta_sequence=None, quantise_afterwards=True) -> None:
         """See `scoda.sequence.relative_sequence.RelativeSequence.scale`."""
         self.rel.scale(factor, meta_sequence)
-        self._abs_stale = True
+        self.invalidate_abs()
 
         if quantise_afterwards:
             self.quantise_and_normalise()
@@ -234,7 +267,7 @@ class Sequence:
     def transpose(self, transpose_by: int) -> bool:
         """See `scoda.sequence.relative_sequence.RelativeSequence.transpose`."""
         shifted = self.rel.transpose(transpose_by)
-        self._abs_stale = True
+        self.invalidate_abs()
 
         # Possible that notes overlap
         if shifted:
@@ -246,15 +279,15 @@ class Sequence:
     def quantise(self, step_sizes: list[int] = None) -> None:
         """See `scoda.sequence.absolute_sequence.AbsoluteSequence.quantise`."""
         self.abs.quantise(step_sizes)
-        self._rel_stale = True
+        self.invalidate_rel()
 
     def quantise_note_lengths(self, note_values=None, standard_length=PPQN, do_not_extend=False) -> None:
         """See `scoda.sequence.absolute_sequence.AbsoluteSequence.quantise_note_lengths`."""
         self.abs.quantise_note_lengths(note_values, standard_length=standard_length, do_not_extend=do_not_extend)
-        self._rel_stale = True
+        self.invalidate_rel()
 
     def quantise_and_normalise(self, step_sizes: list[int] = None, note_values=None, standard_length=PPQN,
-                               do_not_extend=False):
+                               do_not_extend=False) -> None:
         """Quantises and normalises the sequence."""
         self.quantise(step_sizes)
         self.quantise_note_lengths(note_values, standard_length, do_not_extend)
@@ -396,7 +429,7 @@ class Sequence:
         """
         from scoda.elements.bar import Bar
 
-        sequences = copy.copy(sequences_input)
+        sequences = deepcopy(sequences_input)
 
         # Split into bars, carry key and time signature
         current_point_in_time = 0

@@ -22,7 +22,8 @@ test = [
     "pytest",
     "pytest-xdist",
     "pytest-cov",
-    "coverage"
+    "coverage",
+    "build",
 ]
 deploy = [
     "build",
