@@ -37,17 +37,6 @@ class Sequence:
         self._abs_stale = True
         self._rel_stale = True
 
-        self._difficulty = None
-        self._diff_note_amount = None
-        self._diff_note_values = None
-        self._diff_note_classes = None
-        self._diff_concurrent_notes = None
-        self._diff_key = None
-        self._diff_accidentals = None
-        self._diff_distances = None
-        self._diff_rhythm = None
-        self._diff_pattern = None
-
         if absolute_sequence is None:
             self._abs = AbsoluteSequence()
         else:
@@ -65,17 +54,6 @@ class Sequence:
         copied_relative_sequence = None if self.rel is None or self._rel_stale else copy.copy(self.rel)
 
         cpy = Sequence(copied_absolute_sequence, copied_relative_sequence)
-
-        cpy._difficulty = self._difficulty
-        cpy._diff_note_amount = self._diff_note_amount
-        cpy._diff_note_values = self._diff_note_values
-        cpy._diff_note_classes = self._diff_note_classes
-        cpy._diff_concurrent_notes = self._diff_concurrent_notes
-        cpy._diff_key = self._diff_key
-        cpy._diff_accidentals = self._diff_accidentals
-        cpy._diff_distances = self._diff_distances
-        cpy._diff_rhythm = self._diff_rhythm
-        cpy._diff_pattern = self._diff_pattern
 
         return cpy
 
@@ -262,11 +240,6 @@ class Sequence:
         if shifted:
             self.normalise()
             self.quantise_note_lengths()
-            self._diff_pattern = None
-
-        if transpose_by % 12 != 0:
-            self._diff_key = None
-            self._diff_accidentals = None
 
         return shifted
 
@@ -350,104 +323,6 @@ class Sequence:
     def to_midi_track(self) -> MidiTrack:
         """See `scoda.sequence.relative_sequence.RelativeSequence.to_midi_track`."""
         return self.rel.to_midi_track()
-
-    # Difficulty Methods
-
-    def difficulty(self, key_signature: Key = None) -> float:
-        # If difficulty not stale
-        if None not in [self._difficulty, self._diff_note_amount, self._diff_note_values, self._diff_note_classes,
-                        self._diff_key, self._diff_accidentals, self._diff_distances, self._diff_rhythm,
-                        self._diff_pattern, self._diff_concurrent_notes]:
-            return self._difficulty
-
-        self.normalise()
-
-        if key_signature is None:
-            key_signature = self.rel.get_key_signature_guess()
-
-        difficulty_weights = [
-            (self.diff_note_values, 0, 0.45),
-            (self.diff_note_amount, 0, 0.5),
-            (self.diff_concurrent_notes, 0, 0.475),
-            (self.diff_distances, 0, 0.15),
-            (self.diff_rhythm, -0.1, 0.2),
-            (self.diff_key(key_signature), -0.05, 0.15),
-            (self.diff_accidentals(key_signature), -0.05, 0.1),
-            (self.diff_note_classes, -0.1, 0.15),
-        ]
-
-        difficulty_percentages = [
-            (self.diff_pattern, -0.4, 0),
-        ]
-
-        overall_difficulty = 0
-
-        for difficulty_weight in difficulty_weights:
-            change = simple_regression(0, difficulty_weight[1], 1, difficulty_weight[2], difficulty_weight[0])
-            overall_difficulty += change
-
-        percentage_change = 0
-        for percentage_weight in difficulty_percentages:
-            change = simple_regression(0, percentage_weight[1], 1, percentage_weight[2], percentage_weight[0])
-            percentage_change += change
-        overall_difficulty *= (1 + percentage_change)
-
-        overall_difficulty = minmax(0, 1, overall_difficulty)
-
-        self._difficulty = overall_difficulty
-        return self._difficulty
-
-    @property
-    def diff_note_amount(self) -> float:
-        if self._diff_note_amount is None:
-            self._diff_note_amount = self.rel.diff_note_amount()
-        return self._diff_note_amount
-
-    @property
-    def diff_note_values(self) -> float:
-        if self._diff_note_values is None:
-            self._diff_note_values = self.abs.diff_note_values()
-        return self._diff_note_values
-
-    @property
-    def diff_note_classes(self) -> float:
-        if self._diff_note_classes is None:
-            self._diff_note_classes = self.rel.diff_note_classes()
-        return self._diff_note_classes
-
-    @property
-    def diff_concurrent_notes(self) -> float:
-        if self._diff_concurrent_notes is None:
-            self._diff_concurrent_notes = self.rel.diff_concurrent_notes()
-        return self._diff_concurrent_notes
-
-    def diff_key(self, key_signature) -> float:
-        if self._diff_key is None:
-            self._diff_key = self.rel.diff_key(key=key_signature)
-        return self._diff_key
-
-    def diff_accidentals(self, key_signature) -> float:
-        if self._diff_accidentals is None:
-            self._diff_accidentals = self.rel.diff_accidentals(key=key_signature)
-        return self._diff_accidentals
-
-    @property
-    def diff_distances(self) -> float:
-        if self._diff_distances is None:
-            self._diff_distances = self.rel.diff_distances()
-        return self._diff_distances
-
-    @property
-    def diff_rhythm(self) -> float:
-        if self._diff_rhythm is None:
-            self._diff_rhythm = self.abs.diff_rhythm()
-        return self._diff_rhythm
-
-    @property
-    def diff_pattern(self) -> float:
-        if self._diff_pattern is None:
-            self._diff_pattern = self.rel.diff_pattern()
-        return self._diff_pattern
 
     # Static Functions
 

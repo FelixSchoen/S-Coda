@@ -16,18 +16,6 @@ def test_messages_rel():
     assert sequence._abs_stale is True
 
 
-def test_difficulty():
-    bars = util_split_into_bars()
-    bar = bars[0][0]
-    relative_messages = [msg for msg in bar.sequence.messages_rel() if msg.message_type != MessageType.KEY_SIGNATURE]
-    bar.sequence.overwrite_relative_messages(relative_messages)
-    bar.KEY_SIGNATURE = None
-
-    difficulty = bar.difficulty()
-
-    assert 0 <= difficulty <= 1
-
-
 def test_sequences_load():
     sequences = Sequence.sequences_load(file_path=RESOURCE_BEETHOVEN)
 

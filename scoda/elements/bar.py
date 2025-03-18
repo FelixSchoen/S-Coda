@@ -48,9 +48,9 @@ class Bar:
         self.sequence.overwrite_relative_messages([msg for msg in self.sequence.messages_rel() if
                                                    msg.message_type != MessageType.TIME_SIGNATURE])
         self.sequence.add_relative_message(Message(message_type=MessageType.TIME_SIGNATURE,
-                                                      channel=default_channel,
-                                                      numerator=self.time_signature_numerator,
-                                                      denominator=self.time_signature_denominator), index=0)
+                                                   channel=default_channel,
+                                                   numerator=self.time_signature_numerator,
+                                                   denominator=self.time_signature_denominator), index=0)
 
         self.sequence._abs_stale = True
 
@@ -59,11 +59,6 @@ class Bar:
                   self.key_signature)
 
         return bar
-
-    def difficulty(self, key_signature: Key = None) -> float:
-        if key_signature is None:
-            key_signature = self.key_signature
-        return self.sequence.difficulty(key_signature)
 
     def is_empty(self) -> bool:
         return self.sequence.is_empty()
