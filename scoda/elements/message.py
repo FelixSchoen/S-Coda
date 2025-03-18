@@ -43,7 +43,7 @@ class Message:
         if not isinstance(other, Message):
             return False
 
-        for self_field, other_field in zip(list(self.__dict__.keys()), list(other.__dict__.keys())):
+        for self_field, other_field in zip(list(self.__dict__.values()), list(other.__dict__.values())):
             if not self_field == other_field:
                 return False
 
@@ -90,11 +90,66 @@ class Message:
 
     @staticmethod
     def from_dict(dictionary: dict) -> Message:
-        msg = Message(message_type=MessageType[dictionary.get("message_type", None)],
+        message_type = dictionary.get("message_type", None)
+        if message_type is not None:
+            message_type = MessageType[message_type]
+
+        key = dictionary.get("key", None)
+        if key is not None:
+            key = Key(key)
+
+        msg = Message(message_type=message_type,
                       channel=dictionary.get("channel", None),
-                      note=dictionary.get("note", None), velocity=dictionary.get("velocity", None),
-                      control=dictionary.get("control", None), program=dictionary.get("program", None),
-                      numerator=dictionary.get("numerator", None), denominator=dictionary.get("denominator", None),
-                      key=dictionary.get("key", None), time=dictionary.get("time", None))
+                      note=dictionary.get("note", None),
+                      velocity=dictionary.get("velocity", None),
+                      control=dictionary.get("control", None),
+                      program=dictionary.get("program", None),
+                      numerator=dictionary.get("numerator", None),
+                      denominator=dictionary.get("denominator", None),
+                      key=key,
+                      time=dictionary.get("time", None))
 
         return msg
+
+
+class ReadOnlyMessage(Message):
+
+    def __init__(self, message: Message):
+        super().__init__(
+            message_type=message.message_type,
+            channel=message.channel,
+            time=message.time,
+            note=message.note,
+            velocity=message.velocity,
+            control=message.control,
+            program=message.program,
+            numerator=message.numerator,
+            denominator=message.denominator,
+            key=message.key
+        )
+        self.__dict__["_initialised"] = True
+
+    @property
+    def initialised(self):
+        if hasattr(self, "_initialised"):
+            return self._initialised
+        else:
+            return False
+
+    def __getattr__(self, attribute):
+        if attribute in self.__dict__:
+            return getattr(self, attribute)
+        raise AttributeError(f"ReadOnlyMessage object has no attribute {attribute}")
+
+    def __setattr__(self, attribute, value):
+        if self.initialised:
+            raise AttributeError("This object is read-only")
+        else:
+            super().__setattr__(attribute, value)
+
+    def __delattr__(self, attribute):
+        raise AttributeError("This object is read-only")
+
+    def __repr__(self):
+        repr_super = super().__repr__()
+        return repr_super[:1] + "read only: " + repr_super[1:]

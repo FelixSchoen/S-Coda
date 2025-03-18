@@ -435,7 +435,7 @@ class AbsoluteSequence(AbstractSequence):
     def get_message_pairings(self,
                              message_types: list[MessageType] = None,
                              standard_length=PPQN,
-                             impute_notes=True) -> dict[list[Message]]:
+                             impute_notes=True) -> dict[int, list[list[Message]]]:
         """Creates a dictionary where the keys correspond to channels and the items to lists of messages of the given types.
         These lists contain all entries for messages that belong together, e.g., open and close note messages.
 

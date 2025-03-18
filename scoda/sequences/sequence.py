@@ -1,14 +1,13 @@
 from __future__ import annotations
 
-import warnings
 from pathlib import Path
-from typing import TYPE_CHECKING, Generator
+from typing import TYPE_CHECKING, Generator, Any
 
 import numpy as np
 from matplotlib import pyplot as plt, pyplot
 from matplotlib.patches import Rectangle
 
-from scoda.elements.message import Message
+from scoda.elements.message import Message, ReadOnlyMessage
 from scoda.enumerations.message_type import MessageType
 from scoda.exceptions.sequence_exception import SequenceException
 from scoda.midi.midi_file import MidiFile
@@ -121,6 +120,19 @@ class Sequence:
     def invalidate_rel(self) -> None:
         """Invalidates the relative representation of this sequence."""
         self._rel_stale = True
+
+    def refresh(self) -> None:
+        """Refreshes the absolute and relative representations of this sequence."""
+        if self._abs_stale and self._rel_stale:
+            raise SequenceException("Sequence references stale.")
+
+        if self._abs_stale:
+            self._abs = self._rel.to_absolute_sequence()
+            self._abs_stale = False
+
+        if self._rel_stale:
+            self._rel = self._abs.to_relative_sequence()
+            self._rel_stale = False
 
     # Basic Methods
 
@@ -290,30 +302,57 @@ class Sequence:
     def get_message_pairings(self,
                              message_types: list[MessageType] = None,
                              standard_length=PPQN,
-                             impute_notes=True) -> dict[list[Message]]:
+                             impute_notes=True) -> dict[int, list[list[ReadOnlyMessage]]]:
         """See `scoda.sequence.absolute_sequence.AbsoluteSequence.get_message_pairings`.
 
+        Note:
+            The returned messages are read-only.
+
         """
-        return self.abs.get_message_pairings(message_types=message_types,
-                                             standard_length=standard_length,
-                                             impute_notes=impute_notes)
+        message_pairings = self.abs.get_message_pairings(message_types=message_types,
+                                                         standard_length=standard_length,
+                                                         impute_notes=impute_notes)
+        read_only_message_pairings = {}
+        for channel, pairings in message_pairings.items():
+            read_only_pairings = []
+            read_only_message_pairings[channel] = read_only_pairings
+            for pairing in pairings:
+                read_only_pairings.append([(ReadOnlyMessage(msg)) for msg in pairing])
+
+        return read_only_message_pairings
 
     def get_interleaved_message_pairings(self,
                                          message_types: list[MessageType] = None,
                                          standard_length=PPQN,
-                                         impute_notes=True) -> list[tuple[int, list[Message]]]:
+                                         impute_notes=True) -> list[tuple[int, list[ReadOnlyMessage]]]:
         """See `scoda.sequence.absolute_sequence.AbsoluteSequence.get_interleaved_message_pairings`.
 
-        """
-        return self.abs.get_interleaved_message_pairings(message_types=message_types,
-                                                         standard_length=standard_length,
-                                                         impute_notes=impute_notes)
+        Note:
+            The returned messages are read-only.
 
-    def get_message_times_of_type(self, message_types: [MessageType]) -> list[tuple[int, Message]]:
+        """
+        interleaved_message_pairings = self.abs.get_interleaved_message_pairings(message_types=message_types,
+                                                                                 standard_length=standard_length,
+                                                                                 impute_notes=impute_notes)
+        read_only_interleaved_message_pairings = []
+        for channel, pairing in interleaved_message_pairings:
+            read_only_interleaved_message_pairings.append((channel, [ReadOnlyMessage(msg) for msg in pairing]))
+
+        return read_only_interleaved_message_pairings
+
+    def get_message_times_of_type(self, message_types: [MessageType]) -> list[tuple[int, ReadOnlyMessage]]:
         """See `scoda.sequence.absolute_sequence.AbsoluteSequence.get_message_timings_of_type`.
 
+        Note:
+            The returned messages are read-only.
+
         """
-        return self.abs.get_message_times_of_type(message_types)
+        message_times = self.abs.get_message_times_of_type(message_types)
+        read_only_message_times = []
+        for time, msg in message_times:
+            read_only_message_times.append((time, ReadOnlyMessage(msg)))
+
+        return read_only_message_times
 
     def get_sequence_channel(self) -> int | None:
         """See `scoda.sequence.absolute_sequence.AbsoluteSequence.get_sequence_channel`.

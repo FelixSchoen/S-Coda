@@ -31,3 +31,12 @@ def test_plot_pianorolls():
     plot_object = Sequence.plot_pianorolls([bars[0][0].sequence, bars[1][0].sequence])
 
     assert plot_object is not None
+
+def test_read_only_messages():
+    sequence = util_midi_to_sequences()[0]
+    channel_pairings = sequence.get_message_pairings()
+
+    for channel, message_pairings in channel_pairings.items():
+        for message_pairing in message_pairings:
+            with pytest.raises(AttributeError):
+                message_pairing[0].type = MessageType.NOTE_ON
