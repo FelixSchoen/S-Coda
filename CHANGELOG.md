@@ -4,11 +4,23 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres
 to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.4] - 2025-03-18
+
+### Added
+
+- Implement read-only messages
+- Provide way to invalidate sequences via `Sequence.invalidate_abs()` and `Sequence.invalidate_rel()` methods
+- Provide way to refresh stale sequences via `Sequence.refresh()`
+
+### Changed
+
+- Rework copying of elements
+
 ## [2.3] - 2025-03-17
 
 ### Changed
 
-- Provide way to safely modify sequence messages via `messages_abs()` and `messages_rel()`
+- Provide way to safely modify sequence messages via `Sequence.messages_abs()` and `Sequence.messages_rel()`
 
 ## [2.2] - 2025-03-07
 
