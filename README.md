@@ -88,7 +88,7 @@ The `Sequence` object abstracts away the differences between these two represent
 unified experience.
 
 The atomic element of S-Coda is the `Message`, which is comparable to a MIDI event.
-Messages have a `MessageType`, denoting the type of the message, and several other fields depending of which type of
+Messages have a `MessageType`, denoting the type of the message, and several other fields depending on which type of
 message it is.
 For example, a message of type `NOTE_ON` will have a `note` field, which denotes the pitch number of the note that it
 represents.

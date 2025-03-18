@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import TYPE_CHECKING, Generator, Any
+from typing import TYPE_CHECKING, Generator
 
 import numpy as np
 from matplotlib import pyplot as plt, pyplot

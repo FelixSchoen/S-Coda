@@ -4,7 +4,6 @@ import copy
 import math
 from typing import TYPE_CHECKING
 
-from copy import deepcopy
 from scoda.elements.message import Message
 from scoda.enumerations.message_type import MessageType
 from scoda.exceptions.sequence_exception import SequenceException

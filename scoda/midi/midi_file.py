@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-import copy
-from copy import deepcopy
 from typing import TYPE_CHECKING
 
 import mido

@@ -1,10 +1,6 @@
 from __future__ import annotations
 
-import warnings
-from copy import deepcopy
-
 from scoda.elements.track import Track
-from scoda.exceptions.composition_exception import CompositionException
 from scoda.sequences.sequence import Sequence
 
 
