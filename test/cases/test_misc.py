@@ -1,5 +1,3 @@
-from copy import deepcopy
-
 from base import *
 from scoda.midi.midi_file import MidiFile
 from scoda.tokenisation.notelike_tokenisation import MultiTrackLargeVocabularyNotelikeTokeniser

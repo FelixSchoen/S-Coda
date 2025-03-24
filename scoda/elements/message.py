@@ -1,8 +1,5 @@
 from __future__ import annotations
 
-import warnings
-
-from scoda.exceptions.sequence_exception import SequenceException
 from scoda.enumerations.message_type import MessageType
 from scoda.misc.music_theory import Key
 

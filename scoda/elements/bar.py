@@ -1,9 +1,5 @@
 from __future__ import annotations
 
-import copy
-import warnings
-from copy import deepcopy
-
 from scoda.elements.message import Message
 from scoda.enumerations.message_type import MessageType
 from scoda.exceptions.bar_exception import BarException

@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import copy
-from copy import deepcopy
 from typing import TYPE_CHECKING
 
 from scoda.elements.message import Message
