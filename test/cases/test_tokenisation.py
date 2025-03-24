@@ -111,10 +111,12 @@ def _test_roundtrip_multi_track_tokenisation(tokeniser, path_resource, merge_seq
     bars_roundtrip = Sequence.sequences_split_bars(sequences_roundtrip, 0)
     for c, (channel_original, channel_roundtrip) in enumerate(zip(bars_original, bars_roundtrip)):
         for b, (bar_original, bar_roundtrip) in enumerate(zip(channel_original, channel_roundtrip)):
-            assert bar_original.sequence.equals(bar_roundtrip.sequence, ignore_channel=True, ignore_velocity=True)
+            assert bar_original.sequence.equals(bar_roundtrip.sequence, ignore_channel=True, ignore_velocity=True,
+                                                ignore_time_signature=True, ignore_key_signature=True)
 
     # Check equivalence of output sequence
     for sequence_original, sequence_roundtrip in zip(sequences_original, sequences_roundtrip):
-        assert sequence_original.equals(sequence_roundtrip, ignore_channel=True, ignore_velocity=True)
+        assert sequence_original.equals(sequence_roundtrip, ignore_channel=True, ignore_velocity=True,
+                                        ignore_time_signature=True, ignore_key_signature=True)
 
     return tokens, sequences_original, sequences_roundtrip

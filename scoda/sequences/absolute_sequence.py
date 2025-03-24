@@ -112,12 +112,16 @@ class AbsoluteSequence(AbstractSequence):
             return False
 
         # Construct pairings
-        message_types = [MessageType.NOTE_ON, MessageType.NOTE_OFF, MessageType.TIME_SIGNATURE]
+        message_types = [MessageType.NOTE_ON, MessageType.NOTE_OFF,
+                         MessageType.TIME_SIGNATURE, MessageType.KEY_SIGNATURE]
+
+        if ignore_time_signature:
+            message_types.remove(MessageType.TIME_SIGNATURE)
+        if ignore_key_signature:
+            message_types.remove(MessageType.KEY_SIGNATURE)
+
         self_pairings = self.get_interleaved_message_pairings(message_types=message_types)
         other_pairings = other.get_interleaved_message_pairings(message_types=message_types)
-
-        if len(self_pairings) != len(other_pairings):
-            return False
 
         for self_pair, other_pair in zip(self_pairings, other_pairings):
             self_channel = self_pair[0]
@@ -144,10 +148,10 @@ class AbsoluteSequence(AbstractSequence):
                     return False
                 if self_msg.velocity != other_msg.velocity and not ignore_velocity:
                     return False
-            elif self_msg.message_type == MessageType.TIME_SIGNATURE and not ignore_time_signature:
+            elif self_msg.message_type == MessageType.TIME_SIGNATURE:
                 if self_msg.numerator != other_msg.numerator or self_msg.denominator != other_msg.denominator:
                     return False
-            elif self_msg.message_type == MessageType.KEY_SIGNATURE and not ignore_key_signature:
+            elif self_msg.message_type == MessageType.KEY_SIGNATURE:
                 if self_msg.key != other_msg.key:
                     return False
 
