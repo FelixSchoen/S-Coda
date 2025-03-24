@@ -13,7 +13,7 @@ def test_cutoff():
             assert message_pairing[1].time - message_pairing[0].time <= 48
 
 
-def test_equals():
+def test_eq():
     sequence_a = util_midi_to_sequences()[0]
     sequence_b = util_midi_to_sequences(file=RESOURCE_CHOPIN)[0]
 
@@ -21,29 +21,29 @@ def test_equals():
     assert sequence_a != sequence_b
 
 
-def test_equivalence():
+def test_equals():
     sequence_a = util_midi_to_sequences()[0]
     sequence_b = util_midi_to_sequences(file=RESOURCE_CHOPIN)[0]
 
-    assert sequence_a.equivalent(sequence_a)
-    assert not sequence_a.equivalent(sequence_b)
+    assert sequence_a.equals(sequence_a)
+    assert not sequence_a.equals(sequence_b)
 
     sequence_c = sequence_a.copy()
     for msg in sequence_c.messages_abs():
         msg.channel = -1
-    assert sequence_a.equivalent(sequence_c, ignore_channel=True)
-    assert not sequence_a.equivalent(sequence_c, ignore_channel=False)
+    assert sequence_a.equals(sequence_c, ignore_channel=True)
+    assert not sequence_a.equals(sequence_c, ignore_channel=False)
 
     sequence_d = sequence_a.copy()
     for msg in sequence_d.messages_abs():
         msg.velocity = -1
-    assert sequence_a.equivalent(sequence_d, ignore_velocity=True)
-    assert not sequence_a.equivalent(sequence_d, ignore_velocity=False)
+    assert sequence_a.equals(sequence_d, ignore_velocity=True)
+    assert not sequence_a.equals(sequence_d, ignore_velocity=False)
 
     sequence_e = sequence_a.copy()
     sequence_e.concatenate([sequence_a.copy()])
-    assert not sequence_a.equivalent(sequence_e)
-    assert not sequence_e.equivalent(sequence_a)
+    assert not sequence_a.equals(sequence_e)
+    assert not sequence_e.equals(sequence_a)
 
 
 def test_get_interleaved_message_pairings():

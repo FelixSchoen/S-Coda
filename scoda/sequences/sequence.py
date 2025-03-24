@@ -156,15 +156,17 @@ class Sequence:
         self.abs.cutoff(maximum_length=maximum_length, reduced_length=reduced_length)
         self.invalidate_rel()
 
-    def equivalent(self,
-                   other,
-                   ignore_channel: bool = False,
-                   ignore_velocity: bool = False,
-                   ignore_time_signatures: bool = True,
-                   log_differences: bool = False) -> bool | tuple[bool, str]:
-        """See `scoda.sequence.absolute_sequence.AbsoluteSequence.equivalent`."""
-        return self.abs.equivalent(other.abs, ignore_channel=ignore_channel, ignore_velocity=ignore_velocity,
-                                   ignore_time_signatures=ignore_time_signatures, log_differences=log_differences)
+    def equals(self,
+               other: object,
+               ignore_channel: bool = False,
+               ignore_time_signature: bool = False,
+               ignore_key_signature: bool = False,
+               ignore_velocity: bool = False) -> bool:
+        """See `scoda.sequence.absolute_sequence.AbsoluteSequence.equals`."""
+        if not isinstance(other, Sequence):
+            return False
+
+        return self.abs.equals(other.abs, ignore_channel, ignore_time_signature, ignore_key_signature, ignore_velocity)
 
     def merge(self, sequences: list[Sequence]) -> None:
         """See `scoda.sequence.absolute_sequence.AbsoluteSequence.merge`."""

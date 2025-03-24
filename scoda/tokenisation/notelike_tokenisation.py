@@ -89,6 +89,7 @@ class MultiTrackLargeVocabularyNotelikeTokeniser:
 
         # Utility function
         def _apply_rest(rest: int):
+            nonlocal tokens
             nonlocal cur_time
             nonlocal cur_time_bar
             nonlocal cur_bar_capacity_remaining
@@ -99,20 +100,21 @@ class MultiTrackLargeVocabularyNotelikeTokeniser:
             # While rest buffer not empty
             while buf_rest > 0:
                 # Check if next rest value is valid
-                if not (nxt_rest > self.step_sizes[-1] or nxt_rest in self.step_sizes):
+                if not (nxt_rest > self.step_sizes[-1] or any(nxt_rest >= step_size for step_size in self.step_sizes)):
                     raise TokenisationException(f"Invalid remaining rest value: {nxt_rest}")
 
                 # Check if next rest value is larger than the largest step size
                 if nxt_rest > self.step_sizes[-1]:
                     rest_value = self.step_sizes[-1]
                 else:
-                    rest_value = nxt_rest
+                    rest_value = next(step_size for step_size in reversed(self.step_sizes) if nxt_rest >= step_size)
 
                 # Apply rest
                 cur_time += rest_value
                 cur_time_bar += rest_value
                 cur_bar_capacity_remaining -= rest_value
                 buf_rest -= rest_value
+                tokens.append(f"{TokenisationPrefixes.REST.value}_{rest_value:02}")
 
                 # Check if we are at bar end
                 if cur_bar_capacity_remaining == 0:
@@ -192,7 +194,7 @@ class MultiTrackLargeVocabularyNotelikeTokeniser:
                     f"{TokenisationPrefixes.TIME_SIGNATURE.value}_{scaled:02}_{DEFAULT_TIME_SIGNATURE_NUMERATOR:02}")
 
         # Close bar and handle rest buffer
-        if cur_bar_capacity_remaining > 0:
+        if cur_time_bar > 0 and cur_bar_capacity_remaining > 0:
             _apply_rest(cur_bar_capacity_remaining)
 
         # Update state dictionary

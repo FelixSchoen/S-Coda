@@ -27,8 +27,9 @@ def test_roundtrip_manual_tokeniser():
                                              quantise=True)
 
 
-def _test_roundtrip_multi_track_tokenisation(tokeniser, path_resource, merge_sequences, quantise=True, detokenise=True, iteration_identifier=None):
-    debug = False
+def _test_roundtrip_multi_track_tokenisation(tokeniser, path_resource, merge_sequences, quantise=True, detokenise=True,
+                                             iteration_identifier=None):
+    debug = True
 
     # Load sequences
     sequences = Sequence.sequences_load(file_path=path_resource)
@@ -110,18 +111,10 @@ def _test_roundtrip_multi_track_tokenisation(tokeniser, path_resource, merge_seq
     bars_roundtrip = Sequence.sequences_split_bars(sequences_roundtrip, 0)
     for c, (channel_original, channel_roundtrip) in enumerate(zip(bars_original, bars_roundtrip)):
         for b, (bar_original, bar_roundtrip) in enumerate(zip(channel_original, channel_roundtrip)):
-            result, reason = bar_original.sequence.equivalent(bar_roundtrip.sequence, ignore_channel=True,
-                                                              ignore_velocity=True, log_differences=True)
-            if not result:
-                LOGGER.warning(f"Error at channel {c}, bar {b}: {reason}")
-                assert False
+            assert bar_original.sequence.equals(bar_roundtrip.sequence, ignore_channel=True, ignore_velocity=True)
 
     # Check equivalence of output sequence
     for sequence_original, sequence_roundtrip in zip(sequences_original, sequences_roundtrip):
-        result, reason = sequence_original.equivalent(sequence_roundtrip, ignore_channel=True, ignore_velocity=True,
-                                                      log_differences=True)
-        if not result:
-            LOGGER.warning(reason)
-            assert False
+        assert sequence_original.equals(sequence_roundtrip, ignore_channel=True, ignore_velocity=True)
 
     return tokens, sequences_original, sequences_roundtrip

@@ -28,29 +28,7 @@ class AbsoluteSequence(AbstractSequence):
         super().__init__(messages=messages)
 
     def __eq__(self, o: object) -> bool:
-        if not isinstance(o, AbsoluteSequence):
-            return False
-
-        self_channel_pairings = self.get_message_pairings()
-        other_channel_pairings = o.get_message_pairings()
-
-        for key_channel in self_channel_pairings.keys():
-            if key_channel not in other_channel_pairings:
-                return False
-
-            self_message_pairings = self_channel_pairings[key_channel]
-            other_message_pairings = other_channel_pairings[key_channel]
-
-            if len(self_message_pairings) != len(other_message_pairings):
-                return False
-
-            for self_message_pair, other_message_pair in zip(self_message_pairings, other_message_pairings):
-                if self_message_pair[0].time != other_message_pair[0].time or \
-                        self_message_pair[0].note != other_message_pair[0].note or \
-                        self_message_pair[1].time != other_message_pair[1].time:
-                    return False
-
-        return True
+        return self.equals(o)
 
     def to_relative_sequence(self) -> RelativeSequence:
         """Converts this AbsoluteSequence to a RelativeSequence.
@@ -112,99 +90,68 @@ class AbsoluteSequence(AbstractSequence):
 
         self.normalise_absolute()
 
-    def equivalent(self,
-                   other,
-                   ignore_channel: bool = False,
-                   ignore_velocity: bool = False,
-                   ignore_time_signatures: bool = True,
-                   log_differences: bool = False) -> bool | tuple[bool, str]:
+    def equals(self,
+               other: object,
+               ignore_channel: bool = False,
+               ignore_time_signature: bool = False,
+               ignore_key_signature: bool = False,
+               ignore_velocity: bool = False) -> bool:
+        """Checks if this sequence is equal to another one.
+
+        Args:
+            other: The other sequence to compare with.
+            ignore_channel: If the channel should be ignored.
+            ignore_time_signature: If the time signature should be ignored.
+            ignore_key_signature: If the key signature should be ignored.
+            ignore_velocity: If the velocity should be ignored
+
+        Returns: True if the sequences are equal, False otherwise.
+
+        """
         if not isinstance(other, AbsoluteSequence):
             return False
 
-        message_types = [MessageType.NOTE_ON, MessageType.NOTE_OFF, MessageType.TIME_SIGNATURE]
-
         # Construct pairings
-        self_interleaved_channel_pairings = self.get_interleaved_message_pairings(message_types=message_types)
-        other_interleaved_channel_pairings = other.get_interleaved_message_pairings(message_types=message_types)
+        message_types = [MessageType.NOTE_ON, MessageType.NOTE_OFF, MessageType.TIME_SIGNATURE]
+        self_pairings = self.get_interleaved_message_pairings(message_types=message_types)
+        other_pairings = other.get_interleaved_message_pairings(message_types=message_types)
 
-        self_index = 0
-        other_index = 0
+        if len(self_pairings) != len(other_pairings):
+            return False
 
-        while self_index <= len(self_interleaved_channel_pairings) and other_index <= len(
-                other_interleaved_channel_pairings):
-            # Adjust indices (this is done to compare sequences of different lengths)
-            if self_index == len(self_interleaved_channel_pairings) and other_index == len(
-                    other_interleaved_channel_pairings):
-                break
+        for self_pair, other_pair in zip(self_pairings, other_pairings):
+            self_channel = self_pair[0]
+            other_channel = other_pair[0]
 
-            self_msg = self_interleaved_channel_pairings[min(self_index, len(self_interleaved_channel_pairings))][1][0]
-            other_msg = other_interleaved_channel_pairings[min(other_index, len(other_interleaved_channel_pairings))][1][0]
-
-            # Check if message types differ
-            if self_msg.message_type != other_msg.message_type:
-                # Check if we are to ignore time signatures
-                if self_msg.message_type == MessageType.TIME_SIGNATURE and ignore_time_signatures:
-                    self_index += 1
-                    continue
-                elif other_msg.message_type == MessageType.TIME_SIGNATURE and ignore_time_signatures:
-                    other_index += 1
-                    continue
-            else:
-                # Check if message types are note on
-                if self_msg.message_type == MessageType.NOTE_ON and other_msg.message_type == MessageType.NOTE_ON:
-                    self_duration = self_interleaved_channel_pairings[self_index][1][1].time - \
-                                    self_interleaved_channel_pairings[self_index][1][0].time
-                    other_duration = other_interleaved_channel_pairings[other_index][1][1].time - \
-                                     other_interleaved_channel_pairings[other_index][1][0].time
-
-                    if ((self_msg.channel == other_msg.channel or ignore_channel) and
-                            self_msg.note == other_msg.note and
-                            self_duration == other_duration and
-                            (self_msg.velocity == other_msg.velocity or ignore_velocity)):
-                        self_index += 1
-                        other_index += 1
-                        continue
-                # Check if message types are time signature
-                elif self_msg.message_type == MessageType.TIME_SIGNATURE and other_msg.message_type == MessageType.TIME_SIGNATURE:
-                    if self_msg.numerator == other_msg.numerator and self_msg.denominator == other_msg.denominator or ignore_time_signatures:
-                        self_index += 1
-                        other_index += 1
-                        continue
-                # Do not compare other message types
-                elif self_msg.message_type == other_msg.message_type:
-                    self_index += 1
-                    other_index += 1
-                    continue
-
-            # Blanket case
-            if log_differences:
-                return (False,
-                        f"Failed equality check at self:{self_index}, other:{other_index}: {self_msg} != {other_msg}")
-            else:
+            # Compare channels
+            if self_channel != other_channel and not ignore_channel:
                 return False
 
-        if log_differences:
-            return True, "Sequences are equivalent with regard to the input parameters"
-        else:
-            return True
+            self_msgs = self_pair[1]
+            other_msgs = other_pair[1]
 
-        # for key_channel in self_channel_pairings.keys():
-        #     if key_channel not in other_channel_pairings:
-        #         return False
-        #
-        #     self_message_pairings = self_channel_pairings[key_channel]
-        #     other_message_pairings = other_channel_pairings[key_channel]
-        #
-        #     if len(self_message_pairings) != len(other_message_pairings):
-        #         return False
-        #
-        #     for self_message_pair, other_message_pair in zip(self_message_pairings, other_message_pairings):
-        #         if self_message_pair[0].time != other_message_pair[0].time or \
-        #                 self_message_pair[0].note != other_message_pair[0].note or \
-        #                 self_message_pair[1].time != other_message_pair[1].time:
-        #             return False
-        #
-        # return True
+            self_msg = self_msgs[0]
+            other_msg = other_msgs[0]
+
+            if self_msg.message_type != other_msg.message_type:
+                return False
+
+            if self_msg.message_type == MessageType.NOTE_ON:
+                self_msg_value = self_msgs[1].time - self_msg.time
+                other_msg_value = other_msgs[1].time - other_msg.time
+
+                if self_msg.note != other_msg.note or self_msg_value != other_msg_value:
+                    return False
+                if self_msg.velocity != other_msg.velocity and not ignore_velocity:
+                    return False
+            elif self_msg.message_type == MessageType.TIME_SIGNATURE and not ignore_time_signature:
+                if self_msg.numerator != other_msg.numerator or self_msg.denominator != other_msg.denominator:
+                    return False
+            elif self_msg.message_type == MessageType.KEY_SIGNATURE and not ignore_key_signature:
+                if self_msg.key != other_msg.key:
+                    return False
+
+        return True
 
     def merge(self, sequences: list[AbsoluteSequence]) -> None:
         """Merges this sequence with all the given ones.
@@ -289,7 +236,7 @@ class AbsoluteSequence(AbstractSequence):
             elif msg.message_type == MessageType.NOTE_OFF:
                 # Message is currently open, have to quantize
                 if msg.note in open_messages:
-                    note_open_timing = open_messages.pop(msg.note, None)
+                    note_open_timing = open_messages.pop(msg.note)
 
                     # Add possible positions for stop messages, making sure the belonging note is not smothered
                     for position in possible_positions:
@@ -427,7 +374,6 @@ class AbsoluteSequence(AbstractSequence):
 
     # Misc. Methods
 
-    # TODO read only view
     def get_message_pairings(self,
                              message_types: list[MessageType] = None,
                              standard_length=PPQN,
