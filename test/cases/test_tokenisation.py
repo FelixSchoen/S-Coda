@@ -75,8 +75,9 @@ def _test_roundtrip_multi_track_tokenisation(tokeniser, path_resource, merge_seq
 
     # Tokenise bars
     tokens_bars = []
+    state_dict = dict()
     for i, bars in enumerate(zip(*sequences_bars)):
-        bar_tokens = tokeniser.tokenise([bar.sequence for bar in bars])
+        bar_tokens = tokeniser.tokenise([bar.sequence for bar in bars], state_dict=state_dict)
         tokens_bars.append(bar_tokens)
     tokens = []
     for single_bar_tokens in tokens_bars:

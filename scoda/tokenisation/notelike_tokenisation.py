@@ -26,6 +26,7 @@ class MultiTrackLargeVocabularyNotelikeTokeniser:
                  time_signature_range: Tuple[int, int] = (2, 16),
                  flag_running_time_signature: bool = True,
                  flag_simplify_time_signature: bool = True):
+        # TODO privatise
         self.dictionary = dict()
         self.inverse_dictionary = dict()
         self.dictionary_size = 0
@@ -59,19 +60,68 @@ class MultiTrackLargeVocabularyNotelikeTokeniser:
         # Construct dictionary
         self._construct_dictionary()
 
-        self.reset()
-
-    def reset(self) -> None:
-        self.cur_time = 0
-        self.cur_rest_buffer = 0
-
     def tokenise(self,
                  sequences_bar: list[Sequence],
                  insert_bar_token: bool = True,
-                 reset_time: bool = True) -> List[str]:
-        tokens = []
+                 flag_running_time_signature: bool = True,
+                 state_dict: dict = None) -> List[str]:
+        if not flag_running_time_signature:
+            raise NotImplementedError()
 
-        assert len(sequences_bar) == self.num_tracks
+        if state_dict is None:
+            state_dict = dict()
+
+        # Setup Values
+        tokens = []
+        cur_time = state_dict.get("cur_time", 0)
+        cur_time_bar = state_dict.get("cur_time_bar", 0)
+        cur_time_signature_numerator = state_dict.get("cur_time_signature_numerator",
+                                                      DEFAULT_TIME_SIGNATURE_NUMERATOR)
+        cur_time_signature_denominator = state_dict.get("cur_time_signature_denominator",
+                                                        DEFAULT_TIME_SIGNATURE_DENOMINATOR)
+        cur_bar_capacity_total = int(self.ppqn * 4 * cur_time_signature_numerator / cur_time_signature_denominator)
+        cur_bar_capacity_remaining = state_dict.get("cur_bar_capacity_remaining", cur_bar_capacity_total)
+        prv_shift = state_dict.get("cur_time", 0)
+
+        # Sanity check
+        if not len(sequences_bar) == self.num_tracks:
+            raise TokenisationException("Number of sequences does not match number of tracks")
+
+        # Utility function
+        def _apply_rest(rest: int):
+            nonlocal cur_time
+            nonlocal cur_time_bar
+            nonlocal cur_bar_capacity_remaining
+            buf_rest = rest
+
+            nxt_rest = min(buf_rest, cur_bar_capacity_remaining)
+
+            # While rest buffer not empty
+            while buf_rest > 0:
+                # Check if next rest value is valid
+                if not (nxt_rest > self.step_sizes[-1] or nxt_rest in self.step_sizes):
+                    raise TokenisationException(f"Invalid remaining rest value: {nxt_rest}")
+
+                # Check if next rest value is larger than the largest step size
+                if nxt_rest > self.step_sizes[-1]:
+                    rest_value = self.step_sizes[-1]
+                else:
+                    rest_value = nxt_rest
+
+                # Apply rest
+                cur_time += rest_value
+                cur_time_bar += rest_value
+                cur_bar_capacity_remaining -= rest_value
+                buf_rest -= rest_value
+
+                # Check if we are at bar end
+                if cur_bar_capacity_remaining == 0:
+                    if insert_bar_token:
+                        tokens.append(TokenisationPrefixes.BAR.value)
+                    cur_time_bar = 0
+                    cur_bar_capacity_remaining = cur_bar_capacity_total
+
+                nxt_rest = min(buf_rest, cur_bar_capacity_remaining)
 
         # Merge sequences
         for i, sequence_bar in enumerate(sequences_bar):
@@ -79,28 +129,30 @@ class MultiTrackLargeVocabularyNotelikeTokeniser:
         sequence_bar = Sequence()
         sequence_bar.merge(sequences_bar)
 
+        # Get interleaved pairings
         interleaved_pairings = sequence_bar.get_interleaved_message_pairings(
             [MessageType.NOTE_ON, MessageType.NOTE_OFF, MessageType.TIME_SIGNATURE, MessageType.INTERNAL])
 
+        # Handle pairings
         for interleaved_pairing in interleaved_pairings:
             event_pairing = interleaved_pairing[1]
 
             msg_channel = interleaved_pairing[0]
-            assert msg_channel == event_pairing[0].channel
+            if not msg_channel == event_pairing[0].channel:
+                raise TokenisationException("Channel mismatch")
 
             msg_type = event_pairing[0].message_type
-            msg_time = event_pairing[0].time
+            msg_time = event_pairing[0].time + prv_shift
 
             # Check if message occurs at current time, if not place rest messages
-            if not self.cur_time == msg_time:
-                tokens.extend(self._flush_buffer(msg_time - self.cur_time))
-                self.cur_time = msg_time
-                self.cur_rest_buffer = 0
+            if not cur_time == msg_time:
+                _apply_rest(msg_time - cur_time)
 
+            # Handle notes
             if msg_type == MessageType.NOTE_ON:
                 msg_channel = event_pairing[0].channel
                 msg_note = event_pairing[0].note
-                msg_value = event_pairing[1].time - msg_time
+                msg_value = event_pairing[1].time - event_pairing[0].time
                 msg_velocity = self.velocity_bins[bin_velocity(event_pairing[0].velocity, self.velocity_bins)]
 
                 if not (self.pitch_range[0] <= msg_note <= self.pitch_range[1]):
@@ -112,7 +164,13 @@ class MultiTrackLargeVocabularyNotelikeTokeniser:
                               f"{TokenisationPrefixes.PITCH.value}_{msg_note:03}-"
                               f"{TokenisationPrefixes.VALUE.value}_{msg_value:02}-"
                               f"{TokenisationPrefixes.VELOCITY.value}_{msg_velocity:03}")
+            # Handle time signatures
             elif msg_type == MessageType.TIME_SIGNATURE:
+                if cur_time_bar > 0:
+                    LOGGER.info(
+                        f"Skipping time signature change mid-bar at time {cur_time} (bar time {cur_time_bar})")
+                    continue
+
                 msg_numerator = event_pairing[0].numerator
                 msg_denominator = event_pairing[0].denominator
 
@@ -124,14 +182,25 @@ class MultiTrackLargeVocabularyNotelikeTokeniser:
                 if not self.time_signature_range[0] <= scaled <= self.time_signature_range[1]:
                     raise TokenisationException(f"Invalid time signature numerator: {scaled}")
 
+                cur_time_signature_numerator = msg_numerator
+                cur_time_signature_denominator = msg_denominator
+                cur_bar_capacity_total = int(
+                    self.ppqn * 4 * cur_time_signature_numerator / cur_time_signature_denominator)
+                cur_bar_capacity_remaining = cur_bar_capacity_total
+
                 tokens.append(
                     f"{TokenisationPrefixes.TIME_SIGNATURE.value}_{scaled:02}_{DEFAULT_TIME_SIGNATURE_NUMERATOR:02}")
 
-        if insert_bar_token:
-            tokens.append(TokenisationPrefixes.BAR.value)
+        # Close bar and handle rest buffer
+        if cur_bar_capacity_remaining > 0:
+            _apply_rest(cur_bar_capacity_remaining)
 
-        if reset_time:
-            self.reset()
+        # Update state dictionary
+        state_dict["cur_time"] = cur_time
+        state_dict["cur_time_bar"] = cur_time_bar
+        state_dict["cur_time_signature_numerator"] = cur_time_signature_numerator
+        state_dict["cur_time_signature_denominator"] = cur_time_signature_denominator
+        state_dict["cur_bar_capacity_remaining"] = cur_bar_capacity_remaining
 
         return tokens
 
@@ -351,19 +420,3 @@ class MultiTrackLargeVocabularyNotelikeTokeniser:
             self.dictionary_size += 1
 
         self.inverse_dictionary = {v: k for k, v in self.dictionary.items()}
-
-    def _flush_buffer(self,
-                      time: int) -> List[str]:
-        tokens = []
-
-        while any(time >= rest for rest in self.step_sizes):
-            for rest in reversed(self.step_sizes):
-                if time >= rest:
-                    tokens.append(f"{TokenisationPrefixes.REST.value}_{rest:02}")
-                    time -= rest
-                    break
-
-        if time > 0:
-            raise TokenisationException(f"Invalid remaining rest value: {time}")
-
-        return tokens

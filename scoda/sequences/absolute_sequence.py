@@ -136,13 +136,9 @@ class AbsoluteSequence(AbstractSequence):
             if self_index == len(self_interleaved_channel_pairings) and other_index == len(
                     other_interleaved_channel_pairings):
                 break
-            if self_index == len(self_interleaved_channel_pairings):
-                self_index -= 1
-            if other_index == len(other_interleaved_channel_pairings):
-                other_index -= 1
 
-            self_msg = self_interleaved_channel_pairings[self_index][1][0]
-            other_msg = other_interleaved_channel_pairings[other_index][1][0]
+            self_msg = self_interleaved_channel_pairings[min(self_index, len(self_interleaved_channel_pairings))][1][0]
+            other_msg = other_interleaved_channel_pairings[min(other_index, len(other_interleaved_channel_pairings))][1][0]
 
             # Check if message types differ
             if self_msg.message_type != other_msg.message_type:
