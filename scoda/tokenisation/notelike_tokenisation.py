@@ -26,10 +26,9 @@ class MultiTrackLargeVocabularyNotelikeTokeniser:
                  time_signature_range: Tuple[int, int] = (2, 16),
                  flag_running_time_signature: bool = True,
                  flag_simplify_time_signature: bool = True):
-        # TODO privatise
         self.dictionary = dict()
         self.inverse_dictionary = dict()
-        self.dictionary_size = 0
+        self._dictionary_size = 0
 
         self.ppqn = ppqn
         self.step_sizes = step_sizes
@@ -59,6 +58,10 @@ class MultiTrackLargeVocabularyNotelikeTokeniser:
 
         # Construct dictionary
         self._construct_dictionary()
+
+    @property
+    def dictionary_size(self):
+        return self._dictionary_size
 
     def tokenise(self,
                  sequences_bar: list[Sequence],
@@ -383,28 +386,28 @@ class MultiTrackLargeVocabularyNotelikeTokeniser:
                 "info_pitch": info_pitch,
                 "info_circle_of_fifths": info_cof}
 
-    def _split_token(self,
-                     token: str):
+    @staticmethod
+    def _split_token(token: str):
         parts = token.split("-")
         sub_parts = [part.split("_") for part in parts]
         return sub_parts
 
     def _construct_dictionary(self):
         self.dictionary[TokenisationPrefixes.PAD.value] = 0
-        self.dictionary_size += 1
+        self._dictionary_size += 1
 
         self.dictionary[TokenisationPrefixes.START.value] = 1
-        self.dictionary_size += 1
+        self._dictionary_size += 1
 
         self.dictionary[TokenisationPrefixes.STOP.value] = 2
-        self.dictionary_size += 1
+        self._dictionary_size += 1
 
         self.dictionary[TokenisationPrefixes.BAR.value] = 3
-        self.dictionary_size += 1
+        self._dictionary_size += 1
 
         for step_size in self.step_sizes:
             self.dictionary[f"{TokenisationPrefixes.REST.value}_{step_size:02}"] = self.dictionary_size
-            self.dictionary_size += 1
+            self._dictionary_size += 1
 
         for i_ins in range(self.num_tracks):
             for pitch in range(self.pitch_range[0], self.pitch_range[1] + 1):
@@ -414,11 +417,11 @@ class MultiTrackLargeVocabularyNotelikeTokeniser:
                                          f"{TokenisationPrefixes.PITCH.value}_{pitch:03}-"
                                          f"{TokenisationPrefixes.VALUE.value}_{note_value:02}-"
                                          f"{TokenisationPrefixes.VELOCITY.value}_{velocity_bin:03}")] = self.dictionary_size
-                        self.dictionary_size += 1
+                        self._dictionary_size += 1
 
         for time_signature in range(self.time_signature_range[0], self.time_signature_range[1] + 1):
             self.dictionary[
                 f"{TokenisationPrefixes.TIME_SIGNATURE.value}_{time_signature:02}_{DEFAULT_TIME_SIGNATURE_DENOMINATOR:02}"] = self.dictionary_size
-            self.dictionary_size += 1
+            self._dictionary_size += 1
 
         self.inverse_dictionary = {v: k for k, v in self.dictionary.items()}

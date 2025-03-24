@@ -122,6 +122,9 @@ class AbsoluteSequence(AbstractSequence):
         self_pairings = self.get_interleaved_message_pairings(message_types=message_types)
         other_pairings = other.get_interleaved_message_pairings(message_types=message_types)
 
+        if not len(self_pairings) == len(other_pairings):
+            return False
+
         for self_pair, other_pair in zip(self_pairings, other_pairings):
             self_channel = self_pair[0]
             other_channel = other_pair[0]
