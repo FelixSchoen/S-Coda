@@ -1,3 +1,4 @@
+import itertools
 import math
 from typing import Tuple, List
 
@@ -24,7 +25,10 @@ class MultiTrackLargeVocabularyNotelikeTokeniser:
                  note_values: list[int] = None,
                  velocity_bins: int = 1,
                  time_signature_range: Tuple[int, int] = (2, 16),
-                 flag_running_time_signature: bool = True,
+                 flag_running_values: bool = True,
+                 flag_fuse_track: bool = True,
+                 flag_fuse_value: bool = True,
+                 flag_fuse_velocity: bool = True,
                  flag_simplify_time_signature: bool = True):
         self.dictionary = dict()
         self.inverse_dictionary = dict()
@@ -37,7 +41,10 @@ class MultiTrackLargeVocabularyNotelikeTokeniser:
         self.pitch_range = pitch_range
         self.time_signature_range = time_signature_range
 
-        self.flag_running_time_signature = flag_running_time_signature
+        self.flag_running_values = flag_running_values
+        self.flag_fuse_track = flag_fuse_track
+        self.flag_fuse_value = flag_fuse_value
+        self.flag_fuse_velocity = flag_fuse_velocity
         self.flag_simplify_time_signature = flag_simplify_time_signature
 
         # Default Values
@@ -84,6 +91,9 @@ class MultiTrackLargeVocabularyNotelikeTokeniser:
                                                         DEFAULT_TIME_SIGNATURE_DENOMINATOR)
         cur_bar_capacity_total = int(self.ppqn * 4 * cur_time_signature_numerator / cur_time_signature_denominator)
         cur_bar_capacity_remaining = state_dict.get("cur_bar_capacity_remaining", cur_bar_capacity_total)
+        prv_track = state_dict.get("prv_track", -1)
+        prv_value = state_dict.get("prv_value", -1)
+        prv_velocity = state_dict.get("prv_velocity", -1)
         prv_shift = state_dict.get("cur_time", 0)
 
         # Sanity check
@@ -165,10 +175,31 @@ class MultiTrackLargeVocabularyNotelikeTokeniser:
                 if msg_value not in self.note_values:
                     raise TokenisationException(f"Invalid note value: {msg_value}")
 
-                tokens.append(f"{TokenisationPrefixes.TRACK.value}_{msg_channel:02}-"
-                              f"{TokenisationPrefixes.PITCH.value}_{msg_note:03}-"
-                              f"{TokenisationPrefixes.VALUE.value}_{msg_value:02}-"
-                              f"{TokenisationPrefixes.VELOCITY.value}_{msg_velocity:03}")
+                token = ""
+
+                if not self.flag_fuse_track and (msg_channel != prv_track or not self.flag_running_values):
+                    tokens.append(f"{TokenisationPrefixes.TRACK.value}_{msg_channel.value:02}")
+                else:
+                    token += f"{TokenisationPrefixes.TRACK.value}_{msg_channel:02}-"
+
+                token += f"{TokenisationPrefixes.PITCH.value}_{msg_note:03}-"
+
+                if not self.flag_fuse_value and (msg_value != prv_value or not self.flag_running_values):
+                    tokens.append(f"{TokenisationPrefixes.VALUE.value}_{msg_value:02}")
+                else:
+                    token += f"{TokenisationPrefixes.VALUE.value}_{msg_value:02}-"
+
+                if not self.flag_fuse_velocity and (msg_velocity != prv_velocity or not self.flag_running_values):
+                    tokens.append(f"{TokenisationPrefixes.VELOCITY.value}_{msg_velocity:03}")
+                else:
+                    token += f"{TokenisationPrefixes.VELOCITY.value}_{msg_velocity:03}-"
+
+                token = token[:-1]
+                tokens.append(token)
+
+                prv_track = msg_channel
+                prv_value = msg_value
+                prv_velocity = msg_velocity
             # Handle time signatures
             elif msg_type == MessageType.TIME_SIGNATURE:
                 if cur_time_bar > 0:
@@ -206,6 +237,9 @@ class MultiTrackLargeVocabularyNotelikeTokeniser:
         state_dict["cur_time_signature_numerator"] = cur_time_signature_numerator
         state_dict["cur_time_signature_denominator"] = cur_time_signature_denominator
         state_dict["cur_bar_capacity_remaining"] = cur_bar_capacity_remaining
+        state_dict["prv_track"] = prv_track
+        state_dict["prv_value"] = prv_value
+        state_dict["prv_velocity"] = prv_velocity
 
         return tokens
 
@@ -279,7 +313,7 @@ class MultiTrackLargeVocabularyNotelikeTokeniser:
                         cur_time_signature_numerator = int(cur_time_signature_numerator / 2)
                         cur_time_signature_denominator = int(cur_time_signature_denominator / 2)
 
-                    if switched or not self.flag_running_time_signature:
+                    if switched or not self.flag_running_values:
                         sequences[0].add_absolute_message(
                             Message(message_type=MessageType.TIME_SIGNATURE,
                                     time=cur_time,
@@ -409,15 +443,45 @@ class MultiTrackLargeVocabularyNotelikeTokeniser:
             self.dictionary[f"{TokenisationPrefixes.REST.value}_{step_size:02}"] = self.dictionary_size
             self._dictionary_size += 1
 
-        for i_ins in range(self.num_tracks):
-            for pitch in range(self.pitch_range[0], self.pitch_range[1] + 1):
-                for note_value in self.note_values:
-                    for velocity_bin in self.velocity_bins:
-                        self.dictionary[(f"{TokenisationPrefixes.TRACK.value}_{i_ins:02}-"
-                                         f"{TokenisationPrefixes.PITCH.value}_{pitch:03}-"
-                                         f"{TokenisationPrefixes.VALUE.value}_{note_value:02}-"
-                                         f"{TokenisationPrefixes.VELOCITY.value}_{velocity_bin:03}")] = self.dictionary_size
-                        self._dictionary_size += 1
+        combinations = []
+
+        if self.flag_fuse_track:
+            combinations.append([track for track in range(self.num_tracks)])
+        else:
+            for track in range(self.num_tracks):
+                self.dictionary[f"{TokenisationPrefixes.TRACK.value}_{track:02}"] = self.dictionary_size
+                self._dictionary_size += 1
+        combinations.append([pitch for pitch in range(self.pitch_range[0], self.pitch_range[1] + 1)])
+        if self.flag_fuse_value:
+            combinations.append([note_value for note_value in self.note_values])
+        else:
+            for note_value in self.note_values:
+                self.dictionary[f"{TokenisationPrefixes.VALUE.value}_{note_value:02}"] = self.dictionary_size
+                self._dictionary_size += 1
+        if self.flag_fuse_velocity:
+            combinations.append([velocity_bin for velocity_bin in self.velocity_bins])
+        else:
+            for velocity_bin in self.velocity_bins:
+                self.dictionary[f"{TokenisationPrefixes.VELOCITY.value}_{velocity_bin:03}"] = self.dictionary_size
+                self._dictionary_size += 1
+
+        for combination in itertools.product(*combinations):
+            parts = list(combination)
+            token = ""
+
+            if self.flag_fuse_track:
+                token += f"{TokenisationPrefixes.TRACK.value}_{parts.pop(0):02}-"
+
+            token += f"{TokenisationPrefixes.PITCH.value}_{parts.pop(0):03}-"
+
+            if self.flag_fuse_value:
+                token += f"{TokenisationPrefixes.VALUE.value}_{parts.pop(0):02}-"
+
+            if self.flag_fuse_velocity:
+                token += f"{TokenisationPrefixes.VELOCITY.value}_{parts.pop(0):03}"
+
+            self.dictionary[token] = self.dictionary_size
+            self._dictionary_size += 1
 
         for time_signature in range(self.time_signature_range[0], self.time_signature_range[1] + 1):
             self.dictionary[
