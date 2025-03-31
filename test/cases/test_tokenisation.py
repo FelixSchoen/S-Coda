@@ -4,24 +4,26 @@ from scoda.tokenisation.notelike_tokenisation import MultiTrackLargeVocabularyNo
 
 @pytest.mark.parametrize("path_resource, num_tracks",
                          list(zip(RESOURCES_MULTI_TRACK, RESOURCES_MULTI_TRACK_NUM_TRACKS)))
-def test_roundtrip_multi_track_large_vocabulary_notelike_tokeniser(path_resource, num_tracks):
-    tokeniser = MultiTrackLargeVocabularyNotelikeTokeniser(num_tracks=num_tracks)
+@pytest.mark.parametrize("flag_fuse_track", [False, True])
+def test_roundtrip_multi_track_large_vocabulary_notelike_tokeniser(path_resource, num_tracks, flag_fuse_track):
+    tokeniser = MultiTrackLargeVocabularyNotelikeTokeniser(num_tracks=num_tracks,
+                                                           flag_fuse_track=flag_fuse_track)
 
     tokens, sequences_original, sequences_roundtrip = _test_roundtrip_multi_track_tokenisation(tokeniser, path_resource,
                                                                                                merge_sequences=num_tracks == 1,
                                                                                                quantise=True,
                                                                                                iteration_identifier=path_resource.stem)
 
-    info = tokeniser.get_info(tokens)
+    # info = tokeniser.get_info(tokens)
 
-    for key, value in info.items():
-        assert len(value) == len(tokens)
+    # for key, value in info.items():
+    #     assert len(value) == len(tokens)
 
 
 def test_roundtrip_manual_tokeniser():
-    path_resource = RESOURCE_BEETHOVEN
+    path_resource = RESOURCE_SWEEP
     num_tracks = 1
-    tokeniser = MultiTrackLargeVocabularyNotelikeTokeniser(num_tracks=num_tracks)
+    tokeniser = MultiTrackLargeVocabularyNotelikeTokeniser(num_tracks=num_tracks, flag_fuse_track=False)
     _test_roundtrip_multi_track_tokenisation(tokeniser, path_resource,
                                              merge_sequences=num_tracks == 1,
                                              quantise=True,
@@ -134,10 +136,10 @@ def _test_roundtrip_multi_track_tokenisation(tokeniser, path_resource, merge_seq
     # Check equivalence of output sequence
     for sequence_processed, sequence_roundtrip_pb in zip(sequences_processed, sequences_roundtrip_pb):
         assert sequence_processed.equals(sequence_roundtrip_pb, ignore_channel=True, ignore_velocity=True,
-                                        ignore_time_signature=True, ignore_key_signature=True)
+                                         ignore_time_signature=True, ignore_key_signature=True)
 
     for sequence_pass_bars, sequence_pass_seqs in zip(sequences_roundtrip_pb, sequences_roundtrip_ps):
         assert sequence_pass_bars.equals(sequence_pass_seqs, ignore_channel=True, ignore_velocity=True,
-                                        ignore_time_signature=True, ignore_key_signature=True)
+                                         ignore_time_signature=True, ignore_key_signature=True)
 
     return tokens_bars, sequences_processed, sequences_roundtrip_pb

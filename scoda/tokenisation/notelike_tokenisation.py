@@ -178,20 +178,20 @@ class MultiTrackLargeVocabularyNotelikeTokeniser:
                 token = ""
 
                 if not self.flag_fuse_track and (msg_channel != prv_track or not self.flag_running_values):
-                    tokens.append(f"{TokenisationPrefixes.TRACK.value}_{msg_channel.value:02}")
-                else:
+                    tokens.append(f"{TokenisationPrefixes.TRACK.value}_{msg_channel:02}")
+                elif self.flag_fuse_track:
                     token += f"{TokenisationPrefixes.TRACK.value}_{msg_channel:02}-"
 
                 token += f"{TokenisationPrefixes.PITCH.value}_{msg_note:03}-"
 
                 if not self.flag_fuse_value and (msg_value != prv_value or not self.flag_running_values):
                     tokens.append(f"{TokenisationPrefixes.VALUE.value}_{msg_value:02}")
-                else:
+                elif self.flag_fuse_value:
                     token += f"{TokenisationPrefixes.VALUE.value}_{msg_value:02}-"
 
                 if not self.flag_fuse_velocity and (msg_velocity != prv_velocity or not self.flag_running_values):
                     tokens.append(f"{TokenisationPrefixes.VELOCITY.value}_{msg_velocity:03}")
-                else:
+                elif self.flag_fuse_velocity:
                     token += f"{TokenisationPrefixes.VELOCITY.value}_{msg_velocity:03}-"
 
                 token = token[:-1]
@@ -253,75 +253,87 @@ class MultiTrackLargeVocabularyNotelikeTokeniser:
         cur_time_signature_denominator = DEFAULT_TIME_SIGNATURE_DENOMINATOR
         cur_bar_capacity_total = int(self.ppqn * 4 * cur_time_signature_numerator / cur_time_signature_denominator)
         cur_bar_capacity_remaining = cur_bar_capacity_total
+        prv_track = 0
+        prv_value = 24
+        prv_velocity = 127
+
+        sort_order = [TokenisationPrefixes.TRACK.value, TokenisationPrefixes.VALUE.value,
+                      TokenisationPrefixes.VELOCITY.value, TokenisationPrefixes.PITCH.value]
 
         for token in tokens:
-            token_parts = self._split_token(token)
-            part_main = token_parts[0][0]
+            token_parts = sorted(self._split_token(token),
+                                 key=lambda part: (sort_order.index(part[0]) if part[0] in sort_order else -1))
+            main_parts = [part[0] for part in token_parts]
 
-            if part_main == TokenisationPrefixes.PAD.value:
-                continue
-            elif part_main == TokenisationPrefixes.START.value:
-                continue
-            elif part_main == TokenisationPrefixes.STOP.value:
-                continue
-            elif part_main == TokenisationPrefixes.BAR.value:
-                cur_time += cur_bar_capacity_remaining
-                cur_time_bar = 0
-                cur_bar_capacity_remaining = cur_bar_capacity_total
-
-                for sequence in sequences:
-                    sequence.add_absolute_message(Message(message_type=MessageType.INTERNAL, time=cur_time))
-            elif part_main == TokenisationPrefixes.REST.value:
-                cur_time += int(token_parts[0][1])
-                cur_time_bar += int(token_parts[0][1])
-                cur_bar_capacity_remaining -= int(token_parts[0][1])
-            elif part_main == TokenisationPrefixes.TRACK.value:
-                note_track = int(token_parts[0][1])
-                note_pitch = int(token_parts[1][1])
-                note_value = int(token_parts[2][1])
-                note_velocity = int(token_parts[3][1])
-
-                sequences[note_track].add_absolute_message(
-                    Message(message_type=MessageType.NOTE_ON, note=note_pitch, time=cur_time, velocity=note_velocity)
-                )
-                sequences[note_track].add_absolute_message(
-                    Message(message_type=MessageType.NOTE_OFF, note=note_pitch, time=cur_time + note_value)
-                )
-            elif part_main == TokenisationPrefixes.TIME_SIGNATURE.value:
-                if cur_time_bar > 0:
-                    LOGGER.info(
-                        f"Skipping time signature change mid-bar at time {cur_time} (bar time {cur_time_bar})")
-                else:
-                    switched = False
-
-                    new_time_signature_numerator = int(token_parts[0][1])
-                    new_time_signature_denominator = int(token_parts[0][2])
-
-                    if cur_time_signature_numerator != new_time_signature_numerator or \
-                            cur_time_signature_denominator != new_time_signature_denominator:
-                        switched = True
-
-                    cur_time_signature_numerator = new_time_signature_numerator
-                    cur_time_signature_denominator = new_time_signature_denominator
-                    cur_bar_capacity_total = int(
-                        self.ppqn * 4 * cur_time_signature_numerator / cur_time_signature_denominator)
+            for i, main_part in enumerate(main_parts):
+                if main_part == TokenisationPrefixes.PAD.value:
+                    continue
+                elif main_part == TokenisationPrefixes.START.value:
+                    continue
+                elif main_part == TokenisationPrefixes.STOP.value:
+                    continue
+                elif main_part == TokenisationPrefixes.BAR.value:
+                    cur_time += cur_bar_capacity_remaining
+                    cur_time_bar = 0
                     cur_bar_capacity_remaining = cur_bar_capacity_total
 
-                    if self.flag_simplify_time_signature and \
-                            cur_time_signature_numerator % 2 == 0 and \
-                            cur_time_signature_denominator % 2 == 0:
-                        cur_time_signature_numerator = int(cur_time_signature_numerator / 2)
-                        cur_time_signature_denominator = int(cur_time_signature_denominator / 2)
+                    for sequence in sequences:
+                        sequence.add_absolute_message(Message(message_type=MessageType.INTERNAL, time=cur_time))
+                elif main_part == TokenisationPrefixes.REST.value:
+                    cur_time += int(token_parts[i][1])
+                    cur_time_bar += int(token_parts[i][1])
+                    cur_bar_capacity_remaining -= int(token_parts[i][1])
+                elif main_part == TokenisationPrefixes.TRACK.value:
+                    prv_track = int(token_parts[i][1])
+                elif main_part == TokenisationPrefixes.VALUE.value:
+                    prv_value = int(token_parts[i][1])
+                elif main_part == TokenisationPrefixes.VELOCITY.value:
+                    prv_velocity = int(token_parts[i][1])
+                elif main_part == TokenisationPrefixes.PITCH.value:
+                    note_pitch = int(token_parts[i][1])
 
-                    if switched or not self.flag_running_values:
-                        sequences[0].add_absolute_message(
-                            Message(message_type=MessageType.TIME_SIGNATURE,
-                                    time=cur_time,
-                                    numerator=cur_time_signature_numerator,
-                                    denominator=cur_time_signature_denominator)
-                        )
-            else:
-                raise TokenisationException(f"Invalid token: {token}")
+                    sequences[prv_track].add_absolute_message(
+                        Message(message_type=MessageType.NOTE_ON, note=note_pitch, time=cur_time,
+                                velocity=prv_velocity)
+                    )
+                    sequences[prv_track].add_absolute_message(
+                        Message(message_type=MessageType.NOTE_OFF, note=note_pitch, time=cur_time + prv_value)
+                    )
+                elif main_part == TokenisationPrefixes.TIME_SIGNATURE.value:
+                    if cur_time_bar > 0:
+                        LOGGER.info(
+                            f"Skipping time signature change mid-bar at time {cur_time} (bar time {cur_time_bar})")
+                    else:
+                        switched = False
+
+                        new_time_signature_numerator = int(token_parts[i][1])
+                        new_time_signature_denominator = int(token_parts[i][2])
+
+                        if cur_time_signature_numerator != new_time_signature_numerator or \
+                                cur_time_signature_denominator != new_time_signature_denominator:
+                            switched = True
+
+                        cur_time_signature_numerator = new_time_signature_numerator
+                        cur_time_signature_denominator = new_time_signature_denominator
+                        cur_bar_capacity_total = int(
+                            self.ppqn * 4 * cur_time_signature_numerator / cur_time_signature_denominator)
+                        cur_bar_capacity_remaining = cur_bar_capacity_total
+
+                        if self.flag_simplify_time_signature and \
+                                cur_time_signature_numerator % 2 == 0 and \
+                                cur_time_signature_denominator % 2 == 0:
+                            cur_time_signature_numerator = int(cur_time_signature_numerator / 2)
+                            cur_time_signature_denominator = int(cur_time_signature_denominator / 2)
+
+                        if switched or not self.flag_running_values:
+                            sequences[0].add_absolute_message(
+                                Message(message_type=MessageType.TIME_SIGNATURE,
+                                        time=cur_time,
+                                        numerator=cur_time_signature_numerator,
+                                        denominator=cur_time_signature_denominator)
+                            )
+                else:
+                    raise TokenisationException(f"Invalid token: {token}")
 
         return sequences
 
