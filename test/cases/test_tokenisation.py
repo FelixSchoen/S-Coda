@@ -14,20 +14,41 @@ def test_roundtrip_multi_track_large_vocabulary_notelike_tokeniser(path_resource
                                                                                                quantise=True,
                                                                                                iteration_identifier=path_resource.stem)
 
-    # info = tokeniser.get_info(tokens)
+    info = tokeniser.get_info(tokens)
 
-    # for key, value in info.items():
-    #     assert len(value) == len(tokens)
+    for key, value in info.items():
+        assert len(value) == len(tokens)
+
+    for i, i_pos in enumerate(info["info_position"]):
+        assert i_pos == i
+
+    last_time = 0
+    for i_time in info["info_time"]:
+        assert i_time >= last_time
+        last_time = i_time
 
 
 def test_roundtrip_manual_tokeniser():
-    path_resource = RESOURCE_SWEEP
+    path_resource = RESOURCE_BEETHOVEN
     num_tracks = 1
     tokeniser = MultiTrackLargeVocabularyNotelikeTokeniser(num_tracks=num_tracks, flag_fuse_track=False)
-    _test_roundtrip_multi_track_tokenisation(tokeniser, path_resource,
-                                             merge_sequences=num_tracks == 1,
-                                             quantise=True,
-                                             iteration_identifier=path_resource.stem)
+    tokens, sequences_original, sequences_roundtrip = _test_roundtrip_multi_track_tokenisation(tokeniser, path_resource,
+                                                                                               merge_sequences=num_tracks == 1,
+                                                                                               quantise=True,
+                                                                                               iteration_identifier=path_resource.stem)
+
+    info = tokeniser.get_info(tokens)
+
+    for key, value in info.items():
+        assert len(value) == len(tokens)
+
+    for i, i_pos in enumerate(info["info_position"]):
+        assert i_pos == i
+
+    last_time = 0
+    for i_time in info["info_time"]:
+        assert i_time >= last_time
+        last_time = i_time
 
 
 def _test_roundtrip_multi_track_tokenisation(tokeniser, path_resource, merge_sequences, quantise=True, detokenise=True,

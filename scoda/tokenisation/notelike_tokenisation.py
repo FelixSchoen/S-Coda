@@ -16,6 +16,8 @@ LOGGER = get_logger(__name__)
 
 
 class MultiTrackLargeVocabularyNotelikeTokeniser:
+    sort_order = [TokenisationPrefixes.TRACK.value, TokenisationPrefixes.VALUE.value,
+                  TokenisationPrefixes.VELOCITY.value, TokenisationPrefixes.PITCH.value]
 
     def __init__(self,
                  ppqn: int = None,
@@ -257,12 +259,10 @@ class MultiTrackLargeVocabularyNotelikeTokeniser:
         prv_value = 24
         prv_velocity = 127
 
-        sort_order = [TokenisationPrefixes.TRACK.value, TokenisationPrefixes.VALUE.value,
-                      TokenisationPrefixes.VELOCITY.value, TokenisationPrefixes.PITCH.value]
-
         for token in tokens:
             token_parts = sorted(self._split_token(token),
-                                 key=lambda part: (sort_order.index(part[0]) if part[0] in sort_order else -1))
+                                 key=lambda part: (
+                                     self.sort_order.index(part[0]) if part[0] in self.sort_order else -1))
             main_parts = [part[0] for part in token_parts]
 
             for i, main_part in enumerate(main_parts):
@@ -365,13 +365,17 @@ class MultiTrackLargeVocabularyNotelikeTokeniser:
         prv_pitch = 69  # Concert pitch A4
 
         for token in tokens:
-            token_parts = self._split_token(token)
-            part_main = token_parts[0][0]
+            token_parts = sorted(self._split_token(token),
+                                 key=lambda part: (
+                                     self.sort_order.index(part[0]) if part[0] in self.sort_order else -1))
+            main_parts = [part[0] for part in token_parts]
+            main_part = main_parts[0]
 
+            info_pos.append(cur_pos)
             info_time.append(cur_time)
             info_time_bar.append(cur_time_bar)
 
-            if part_main == TokenisationPrefixes.BAR.value:
+            if main_part == TokenisationPrefixes.BAR.value:
                 cur_time += cur_bar_capacity_remaining
                 cur_time_bar = 0
                 cur_bar_capacity_remaining = cur_bar_capacity_total
@@ -382,7 +386,7 @@ class MultiTrackLargeVocabularyNotelikeTokeniser:
                 else:
                     info_pitch.append(prv_pitch)
                     info_cof.append(CircleOfFifths.get_position(prv_pitch))
-            elif part_main == TokenisationPrefixes.REST.value:
+            elif main_part == TokenisationPrefixes.REST.value:
                 cur_time += int(token_parts[0][1])
                 cur_time_bar += int(token_parts[0][1])
                 cur_bar_capacity_remaining -= int(token_parts[0][1])
@@ -393,12 +397,13 @@ class MultiTrackLargeVocabularyNotelikeTokeniser:
                 else:
                     info_pitch.append(prv_pitch)
                     info_cof.append(CircleOfFifths.get_position(prv_pitch))
-            elif part_main == TokenisationPrefixes.TRACK.value:
-                note_pitch = int(token_parts[1][1])
+            elif TokenisationPrefixes.PITCH.value in main_parts:
+                pitch_part = next(part for part in token_parts if part[0] == TokenisationPrefixes.PITCH.value)
+                note_pitch = int(pitch_part[1])
 
                 info_pitch.append(note_pitch)
                 info_cof.append(CircleOfFifths.get_position(note_pitch))
-            elif part_main == TokenisationPrefixes.TIME_SIGNATURE.value:
+            elif main_part == TokenisationPrefixes.TIME_SIGNATURE.value:
                 if cur_time_bar > 0:
                     LOGGER.info(
                         f"Skipping time signature change mid-bar at time {cur_time} (bar time {cur_time_bar})")
@@ -423,7 +428,6 @@ class MultiTrackLargeVocabularyNotelikeTokeniser:
                     info_pitch.append(prv_pitch)
                     info_cof.append(CircleOfFifths.get_position(prv_pitch))
 
-            info_pos.append(cur_pos)
             cur_pos += 1
 
         return {"info_position": info_pos,
