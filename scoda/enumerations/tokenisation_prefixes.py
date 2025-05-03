@@ -7,6 +7,7 @@ class TokenisationPrefixes(Enum):
     STOP = "sto"
     BAR = "bar"
     REST = "rst"
+    POSITION = "pos"
     NOTE = "nte"
     TRACK = "trk"
     PITCH = "pit"

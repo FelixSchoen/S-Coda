@@ -4,10 +4,14 @@ from scoda.tokenisation.notelike_tokenisation import MultiTrackLargeVocabularyNo
 
 @pytest.mark.parametrize("path_resource, num_tracks",
                          list(zip(RESOURCES_MULTI_TRACK, RESOURCES_MULTI_TRACK_NUM_TRACKS)))
+@pytest.mark.parametrize("flag_absolute_bar_position", [True, True])
 @pytest.mark.parametrize("flag_fuse_track", [False, True])
-def test_roundtrip_multi_track_large_vocabulary_notelike_tokeniser(path_resource, num_tracks, flag_fuse_track):
+def test_roundtrip_multi_track_large_vocabulary_notelike_tokeniser(path_resource, num_tracks,
+                                                                   flag_absolute_bar_position, flag_fuse_track, ):
     tokeniser = MultiTrackLargeVocabularyNotelikeTokeniser(num_tracks=num_tracks,
-                                                           flag_fuse_track=flag_fuse_track)
+                                                           flag_absolute_bar_position=flag_absolute_bar_position,
+                                                           flag_fuse_track=flag_fuse_track,
+                                                           bar_position_quarters_range=6)
 
     tokens, sequences_original, sequences_roundtrip = _test_roundtrip_multi_track_tokenisation(tokeniser, path_resource,
                                                                                                merge_sequences=num_tracks == 1,
@@ -29,9 +33,11 @@ def test_roundtrip_multi_track_large_vocabulary_notelike_tokeniser(path_resource
 
 
 def test_roundtrip_manual_tokeniser():
-    path_resource = RESOURCE_BEETHOVEN
+    path_resource = RESOURCE_MOZART
     num_tracks = 1
-    tokeniser = MultiTrackLargeVocabularyNotelikeTokeniser(num_tracks=num_tracks, flag_fuse_track=False)
+    tokeniser = MultiTrackLargeVocabularyNotelikeTokeniser(num_tracks=num_tracks, flag_fuse_track=False,
+                                                           flag_absolute_bar_position=True,
+                                                           bar_position_quarters_range=6)
     tokens, sequences_original, sequences_roundtrip = _test_roundtrip_multi_track_tokenisation(tokeniser, path_resource,
                                                                                                merge_sequences=num_tracks == 1,
                                                                                                quantise=True,
@@ -45,10 +51,26 @@ def test_roundtrip_manual_tokeniser():
     for i, i_pos in enumerate(info["info_position"]):
         assert i_pos == i
 
+    cur_pos_bar = 0
+    for i, i_pos in enumerate(info["info_position_bar"]):
+        if i_pos == 0:
+            cur_pos_bar = 0
+        assert i_pos == cur_pos_bar
+
+        cur_pos_bar += 1
+
     last_time = 0
     for i_time in info["info_time"]:
         assert i_time >= last_time
         last_time = i_time
+
+    last_time_bar = 0
+    for i_time in info["info_time_bar"]:
+        if i_time == 0:
+            last_time_bar = 0
+
+        assert i_time >= last_time_bar
+        last_time_bar = i_time
 
 
 def _test_roundtrip_multi_track_tokenisation(tokeniser, path_resource, merge_sequences, quantise=True, detokenise=True,

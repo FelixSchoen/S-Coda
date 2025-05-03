@@ -27,7 +27,11 @@ class MultiTrackLargeVocabularyNotelikeTokeniser:
                  note_values: list[int] = None,
                  velocity_bins: int = 1,
                  time_signature_range: Tuple[int, int] = (2, 16),
+                 bar_position_quarters_range: float = 4.0,
+                 flag_absolute_bar_position: bool = False,
                  flag_running_values: bool = True,
+                 flag_running_time_signature: bool = True,
+                 flag_bar_token: bool = True,
                  flag_fuse_track: bool = True,
                  flag_fuse_value: bool = True,
                  flag_fuse_velocity: bool = True,
@@ -42,8 +46,12 @@ class MultiTrackLargeVocabularyNotelikeTokeniser:
         self.num_tracks = num_tracks
         self.pitch_range = pitch_range
         self.time_signature_range = time_signature_range
+        self.bar_position_quarters_range = bar_position_quarters_range
 
+        self.flag_absolute_bar_position = flag_absolute_bar_position
         self.flag_running_values = flag_running_values
+        self.flag_running_time_signature = flag_running_time_signature
+        self.flag_bar_token = flag_bar_token
         self.flag_fuse_track = flag_fuse_track
         self.flag_fuse_value = flag_fuse_value
         self.flag_fuse_velocity = flag_fuse_velocity
@@ -68,18 +76,19 @@ class MultiTrackLargeVocabularyNotelikeTokeniser:
         # Construct dictionary
         self._construct_dictionary()
 
+        if not self.flag_running_time_signature:
+            raise NotImplementedError()
+
+        if self.flag_absolute_bar_position and not self.flag_bar_token:
+            raise TokenisationException("Absolute bar position requires bar token")
+
     @property
     def dictionary_size(self):
         return self._dictionary_size
 
     def tokenise(self,
                  sequences_bar: list[Sequence],
-                 insert_bar_token: bool = True,
-                 flag_running_time_signature: bool = True,
                  state_dict: dict = None) -> List[str]:
-        if not flag_running_time_signature:
-            raise NotImplementedError()
-
         if state_dict is None:
             state_dict = dict()
 
@@ -109,36 +118,53 @@ class MultiTrackLargeVocabularyNotelikeTokeniser:
             nonlocal cur_time_bar
             nonlocal cur_bar_capacity_remaining
             buf_rest = rest
-
-            nxt_rest = min(buf_rest, cur_bar_capacity_remaining)
+            pass
 
             # While rest buffer not empty
             while buf_rest > 0:
-                # Check if next rest value is valid
-                if not (nxt_rest > self.step_sizes[-1] or any(nxt_rest >= step_size for step_size in self.step_sizes)):
-                    raise TokenisationException(f"Invalid remaining rest value: {nxt_rest}")
+                if not self.flag_absolute_bar_position:
+                    nxt_rest = min(buf_rest, cur_bar_capacity_remaining)
 
-                # Check if next rest value is larger than the largest step size
-                if nxt_rest > self.step_sizes[-1]:
-                    rest_value = self.step_sizes[-1]
+                    # Check if next rest value is valid
+                    if not (nxt_rest > self.step_sizes[-1] or any(nxt_rest >= step_size for step_size in self.step_sizes)):
+                        raise TokenisationException(f"Invalid remaining rest value: {nxt_rest}")
+
+                    # Check if next rest value is larger than the largest step size
+                    if nxt_rest > self.step_sizes[-1]:
+                        rest_value = self.step_sizes[-1]
+                    else:
+                        rest_value = next(step_size for step_size in reversed(self.step_sizes) if nxt_rest >= step_size)
+
+                    # Apply rest
+                    cur_time += rest_value
+                    cur_time_bar += rest_value
+                    cur_bar_capacity_remaining -= rest_value
+                    buf_rest -= rest_value
+                    tokens.append(f"{TokenisationPrefixes.REST.value}_{rest_value:02}")
+
+                    # Check if we are at bar end
+                    if cur_bar_capacity_remaining == 0:
+                        if self.flag_bar_token:
+                            tokens.append(TokenisationPrefixes.BAR.value)
+                        cur_time_bar = 0
+                        cur_bar_capacity_remaining = cur_bar_capacity_total
                 else:
-                    rest_value = next(step_size for step_size in reversed(self.step_sizes) if nxt_rest >= step_size)
-
-                # Apply rest
-                cur_time += rest_value
-                cur_time_bar += rest_value
-                cur_bar_capacity_remaining -= rest_value
-                buf_rest -= rest_value
-                tokens.append(f"{TokenisationPrefixes.REST.value}_{rest_value:02}")
-
-                # Check if we are at bar end
-                if cur_bar_capacity_remaining == 0:
-                    if insert_bar_token:
+                    if buf_rest >= cur_bar_capacity_remaining:
+                        cur_time += cur_bar_capacity_remaining
+                        cur_time_bar = 0
+                        buf_rest -= cur_bar_capacity_remaining
+                        cur_bar_capacity_remaining = cur_bar_capacity_total
                         tokens.append(TokenisationPrefixes.BAR.value)
-                    cur_time_bar = 0
-                    cur_bar_capacity_remaining = cur_bar_capacity_total
+                    else:
+                        if cur_time_bar + buf_rest > self.bar_position_quarters_range * self.ppqn:
+                            raise TokenisationException(f"Invalid bar position value: {cur_time_bar + buf_rest}")
 
-                nxt_rest = min(buf_rest, cur_bar_capacity_remaining)
+                        cur_time += buf_rest
+                        cur_time_bar += buf_rest
+                        cur_bar_capacity_remaining -= buf_rest
+                        buf_rest = 0
+                        tokens.append(f"{TokenisationPrefixes.POSITION.value}_{cur_time_bar:03}")
+
 
         # Merge sequences
         for i, sequence_bar in enumerate(sequences_bar):
@@ -283,6 +309,16 @@ class MultiTrackLargeVocabularyNotelikeTokeniser:
                     cur_time += int(token_parts[i][1])
                     cur_time_bar += int(token_parts[i][1])
                     cur_bar_capacity_remaining -= int(token_parts[i][1])
+                elif main_part == TokenisationPrefixes.POSITION.value:
+                    nxt_time_bar = int(token_parts[i][1])
+                    nxt_time_shift = nxt_time_bar - cur_time_bar
+
+                    if nxt_time_bar < cur_time_bar:
+                        LOGGER.info("Skipping backward bar position")
+                    else:
+                        cur_time += nxt_time_shift
+                        cur_time_bar += nxt_time_shift
+                        cur_bar_capacity_remaining -= nxt_time_shift
                 elif main_part == TokenisationPrefixes.TRACK.value:
                     prv_track = int(token_parts[i][1])
                 elif main_part == TokenisationPrefixes.VALUE.value:
@@ -349,6 +385,7 @@ class MultiTrackLargeVocabularyNotelikeTokeniser:
                  tokens: List[str],
                  flag_impute_values: bool = False) -> dict[str, list[int]]:
         info_pos = []
+        info_pos_bar = []
         info_time = []
         info_time_bar = []
         info_pitch = []
@@ -356,6 +393,7 @@ class MultiTrackLargeVocabularyNotelikeTokeniser:
 
         # Setup Values
         cur_pos = 0
+        cur_pos_bar = 0
         cur_time = 0
         cur_time_bar = 0
         cur_time_signature_numerator = DEFAULT_TIME_SIGNATURE_NUMERATOR
@@ -372,11 +410,16 @@ class MultiTrackLargeVocabularyNotelikeTokeniser:
             main_part = main_parts[0]
 
             info_pos.append(cur_pos)
+            info_pos_bar.append(cur_pos_bar)
             info_time.append(cur_time)
             info_time_bar.append(cur_time_bar)
 
+            cur_pos += 1
+            cur_pos_bar += 1
+
             if main_part == TokenisationPrefixes.BAR.value:
                 cur_time += cur_bar_capacity_remaining
+                cur_pos_bar = 0
                 cur_time_bar = 0
                 cur_bar_capacity_remaining = cur_bar_capacity_total
 
@@ -390,6 +433,19 @@ class MultiTrackLargeVocabularyNotelikeTokeniser:
                 cur_time += int(token_parts[0][1])
                 cur_time_bar += int(token_parts[0][1])
                 cur_bar_capacity_remaining -= int(token_parts[0][1])
+
+                if not flag_impute_values:
+                    info_pitch.append(math.nan)
+                    info_cof.append(math.nan)
+                else:
+                    info_pitch.append(prv_pitch)
+                    info_cof.append(CircleOfFifths.get_position(prv_pitch))
+            elif main_part == TokenisationPrefixes.POSITION.value:
+                nxt_time_bar = int(token_parts[0][1])
+                nxt_time_shift = nxt_time_bar - cur_time_bar
+                cur_time += nxt_time_shift
+                cur_time_bar += nxt_time_shift
+                cur_bar_capacity_remaining -= nxt_time_shift
 
                 if not flag_impute_values:
                     info_pitch.append(math.nan)
@@ -428,9 +484,8 @@ class MultiTrackLargeVocabularyNotelikeTokeniser:
                     info_pitch.append(prv_pitch)
                     info_cof.append(CircleOfFifths.get_position(prv_pitch))
 
-            cur_pos += 1
-
         return {"info_position": info_pos,
+                "info_position_bar": info_pos_bar,
                 "info_time": info_time,
                 "info_time_bar": info_time_bar,
                 "info_pitch": info_pitch,
@@ -443,21 +498,27 @@ class MultiTrackLargeVocabularyNotelikeTokeniser:
         return sub_parts
 
     def _construct_dictionary(self):
-        self.dictionary[TokenisationPrefixes.PAD.value] = 0
+        self.dictionary[TokenisationPrefixes.PAD.value] = self.dictionary_size
         self._dictionary_size += 1
 
-        self.dictionary[TokenisationPrefixes.START.value] = 1
+        self.dictionary[TokenisationPrefixes.START.value] = self.dictionary_size
         self._dictionary_size += 1
 
-        self.dictionary[TokenisationPrefixes.STOP.value] = 2
+        self.dictionary[TokenisationPrefixes.STOP.value] = self.dictionary_size
         self._dictionary_size += 1
 
-        self.dictionary[TokenisationPrefixes.BAR.value] = 3
-        self._dictionary_size += 1
-
-        for step_size in self.step_sizes:
-            self.dictionary[f"{TokenisationPrefixes.REST.value}_{step_size:02}"] = self.dictionary_size
+        if self.flag_bar_token:
+            self.dictionary[TokenisationPrefixes.BAR.value] = self.dictionary_size
             self._dictionary_size += 1
+
+        if not self.flag_absolute_bar_position:
+            for step_size in self.step_sizes:
+                self.dictionary[f"{TokenisationPrefixes.REST.value}_{step_size:02}"] = self.dictionary_size
+                self._dictionary_size += 1
+        else:
+            for position in range(1, int(self.bar_position_quarters_range * self.ppqn)):
+                self.dictionary[f"{TokenisationPrefixes.POSITION.value}_{position:03}"] = self.dictionary_size
+                self._dictionary_size += 1
 
         combinations = []
 
@@ -499,9 +560,10 @@ class MultiTrackLargeVocabularyNotelikeTokeniser:
             self.dictionary[token] = self.dictionary_size
             self._dictionary_size += 1
 
-        for time_signature in range(self.time_signature_range[0], self.time_signature_range[1] + 1):
-            self.dictionary[
-                f"{TokenisationPrefixes.TIME_SIGNATURE.value}_{time_signature:02}_{DEFAULT_TIME_SIGNATURE_DENOMINATOR:02}"] = self.dictionary_size
-            self._dictionary_size += 1
+        if self.time_signature_range is not None:
+            for time_signature in range(self.time_signature_range[0], self.time_signature_range[1] + 1):
+                self.dictionary[
+                    f"{TokenisationPrefixes.TIME_SIGNATURE.value}_{time_signature:02}_{DEFAULT_TIME_SIGNATURE_DENOMINATOR:02}"] = self.dictionary_size
+                self._dictionary_size += 1
 
-        self.inverse_dictionary = {v: k for k, v in self.dictionary.items()}
+            self.inverse_dictionary = {v: k for k, v in self.dictionary.items()}
