@@ -75,7 +75,7 @@ def test_roundtrip_manual_tokeniser():
 
 def _test_roundtrip_multi_track_tokenisation(tokeniser, path_resource, merge_sequences, quantise=True, detokenise=True,
                                              iteration_identifier=None):
-    debug = True
+    debug = False
 
     # Load sequences
     sequences_original = Sequence.sequences_load(file_path=path_resource)
