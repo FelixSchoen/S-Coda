@@ -1,10 +1,17 @@
 import math
+import tomllib
+from pathlib import Path
 
 import numpy as np
 
 from scoda.elements.message import Message
 from scoda.settings.settings import VELOCITY_MAX, VELOCITY_BINS, PPQN, NOTE_VALUE_UPPER_BOUND, NOTE_VALUE_LOWER_BOUND, \
     VALID_TUPLETS, DOTTED_ITERATIONS
+
+
+def version():
+    with open(Path(__file__).parent.parent.parent.joinpath("pyproject.toml"), "rb") as f:
+        return tomllib.load(f)["project"]["version"]
 
 
 def bin_velocity(velocity: int, bins: list[int] = None) -> int:
@@ -101,7 +108,7 @@ def find_minimal_distance(element, collection) -> int:
 
 
 def get_default_step_sizes(upper_bound_shift=0, lower_bound_shift=0):
-    quantise_parameters = get_note_durations(1*2**upper_bound_shift, 4*2**lower_bound_shift)
+    quantise_parameters = get_note_durations(1 * 2 ** upper_bound_shift, 4 * 2 ** lower_bound_shift)
     quantise_parameters += get_tuplet_durations(quantise_parameters, 3, 2)
     step_sizes = quantise_parameters
 

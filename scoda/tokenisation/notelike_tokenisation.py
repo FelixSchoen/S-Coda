@@ -126,7 +126,8 @@ class MultiTrackLargeVocabularyNotelikeTokeniser:
                     nxt_rest = min(buf_rest, cur_bar_capacity_remaining)
 
                     # Check if next rest value is valid
-                    if not (nxt_rest > self.step_sizes[-1] or any(nxt_rest >= step_size for step_size in self.step_sizes)):
+                    if not (nxt_rest > self.step_sizes[-1] or any(
+                            nxt_rest >= step_size for step_size in self.step_sizes)):
                         raise TokenisationException(f"Invalid remaining rest value: {nxt_rest}")
 
                     # Check if next rest value is larger than the largest step size
@@ -164,7 +165,6 @@ class MultiTrackLargeVocabularyNotelikeTokeniser:
                         cur_bar_capacity_remaining -= buf_rest
                         buf_rest = 0
                         tokens.append(f"{TokenisationPrefixes.POSITION.value}_{cur_time_bar:03}")
-
 
         # Merge sequences
         for i, sequence_bar in enumerate(sequences_bar):
@@ -560,10 +560,10 @@ class MultiTrackLargeVocabularyNotelikeTokeniser:
             self.dictionary[token] = self.dictionary_size
             self._dictionary_size += 1
 
-        if self.time_signature_range is not None:
+        if self.time_signature_range is not None and len(self.time_signature_range) > 0:
             for time_signature in range(self.time_signature_range[0], self.time_signature_range[1] + 1):
                 self.dictionary[
                     f"{TokenisationPrefixes.TIME_SIGNATURE.value}_{time_signature:02}_{DEFAULT_TIME_SIGNATURE_DENOMINATOR:02}"] = self.dictionary_size
                 self._dictionary_size += 1
 
-            self.inverse_dictionary = {v: k for k, v in self.dictionary.items()}
+        self.inverse_dictionary = {v: k for k, v in self.dictionary.items()}
