@@ -1,1 +1,1 @@
-from misc.util import version
+__version__ = "2.4.3"

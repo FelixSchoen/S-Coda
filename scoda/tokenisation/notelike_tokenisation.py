@@ -35,7 +35,30 @@ class MultiTrackLargeVocabularyNotelikeTokeniser:
                  flag_fuse_track: bool = True,
                  flag_fuse_value: bool = True,
                  flag_fuse_velocity: bool = True,
+                 flag_ignore_time_signature: bool = False,
                  flag_simplify_time_signature: bool = True):
+        """A tokeniser following the principles of the large-vocabulary notelike tokeniser with support for multiple tracks.
+
+        Args:
+            ppqn (int, optional): Parts per quarter note (default ``None``).
+            num_tracks (int, optional): Number of tracks (default ``1``).
+            pitch_range (Tuple[int, int], optional): Range of MIDI note numbers (default ``(21, 108)``).
+            step_sizes (list[int], optional): List of quantised step sizes (default ``None``).
+            note_values (list[int], optional): List of quantised note values (default ``None``).
+            velocity_bins (int, optional): Number of velocity bins to quantise velocity to (default ``1``).
+            time_signature_range (Tuple[int, int], optional): Range of time signatures (default ``(2, 16)``).
+            bar_position_quarters_range (float, optional): Range of maximum supported bar position in quarters (default ``4.0``).
+            flag_absolute_bar_position (bool, optional): Flag to indicate if absolute bar position should be used (default ``False``).
+            flag_running_values (bool, optional): Flag to indicate if running values should be used (default ``True``).
+            flag_running_time_signature (bool, optional): Flag to indicate if running time signature should be used (default ``True``).
+            flag_bar_token (bool, optional): Flag to indicate if a token for bar borders should be used (default ``True``).
+            flag_fuse_track (bool, optional): Flag to indicate if the track should be fused into the token (default ``True``).
+            flag_fuse_value (bool, optional): Flag to indicate if the note value should be fused into the token (default ``True``).
+            flag_fuse_velocity (bool, optional): Flag to indicate if the velocity should be fused into the token (default ``True``).
+            flag_ignore_time_signature (bool, optional): Flag to indicate if time signature should be ignored (default ``False``).
+            flag_simplify_time_signature (bool, optional): Flag to indicate if time signature should be simplified to quarters (default ``True``).
+
+        """
         self.dictionary = dict()
         self.inverse_dictionary = dict()
         self._dictionary_size = 0
@@ -55,6 +78,7 @@ class MultiTrackLargeVocabularyNotelikeTokeniser:
         self.flag_fuse_track = flag_fuse_track
         self.flag_fuse_value = flag_fuse_value
         self.flag_fuse_velocity = flag_fuse_velocity
+        self.flag_ignore_time_signature = flag_ignore_time_signature
         self.flag_simplify_time_signature = flag_simplify_time_signature
 
         # Default Values
@@ -229,7 +253,7 @@ class MultiTrackLargeVocabularyNotelikeTokeniser:
                 prv_value = msg_value
                 prv_velocity = msg_velocity
             # Handle time signatures
-            elif msg_type == MessageType.TIME_SIGNATURE:
+            elif msg_type == MessageType.TIME_SIGNATURE and not self.flag_ignore_time_signature:
                 if cur_time_bar > 0:
                     LOGGER.info(
                         f"Skipping time signature change mid-bar at time {cur_time} (bar time {cur_time_bar})")

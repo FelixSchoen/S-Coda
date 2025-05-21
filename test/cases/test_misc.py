@@ -11,6 +11,16 @@ def test_load_settings_from_file():
 
 # Util
 
+def test_version():
+    import scoda
+
+    with open(Path(__file__).parent.parent.parent.joinpath("pyproject.toml"), "rb") as f:
+        pyproject_version = tomllib.load(f)["project"]["version"]
+
+    scoda.__version__ = pyproject_version
+    LOGGER.info(scoda.__version__)
+
+
 def test_velocity_values_digitised_to_correct_bins():
     values_to_digitise = [(1, 16), (17, 16), (31, 32), (33, 32), (126, 127)]
 
