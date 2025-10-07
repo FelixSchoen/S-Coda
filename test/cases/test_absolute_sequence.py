@@ -143,6 +143,12 @@ def test_quantise_note_lengths():
         for message_pairing in message_pairings:
             assert message_pairing[1].time - message_pairing[0].time in possible_durations
 
+def test_similarity():
+    sequence_a = util_midi_to_sequences()[0]
+    sequence_b = util_midi_to_sequences(file=RESOURCE_CHOPIN)[0]
+
+    assert sequence_a.similarity(sequence_a) == 1.0
+    assert 0.0 <= sequence_a.similarity(sequence_b) < 1.0
 
 def test_sort():
     sequences = util_midi_to_sequences()

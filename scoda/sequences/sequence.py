@@ -124,7 +124,7 @@ class Sequence:
     def refresh(self) -> None:
         """Refreshes the absolute and relative representations of this sequence."""
         if self._abs_stale and self._rel_stale:
-            raise SequenceException("Sequence references stale.")
+            raise SequenceException("Both sequence references stale.")
 
         if self._abs_stale:
             self._abs = self._rel.to_absolute_sequence()
@@ -255,6 +255,16 @@ class Sequence:
         """See `scoda.sequence.relative_sequence.RelativeSequence.set_channel`."""
         self.rel.set_channel(channel)
         self.invalidate_abs()
+
+    def similarity(self, other: AbsoluteSequence,
+                   flag_consider_channel: bool = True,
+                   flag_consider_program: bool = False,
+                   flag_consider_velocity: bool = False) -> float:
+        """See `scoda.sequence.absolute_sequence.AbsoluteSequence.similarity`."""
+        if not isinstance(other, Sequence):
+            raise SequenceException("Can only compute similarity to another Sequence.")
+
+        return self.abs.similarity(other.abs, flag_consider_velocity)
 
     def split(self, capacities: list[int]) -> list[Sequence]:
         """See `scoda.sequence.relative_sequence.RelativeSequence.split`."""

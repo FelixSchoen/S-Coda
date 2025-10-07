@@ -369,6 +369,53 @@ class AbsoluteSequence(AbstractSequence):
         self._messages = quantised_messages
         self.normalise_absolute()
 
+    def similarity(self, other: AbsoluteSequence,
+                   flag_consider_channel: bool = True,
+                   flag_consider_program:bool = False,
+                   flag_consider_velocity: bool = False) -> float:
+        """Calculates a similarity measure between this sequence and another one.
+
+        The similarity is calculated as the number of matching notes divided by the combined total number of notes in both
+        sequences. Two notes are considered matching if they have the same channel, note value, start time, end time, and
+        conditionally, velocity.
+
+        Args:
+            other: The other sequence to compare with.
+            flag_consider_velocity: If the velocity should be considered when comparing notes.
+
+        Returns: A value between 0 and 1, where 1 means the sequences are identical.
+
+        """
+        message_types = [MessageType.NOTE_ON, MessageType.NOTE_OFF]
+
+        self_notes, other_notes = set(), set()
+        for notes, pairings in [(self_notes, self.get_interleaved_message_pairings(message_types=message_types)),
+                                (other_notes, other.get_interleaved_message_pairings(message_types=message_types))]:
+            for channel, msgs in pairings:
+                if len(msgs) == 2 and msgs[0].message_type == MessageType.NOTE_ON and msgs[
+                    1].message_type == MessageType.NOTE_OFF:
+                    note_tuple = (channel,
+                                  msgs[0].note,
+                                  msgs[0].time,
+                                  msgs[1].time,
+                                  msgs[0].channel if flag_consider_channel else None,
+                                  msgs[0].program if flag_consider_program else None,
+                                  msgs[0].velocity if flag_consider_velocity else None)
+                    notes.add(note_tuple)
+
+        # Check if both sets are empty
+        if not self_notes and not other_notes:
+            return 1.0
+
+        matching_notes = self_notes & other_notes
+        all_notes = self_notes | other_notes
+
+        if len(all_notes) == 0:
+            return 1.0
+
+        similarity_score = len(matching_notes) / len(all_notes)
+        return similarity_score
+
     def sort(self) -> None:
         """Sorts the sequence according to the timings of the messages.
 
