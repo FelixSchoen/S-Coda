@@ -515,6 +515,118 @@ class MultiTrackLargeVocabularyNotelikeTokeniser:
                 "info_pitch": info_pitch,
                 "info_circle_of_fifths": info_cof}
 
+    def get_hierarchy_transitions(
+            self,
+            tokens: List[str],
+            intervals_ticks: List[int],
+            seq_len: int = None,
+            padding_value: int = -1
+    ) -> List[List[int]]:
+        """Compute hierarchy segment assignments from tick-based intervals.
+
+        Maps each token position to a segment ID at each hierarchy level based on
+        the token's absolute tick time. Segment ID is computed as tick_time // interval.
+
+        This method is designed for use with hierarchical transformer models like HierarTune,
+        which use segment assignments to determine where hierarchy tokens should be inserted
+        and how attention should be structured across hierarchy levels.
+
+        Args:
+            tokens: List of string tokens (output from tokenise())
+            intervals_ticks: List of tick intervals for each hierarchy level,
+                            ordered finest to coarsest. E.g., [24, 96, 384] for
+                            beats/bars/4-bar-blocks at PPQN=24
+            seq_len: Target sequence length for padding. If None, uses len(tokens).
+                    Positions beyond len(tokens) will be filled with padding_value.
+            padding_value: Value for padding positions (default: -1). The value -1 is
+                          commonly used by hierarchical models to indicate invalid positions.
+
+        Returns:
+            List[List[int]]: assignments[level][position] = segment_id
+
+            Format matches HierarTune's expected tensor shape when converted:
+            torch.tensor(result) -> shape (num_levels, seq_len)
+
+            Transitions between segments occur when consecutive valid positions have
+            different segment IDs.
+
+        Example:
+            >>> tokeniser = MultiTrackLargeVocabularyNotelikeTokeniser(ppqn=24)
+            >>> # ... tokenise a sequence ...
+            >>> intervals = [24, 96, 384]  # beats, bars, 4-bar phrases
+            >>> assignments = tokeniser.get_hierarchy_transitions(tokens, intervals)
+            >>> # assignments[0] = beat segments:   [0, 0, 1, 1, 2, 2, ...]
+            >>> # assignments[1] = bar segments:    [0, 0, 0, 0, 1, 1, ...]
+            >>> # assignments[2] = phrase segments: [0, 0, 0, 0, 0, 0, ...]
+
+        """
+        # Get timing information for each token
+        info = self.get_info(tokens)
+        info_time = info["info_time"]
+
+        # Determine lengths
+        actual_len = len(tokens)
+        target_len = seq_len if seq_len is not None else actual_len
+
+        # Build assignments for each level
+        hierarchy_assignments = []
+        for interval in intervals_ticks:
+            level_assignments = []
+            for pos in range(target_len):
+                if pos < actual_len:
+                    tick_time = info_time[pos]
+                    segment_id = tick_time // interval
+                    level_assignments.append(int(segment_id))
+                else:
+                    level_assignments.append(padding_value)
+            hierarchy_assignments.append(level_assignments)
+
+        return hierarchy_assignments
+
+    def get_hierarchy_transitions_tensor(
+            self,
+            tokens: List[str],
+            intervals_ticks: List[int],
+            seq_len: int = None,
+            padding_value: int = -1,
+            device=None
+    ):
+        """Compute hierarchy transitions and return as tensor.
+
+        Same as get_hierarchy_transitions() but returns a torch.Tensor
+        of shape (num_levels, seq_len) ready for batching.
+
+        Args:
+            tokens: List of string tokens (output from tokenise())
+            intervals_ticks: Tick intervals per level, ordered finest to coarsest
+            seq_len: Target sequence length for padding
+            padding_value: Value for padding positions (default: -1)
+            device: Target device for tensor (e.g., torch.device('cuda'))
+
+        Returns:
+            torch.Tensor of shape (num_levels, seq_len) with dtype torch.long
+
+        Example:
+            >>> # For HierarTune batch processing:
+            >>> import torch
+            >>> batch_assignments = torch.stack([
+            ...     tokeniser.get_hierarchy_transitions_tensor(toks, intervals, max_len)
+            ...     for toks in batch_tokens
+            ... ])  # Shape: (batch_size, num_levels, seq_len)
+
+        """
+        import torch
+
+        assignments = self.get_hierarchy_transitions(
+            tokens, intervals_ticks, seq_len, padding_value
+        )
+
+        tensor = torch.tensor(assignments, dtype=torch.long)
+        if device is not None:
+            tensor = tensor.to(device)
+
+        return tensor
+
     @staticmethod
     def _split_token(token: str):
         parts = token.split("-")

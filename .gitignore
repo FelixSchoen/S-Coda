@@ -1,7 +1,11 @@
-# Created by https://www.toptal.com/developers/gitignore/api/python,pycharm+all
-# Edit at https://www.toptal.com/developers/gitignore?templates=python,pycharm+all
+# Created by https://www.toptal.com/developers/gitignore/api/python,jetbrains+all,visualstudiocode,direnv
+# Edit at https://www.toptal.com/developers/gitignore?templates=python,jetbrains+all,visualstudiocode,direnv
 
-### PyCharm+all ###
+### direnv ###
+.direnv
+.envrc
+
+### JetBrains+all ###
 # Covers JetBrains IDEs: IntelliJ, RubyMine, PhpStorm, AppCode, PyCharm, CLion, Android Studio, WebStorm and Rider
 # Reference: https://intellij-support.jetbrains.com/hc/en-us/articles/206544839
 
@@ -80,7 +84,7 @@ fabric.properties
 # Android studio 3.1+ serialized cache file
 .idea/caches/build_file_checksums.ser
 
-### PyCharm+all Patch ###
+### JetBrains+all Patch ###
 # Ignore everything but code style settings and run configurations
 # that are supposed to be shared within teams.
 
@@ -261,4 +265,23 @@ poetry.toml
 # LSP config files
 pyrightconfig.json
 
-# End of https://www.toptal.com/developers/gitignore/api/python,pycharm+all
+### VisualStudioCode ###
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+!.vscode/*.code-snippets
+
+# Local History for Visual Studio Code
+.history/
+
+# Built Visual Studio Code Extensions
+*.vsix
+
+### VisualStudioCode Patch ###
+# Ignore all local history of files
+.history
+.ionide
+
+# End of https://www.toptal.com/developers/gitignore/api/python,jetbrains+all,visualstudiocode,direnv
