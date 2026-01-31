@@ -583,50 +583,6 @@ class MultiTrackLargeVocabularyNotelikeTokeniser:
 
         return hierarchy_assignments
 
-    def get_hierarchy_transitions_tensor(
-            self,
-            tokens: List[str],
-            intervals_ticks: List[int],
-            seq_len: int = None,
-            padding_value: int = -1,
-            device=None
-    ):
-        """Compute hierarchy transitions and return as tensor.
-
-        Same as get_hierarchy_transitions() but returns a torch.Tensor
-        of shape (num_levels, seq_len) ready for batching.
-
-        Args:
-            tokens: List of string tokens (output from tokenise())
-            intervals_ticks: Tick intervals per level, ordered finest to coarsest
-            seq_len: Target sequence length for padding
-            padding_value: Value for padding positions (default: -1)
-            device: Target device for tensor (e.g., torch.device('cuda'))
-
-        Returns:
-            torch.Tensor of shape (num_levels, seq_len) with dtype torch.long
-
-        Example:
-            >>> # For HierarTune batch processing:
-            >>> import torch
-            >>> batch_assignments = torch.stack([
-            ...     tokeniser.get_hierarchy_transitions_tensor(toks, intervals, max_len)
-            ...     for toks in batch_tokens
-            ... ])  # Shape: (batch_size, num_levels, seq_len)
-
-        """
-        import torch
-
-        assignments = self.get_hierarchy_transitions(
-            tokens, intervals_ticks, seq_len, padding_value
-        )
-
-        tensor = torch.tensor(assignments, dtype=torch.long)
-        if device is not None:
-            tensor = tensor.to(device)
-
-        return tensor
-
     @staticmethod
     def _split_token(token: str):
         parts = token.split("-")

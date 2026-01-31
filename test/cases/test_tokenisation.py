@@ -282,39 +282,6 @@ def test_get_hierarchy_transitions_custom_padding_value():
         assert assignments[0][pos] == padding_value
 
 
-def test_get_hierarchy_transitions_tensor():
-    """Test the tensor-returning variant."""
-    import torch
-
-    tokeniser = MultiTrackLargeVocabularyNotelikeTokeniser(
-        ppqn=24,
-        num_tracks=1,
-        flag_fuse_track=True
-    )
-
-    tokens = [
-        "sta",
-        "trk_00-pit_060-val_24-vel_127",
-        "rst_24",
-        "rst_24",
-        "bar",
-    ]
-
-    intervals = [24, 96, 384]
-    tensor = tokeniser.get_hierarchy_transitions_tensor(tokens, intervals)
-
-    # Verify tensor properties
-    assert isinstance(tensor, torch.Tensor)
-    assert tensor.dtype == torch.long
-    assert tensor.shape == (3, len(tokens))  # (num_levels, seq_len)
-
-    # Verify values match list version
-    list_assignments = tokeniser.get_hierarchy_transitions(tokens, intervals)
-    for level in range(3):
-        for pos in range(len(tokens)):
-            assert tensor[level, pos].item() == list_assignments[level][pos]
-
-
 def test_get_hierarchy_transitions_three_levels():
     """Test with three hierarchy levels (beats, bars, phrases)."""
     tokeniser = MultiTrackLargeVocabularyNotelikeTokeniser(
