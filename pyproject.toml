@@ -1,35 +1,21 @@
 [project]
 name = "scoda"
-version = "2.4.5"
+version = "2.5"
 authors = [{ name = "Felix Schön", email = "schoen@kr.tuwien.ac.at" }]
 description = "A MIDI and music data manipulation library"
 readme = "README.md"
 requires-python = ">=3.11"
 keywords = ["midi", "music"]
 license = { file = "LICENSE.md" }
-dependencies = [
-    "mido",
-    "numpy",
-    "matplotlib",
-]
+dependencies = ["mido", "numpy", "matplotlib"]
 
 [project.urls]
 "Homepage" = "https://github.com/FelixSchoen/S-Coda"
 "Bugtracker" = "https://github.com/FelixSchoen/S-Coda/issues"
 
 [project.optional-dependencies]
-test = [
-    "pytest",
-    "pytest-xdist",
-    "pytest-cov",
-    "coverage",
-    "build",
-]
-deploy = [
-    "build",
-    "twine",
-    "pdoc3"
-]
+test = ["pytest", "pytest-xdist", "pytest-cov", "coverage", "build"]
+deploy = ["build", "twine", "pdoc3"]
 
 [build-system]
 requires = ["setuptools", "wheel"]
