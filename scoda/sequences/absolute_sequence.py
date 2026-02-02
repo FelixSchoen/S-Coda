@@ -566,6 +566,8 @@ class AbsoluteSequence(AbstractSequence):
         return timings
 
     def get_sequence_channel(self) -> int | None:
+        if not self._messages:
+            return None
         if not self.is_channel_consistent():
             raise SequenceException("Sequence has inconsistent channels.")
 
@@ -577,6 +579,8 @@ class AbsoluteSequence(AbstractSequence):
         Returns: The duration of this sequence.
 
         """
+        if not self._messages:
+            return 0
         return self._messages[-1].time
 
     def is_channel_consistent(self) -> bool:

@@ -5,7 +5,8 @@
     nixpkgs.url = "github:nixos/nixpkgs/nixos-25.11";
   };
 
-  outputs = { self, nixpkgs, ... }:
+  outputs =
+    { self, nixpkgs, ... }:
     let
       system = "x86_64-linux";
       pkgs = import nixpkgs {
@@ -16,8 +17,10 @@
         };
       };
 
-      # NVIDIA driver package (for standalone reproducibility)
-      nvidiaPackage = pkgs.linuxPackages.nvidiaPackages.stable;
+      # On NixOS, the NVIDIA driver is managed by the system configuration.
+      # We use /run/opengl-driver which is symlinked by NixOS to the correct driver.
+      # This avoids driver version mismatches between the flake and system.
+      nixosDriverPath = "/run/opengl-driver";
 
       # CUDA toolkit
       cudaToolkit = pkgs.cudaPackages.cudatoolkit;
@@ -60,51 +63,68 @@
       ];
 
       # Configurable Python shell builder
-      makePythonShell = {
-        python ? pkgs.python313,
-        withGpu ? false,
-      }:
+      makePythonShell =
+        {
+          python ? pkgs.python313,
+          withGpu ? false,
+        }:
         let
-          pythonEnv = python.withPackages (ps: with ps; [
-            pip
-            virtualenv
-          ]);
-
-          # Build package list based on options
-          gpuPackages = if withGpu then [
-            cudaToolkit
-            nvidiaPackage
-            pkgs.cudaPackages.cudnn
-          ] ++ gpuLibs else [];
-
-          # Build library path
-          libPath = pkgs.lib.makeLibraryPath (
-            baseLibs
-            ++ (if withGpu then gpuLibs ++ [ nvidiaPackage ] else [])
+          pythonEnv = python.withPackages (
+            ps: with ps; [
+              pip
+              virtualenv
+            ]
           );
 
+          # Build package list based on options
+          # Note: We do NOT include a driver package - we use the system driver
+          gpuPackages =
+            if withGpu then
+              [
+                cudaToolkit
+                pkgs.cudaPackages.cudnn
+              ]
+              ++ gpuLibs
+            else
+              [ ];
+
+          # Build library path - include NixOS driver path for GPU
+          libPath = pkgs.lib.makeLibraryPath (baseLibs ++ (if withGpu then gpuLibs else [ ]));
+
           # Shell hook for GPU/CUDA configuration
-          gpuShellHook = if withGpu then ''
-            # CUDA configuration
-            export CUDA_PATH="${cudaToolkit}"
-            export CUDA_HOME="${cudaToolkit}"
-            export LD_LIBRARY_PATH="${nvidiaPackage}/lib''${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
-            
-            # Triton-specific fixes for NixOS
-            export TRITON_LIBCUDA_PATH="${nvidiaPackage}/lib"
-            export TRITON_PTXAS_PATH="${cudaToolkit}/bin/ptxas"
-            export TRITON_CUOBJDUMP_PATH="${cudaToolkit}/bin/cuobjdump"
-            export TRITON_NVDISASM_PATH="${cudaToolkit}/bin/nvdisasm"
-            
-            echo "   ✓ CUDA toolkit: ${cudaToolkit}"
-            echo "   ✓ cuDNN enabled"
-            echo "   ✓ Triton paths configured"
-            echo "   ✓ Graphics/X11 libraries loaded"
-          '' else "";
+          gpuShellHook =
+            if withGpu then
+              ''
+                # CUDA configuration
+                export CUDA_PATH="${cudaToolkit}"
+                export CUDA_HOME="${cudaToolkit}"
+                export CUDA_DEVICE_ORDER="PCI_BUS_ID"
+                export CUDA_LAUNCH_BLOCKING=0
+
+                # Use NixOS system driver via /run/opengl-driver
+                # This is the correct way to access GPU drivers on NixOS
+                export LD_LIBRARY_PATH="${nixosDriverPath}/lib:${cudaToolkit}/lib:${cudaToolkit}/lib64:${pkgs.cudaPackages.cudnn}/lib''${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
+
+                # Triton-specific configuration for NixOS
+                # Point to system driver for libcuda.so
+                export TRITON_LIBCUDA_PATH="${nixosDriverPath}/lib"
+                export TRITON_PTXAS_PATH="${cudaToolkit}/bin/ptxas"
+                export TRITON_CUOBJDUMP_PATH="${cudaToolkit}/bin/cuobjdump"
+                export TRITON_NVDISASM_PATH="${cudaToolkit}/bin/nvdisasm"
+
+                # Triton cache and compatibility
+                export TRITON_CACHE_DIR="/tmp/triton-cache-$UID"
+                mkdir -p $TRITON_CACHE_DIR
+                export TRITON_IGNORE_UNKNOWN_PARAMETERS=1
+                export TRITON_PRINT_AUTOTUNING=0  # Set to 1 for debugging
+              ''
+            else
+              "";
 
           gpuStatus = if withGpu then "✓ GPU stack enabled (CUDA + cuDNN + Graphics)" else "✗ GPU disabled";
 
-        in pkgs.mkShell {
+        in
+        pkgs.mkShell {
           name = "python-dev";
 
           packages = [
@@ -126,13 +146,13 @@
           shellHook = ''
             # Library paths
             export LD_LIBRARY_PATH="${libPath}''${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
-            
+
             # Compiler configuration
             export CC="${pkgs.gcc}/bin/gcc"
             export CXX="${pkgs.gcc}/bin/g++"
-            
+
             ${gpuShellHook}
-            
+
             # Auto-activate venv if it exists
             if [ -d ".venv" ]; then
               source .venv/bin/activate
@@ -159,7 +179,7 @@
     {
       devShells.${system} = {
         # Default: basic Python, no GPU
-        default = makePythonShell {};
+        default = makePythonShell { };
 
         # GPU: full stack (CUDA + cuDNN + Graphics)
         gpu = makePythonShell { withGpu = true; };
@@ -170,9 +190,18 @@
         py314 = makePythonShell { python = pkgs.python314; };
 
         # Python version variants - GPU
-        gpu-py312 = makePythonShell { python = pkgs.python312; withGpu = true; };
-        gpu-py313 = makePythonShell { python = pkgs.python313; withGpu = true; };
-        gpu-py314 = makePythonShell { python = pkgs.python314; withGpu = true; };
+        gpu-py312 = makePythonShell {
+          python = pkgs.python312;
+          withGpu = true;
+        };
+        gpu-py313 = makePythonShell {
+          python = pkgs.python313;
+          withGpu = true;
+        };
+        gpu-py314 = makePythonShell {
+          python = pkgs.python314;
+          withGpu = true;
+        };
       };
     };
 }

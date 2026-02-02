@@ -66,8 +66,8 @@ def load_from_file(path_settings: Path = None):
     if path_settings is None:
         path_settings = Path(__file__).parent.parent.joinpath("config/default_settings.json")
 
-    settings_file = open(path_settings)
-    settings = json.load(settings_file)
+    with open(path_settings) as settings_file:
+        settings = json.load(settings_file)
 
     global PPQN
     global VELOCITY_MAX

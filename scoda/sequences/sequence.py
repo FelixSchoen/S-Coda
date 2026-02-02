@@ -264,7 +264,7 @@ class Sequence:
         if not isinstance(other, Sequence):
             raise SequenceException("Can only compute similarity to another Sequence.")
 
-        return self.abs.similarity(other.abs, flag_consider_velocity)
+        return self.abs.similarity(other.abs, flag_consider_channel, flag_consider_program, flag_consider_velocity)
 
     def split(self, capacities: list[int]) -> list[Sequence]:
         """See `scoda.sequence.relative_sequence.RelativeSequence.split`."""

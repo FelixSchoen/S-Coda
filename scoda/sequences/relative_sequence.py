@@ -156,8 +156,8 @@ class RelativeSequence(AbstractSequence):
 
         # Remove unclosed notes
         for channel in open_messages.keys():
-            for key in open_messages.keys():
-                note_list = open_messages[channel].get(key, [])
+            for note_key in open_messages[channel].keys():
+                note_list = open_messages[channel].get(note_key, [])
                 for msg in note_list:
                     if msg in messages_normalized:
                         messages_normalized.remove(msg)

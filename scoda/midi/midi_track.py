@@ -53,7 +53,14 @@ class MidiTrack:
                 time_buffer = 0
             elif msg.message_type == MessageType.CONTROL_CHANGE:
                 track.append(
-                    mido.Message("control_change", channel=0, control=msg.control, value=msg.velocity,
+                    mido.Message("control_change", channel=msg.channel if msg.channel is not None else 0,
+                                 control=msg.control, value=msg.velocity,
+                                 time=int(time_buffer)))
+                time_buffer = 0
+            elif msg.message_type == MessageType.PROGRAM_CHANGE:
+                track.append(
+                    mido.Message("program_change", channel=msg.channel if msg.channel is not None else 0,
+                                 program=msg.program,
                                  time=int(time_buffer)))
                 time_buffer = 0
 
