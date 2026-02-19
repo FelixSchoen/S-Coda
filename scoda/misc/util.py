@@ -26,7 +26,7 @@ def bin_velocity(velocity: int, bins: list[int] = None) -> int:
     if bins is None:
         bins = get_velocity_bins()
 
-    return np.digitize(velocity, bins, right=True).item(-1)
+    return np.digitize(velocity, bins, right=True).item()
 
 
 def get_velocity_bins(velocity_max=None, velocity_bins=None):
@@ -126,7 +126,7 @@ def get_default_note_values():
     return possible_durations
 
 
-def get_note_durations(upper_bound_multiplier: int, lower_bound_divisor: int, base_value: int = PPQN) -> [int]:
+def get_note_durations(upper_bound_multiplier: int, lower_bound_divisor: int, base_value: int = PPQN) -> list[int]:
     """Generates an array of valid note durations in ticks with regard to the PPQN.
 
     Automatically generates the duration of notes in ticks using the given parameters, by multiplying or dividing the
@@ -158,7 +158,7 @@ def get_note_durations(upper_bound_multiplier: int, lower_bound_divisor: int, ba
     return durations
 
 
-def get_tuplet_durations(note_durations, ratio_numerator, ratio_denominator) -> [int]:
+def get_tuplet_durations(note_durations, ratio_numerator, ratio_denominator) -> list[int]:
     """Generates tuplet durations from a ratio and given note durations.
 
     Generates tuplet values for each duration in the given array, by dividing by the denominator and multiplying with
@@ -180,7 +180,7 @@ def get_tuplet_durations(note_durations, ratio_numerator, ratio_denominator) -> 
     return tuplet_durations
 
 
-def get_dotted_note_durations(note_durations, dotted_iterations) -> [int]:
+def get_dotted_note_durations(note_durations, dotted_iterations) -> list[int]:
     """Generates dotted note durations from an initial array of note durations.
 
     For each duration in the given array, creates up to the specified amount of iterations dotted values. E.g.,

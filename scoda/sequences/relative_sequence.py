@@ -232,13 +232,13 @@ class RelativeSequence(AbstractSequence):
                 if msg.message_type == MessageType.NOTE_ON:
                     if remaining_capacity > 0:
                         current_sequence.add_message(msg)
-                        open_messages[msg.note] = msg
+                        open_messages[(msg.channel, msg.note)] = msg
                     else:
                         next_sequence_queue.append(msg)
                 # For stop messages, add them to the current sequence
                 elif msg.message_type == MessageType.NOTE_OFF:
                     current_sequence.add_message(msg)
-                    open_messages.pop(msg.note, None)
+                    open_messages.pop((msg.channel, msg.note), None)
                 elif msg.message_type == MessageType.WAIT:
                     # Can add message in entirety
                     if msg.time <= remaining_capacity:

@@ -43,6 +43,8 @@ class Key(enum.Enum):
             index = (index + transpose_by) % 12
             return MusicMapping.key_transpose_order[index]
 
+        return key
+
 
 class CircleOfFifths:
     """Represents knowledge about the circle of fifths, note that some pitches are doubly assigned which can lead to

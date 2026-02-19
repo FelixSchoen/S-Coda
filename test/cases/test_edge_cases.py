@@ -857,6 +857,7 @@ class TestReadOnlyMessages:
 
     def test_get_message_pairings_returns_read_only(self):
         """Test that get_message_pairings returns read-only messages via Sequence wrapper."""
+        from scoda.elements.message import ReadOnlyMessage
         sequence = util_midi_to_sequences()[0]
         pairings = sequence.get_message_pairings()
 
@@ -864,7 +865,7 @@ class TestReadOnlyMessages:
             for pair in pairs:
                 for msg in pair:
                     # These should be ReadOnlyMessage instances
-                    assert hasattr(msg, 'initialised')
+                    assert isinstance(msg, ReadOnlyMessage)
 
 
 class TestScaleOperations:
@@ -1446,5 +1447,418 @@ class TestMusicMappings:
         from scoda.misc.music_theory import MusicMapping
 
         assert len(MusicMapping.key_transpose_order) == 12
+
+
+class TestBugfixValidation:
+    """Tests that specifically validate the bugfixes applied during code review.
+
+    Each test targets a specific fix to prevent regressions.
+    """
+
+    def test_message_equivalent_different_attributes(self):
+        """Test that equivalent() returns False when messages have different attribute sets.
+
+        Validates the fix that checks `self.__dict__.keys() != other.__dict__.keys()` before
+        comparing values, preventing zip from silently truncating mismatched dictionaries.
+        """
+        msg1 = Message(message_type=MessageType.NOTE_ON, channel=0, note=60, velocity=100, time=0)
+        msg2 = Message(message_type=MessageType.NOTE_ON, channel=0, note=60, velocity=100, time=0)
+
+        # Identical messages should be equivalent
+        assert msg1.equivalent(msg2)
+
+        # Add an extra attribute to msg2
+        msg2.extra_field = 42
+
+        # Now they should NOT be equivalent (different attribute sets)
+        assert not msg1.equivalent(msg2), (
+            "Messages with different attribute sets should not be equivalent"
+        )
+
+        # Reverse direction should also be False
+        assert not msg2.equivalent(msg1), (
+            "Equivalence check should be symmetric for different attribute sets"
+        )
+
+    def test_read_only_message_copy_is_mutable(self):
+        """Test that copying a ReadOnlyMessage produces a writable Message.
+
+        Important for downstream consumers that need to modify copies of read-only pairings.
+        """
+        from scoda.elements.message import ReadOnlyMessage
+
+        msg = Message(message_type=MessageType.NOTE_ON, channel=0, note=60, velocity=100, time=0)
+        ro_msg = ReadOnlyMessage(msg)
+
+        # Read-only message should prevent writes
+        with pytest.raises(AttributeError):
+            ro_msg.note = 72
+
+        # Copy should be a regular mutable Message
+        copied = ro_msg.copy()
+        assert copied.note == 60
+
+        # Should be able to modify the copy without error
+        copied.note = 72
+        assert copied.note == 72
+
+        # Original read-only message should be unaffected
+        assert ro_msg.note == 60
+
+    def test_split_multi_channel_same_note(self):
+        """Test that split() tracks open notes per (channel, note), not just note.
+
+        Validates the fix that changed the open_messages key from `msg.note` to `(msg.channel, msg.note)`.
+        Without this fix, a NOTE_OFF on channel 1 for note 60 would incorrectly close the tracking
+        for note 60 on channel 0.
+        """
+        sequence = Sequence()
+
+        # Channel 0: note 60 spanning the entire duration
+        sequence.add_relative_message(Message(message_type=MessageType.NOTE_ON, channel=0, note=60, velocity=100))
+        # Channel 1: note 60 (same pitch, different channel) for a shorter duration
+        sequence.add_relative_message(Message(message_type=MessageType.NOTE_ON, channel=1, note=60, velocity=80))
+        sequence.add_relative_message(Message(message_type=MessageType.WAIT, channel=0, time=24))
+        # Close channel 1's note 60 — should NOT affect channel 0's note 60
+        sequence.add_relative_message(Message(message_type=MessageType.NOTE_OFF, channel=1, note=60))
+        sequence.add_relative_message(Message(message_type=MessageType.WAIT, channel=0, time=24))
+        # Close channel 0's note 60
+        sequence.add_relative_message(Message(message_type=MessageType.NOTE_OFF, channel=0, note=60))
+        sequence.add_relative_message(Message(message_type=MessageType.WAIT, channel=0, time=48))
+
+        # Split at tick 36 (between the two NOTE_OFFs)
+        splits = sequence.split([36])
+
+        assert len(splits) == 2, "Should produce exactly two split sequences"
+
+        # In the first split, channel 0's note should be split (still open at boundary)
+        # and channel 1's note should be fully contained (closed at tick 24)
+        first_note_ons = [m for m in splits[0].messages_rel() if m.message_type == MessageType.NOTE_ON]
+        first_note_offs = [m for m in splits[0].messages_rel() if m.message_type == MessageType.NOTE_OFF]
+
+        # Both channels should have their notes properly tracked
+        first_channels_on = {m.channel for m in first_note_ons}
+        assert 0 in first_channels_on, "Channel 0 note should be in first split"
+        assert 1 in first_channels_on, "Channel 1 note should be in first split"
+
+        # Channel 0's note should be closed at the split boundary (split generates a NOTE_OFF)
+        first_ch0_offs = [m for m in first_note_offs if m.channel == 0]
+        assert len(first_ch0_offs) >= 1, "Channel 0 note should be closed at split boundary"
+
+    def test_key_transpose_by_octave_is_identity(self):
+        """Test that transposing a key by a multiple of 12 semitones returns the same key.
+
+        Validates the fix that added `return key` for `transpose_by % 12 == 0`.
+        Without this fix, the method would crash on keys not in `key_transpose_mapping`
+        or `key_transpose_order`.
+        """
+        from scoda.misc.music_theory import Key
+
+        # Test all keys with transpose_by=0
+        for key in Key:
+            assert Key.transpose_key(key, 0) == key, f"Transposing {key} by 0 should return itself"
+
+        # Test all keys with transpose_by=12 (one octave)
+        for key in Key:
+            assert Key.transpose_key(key, 12) == key, f"Transposing {key} by 12 should return itself"
+
+        # Test with transpose_by=24 (two octaves)
+        for key in Key:
+            assert Key.transpose_key(key, 24) == key, f"Transposing {key} by 24 should return itself"
+
+        # Test with negative octave
+        for key in Key:
+            assert Key.transpose_key(key, -12) == key, f"Transposing {key} by -12 should return itself"
+
+    def test_to_mido_track_preserves_channel(self):
+        """Test that converting to a mido track preserves the channel on note messages.
+
+        Validates the fix that added `channel=msg.channel if msg.channel is not None else 0`
+        to note_on and note_off messages in MidiTrack.to_mido_track().
+        """
+        import mido
+
+        sequence = Sequence()
+
+        # Add notes on channel 5
+        sequence.add_relative_message(
+            Message(message_type=MessageType.NOTE_ON, channel=5, note=60, velocity=100))
+        sequence.add_relative_message(Message(message_type=MessageType.WAIT, channel=5, time=24))
+        sequence.add_relative_message(
+            Message(message_type=MessageType.NOTE_OFF, channel=5, note=60))
+
+        midi_track = sequence.to_midi_track()
+        mido_track = midi_track.to_mido_track()
+
+        # Find note_on and note_off in the mido track
+        note_messages = [msg for msg in mido_track if isinstance(msg, mido.Message)
+                        and msg.type in ("note_on", "note_off")]
+
+        assert len(note_messages) >= 2, "Should have at least note_on and note_off"
+
+        for msg in note_messages:
+            assert msg.channel == 5, f"Channel should be 5, got {msg.channel}"
+
+    def test_get_info_updates_prv_pitch(self):
+        """Test that get_info() correctly updates prv_pitch when encountering PITCH tokens.
+
+        Validates the fix that added `prv_pitch = note_pitch` in the PITCH branch of get_info().
+        Without this fix, pitch info would always return the initial value (69) for imputed positions.
+        """
+        from scoda.tokenisation.notelike_tokenisation import MultiTrackLargeVocabularyNotelikeTokeniser
+
+        tokeniser = MultiTrackLargeVocabularyNotelikeTokeniser(
+            ppqn=24, num_tracks=1, flag_fuse_track=True
+        )
+
+        tokens = [
+            "trk_00-pit_048-val_24-vel_127",  # Note at pitch 48
+            "rst_24",                           # Rest
+            "trk_00-pit_072-val_24-vel_127",  # Note at pitch 72
+            "rst_24",                           # Rest — imputed pitch should be 72, not 69
+        ]
+
+        info = tokeniser.get_info(tokens, flag_impute_values=True)
+
+        # After the first note (pitch 48), imputed values should reflect 48
+        assert info["info_pitch"][1] == 48, (
+            f"After pitch 48 note, imputed pitch should be 48, got {info['info_pitch'][1]}"
+        )
+
+        # After the second note (pitch 72), imputed values should reflect 72
+        assert info["info_pitch"][3] == 72, (
+            f"After pitch 72 note, imputed pitch should be 72, got {info['info_pitch'][3]}"
+        )
+
+    def test_sequence_init_staleness_all_branches(self):
+        """Test that Sequence.__init__ sets staleness correctly for all 4 constructor branches.
+
+        Branch 1: Both None — abs fresh, rel stale
+        Branch 2: Only absolute — abs fresh, rel stale
+        Branch 3: Only relative — abs stale, rel fresh
+        Branch 4: Both provided — both fresh
+        """
+        from scoda.sequences.absolute_sequence import AbsoluteSequence
+        from scoda.sequences.relative_sequence import RelativeSequence
+
+        # Branch 1: No arguments
+        seq1 = Sequence()
+        assert not seq1._abs_stale, "Branch 1: abs should be fresh"
+        assert seq1._rel_stale, "Branch 1: rel should be stale"
+
+        # Branch 2: Only absolute
+        abs_seq = AbsoluteSequence()
+        seq2 = Sequence(absolute_sequence=abs_seq)
+        assert not seq2._abs_stale, "Branch 2: abs should be fresh"
+        assert seq2._rel_stale, "Branch 2: rel should be stale"
+
+        # Branch 3: Only relative
+        rel_seq = RelativeSequence()
+        seq3 = Sequence(relative_sequence=rel_seq)
+        assert seq3._abs_stale, "Branch 3: abs should be stale"
+        assert not seq3._rel_stale, "Branch 3: rel should be fresh"
+
+        # Branch 4: Both provided
+        abs_seq2 = AbsoluteSequence()
+        rel_seq2 = RelativeSequence()
+        seq4 = Sequence(absolute_sequence=abs_seq2, relative_sequence=rel_seq2)
+        assert not seq4._abs_stale, "Branch 4: abs should be fresh"
+        assert not seq4._rel_stale, "Branch 4: rel should be fresh"
+
+    def test_overwrite_messages_staleness(self):
+        """Test that overwrite_*_messages correctly invalidates the other representation.
+
+        Validates the fix in overwrite_absolute_messages (should invalidate rel)
+        and overwrite_relative_messages (should invalidate abs).
+        """
+        sequence = util_midi_to_sequences()[0]
+
+        # Ensure both representations are fresh
+        _ = sequence.abs
+        _ = sequence.rel
+        assert not sequence._abs_stale
+        assert not sequence._rel_stale
+
+        # Overwrite absolute — should invalidate relative
+        sequence.overwrite_absolute_messages([
+            Message(message_type=MessageType.NOTE_ON, channel=0, note=60, velocity=100, time=0),
+            Message(message_type=MessageType.NOTE_OFF, channel=0, note=60, time=24),
+        ])
+        assert not sequence._abs_stale, "After overwrite_absolute, abs should be fresh"
+        assert sequence._rel_stale, "After overwrite_absolute, rel should be stale"
+
+        # Access rel to regenerate it
+        _ = sequence.rel
+        assert not sequence._rel_stale
+
+        # Overwrite relative — should invalidate absolute
+        sequence.overwrite_relative_messages([
+            Message(message_type=MessageType.NOTE_ON, channel=0, note=72, velocity=100),
+            Message(message_type=MessageType.WAIT, time=48),
+            Message(message_type=MessageType.NOTE_OFF, channel=0, note=72),
+        ])
+        assert sequence._abs_stale, "After overwrite_relative, abs should be stale"
+        assert not sequence._rel_stale, "After overwrite_relative, rel should be fresh"
+
+        # Access abs to regenerate and verify content
+        note_on_msgs = [m for m in sequence.abs._messages if m.message_type == MessageType.NOTE_ON]
+        assert len(note_on_msgs) == 1
+        assert note_on_msgs[0].note == 72
+
+    def test_midi_roundtrip_preserves_note_count(self, tmp_path):
+        """Test that saving and reloading a MIDI file preserves the number of notes.
+
+        Goes beyond the existing test which only checks `len(reloaded) >= 1`.
+        """
+        sequence = util_midi_to_sequences()[0]
+        sequence.quantise_and_normalise()
+
+        # Count original notes
+        original_pairings = sequence.get_message_pairings()
+        original_note_count = sum(len(pairs) for pairs in original_pairings.values())
+
+        # Save and reload
+        file_path = tmp_path / "test_note_count_roundtrip.mid"
+        sequence.save(str(file_path))
+        reloaded_sequences = Sequence.sequences_load(file_path=str(file_path))
+
+        assert len(reloaded_sequences) >= 1
+
+        # The reloaded sequence should have the same number of notes
+        reloaded = reloaded_sequences[0]
+        reloaded.quantise_and_normalise()
+        reloaded_pairings = reloaded.get_message_pairings()
+        reloaded_note_count = sum(len(pairs) for pairs in reloaded_pairings.values())
+
+        assert reloaded_note_count == original_note_count, (
+            f"Note count mismatch: original={original_note_count}, reloaded={reloaded_note_count}"
+        )
+
+    def test_normalise_relative_multi_channel_same_note(self):
+        """Test that normalise_relative correctly handles the same note on different channels.
+
+        Verifies the channel-keyed open_messages dict in normalise_relative works correctly
+        when two channels play the same pitch simultaneously.
+        """
+        sequence = Sequence()
+
+        # Channel 0: note 60
+        sequence.add_relative_message(Message(message_type=MessageType.NOTE_ON, channel=0, note=60, velocity=100))
+        # Channel 1: note 60 (same pitch!)
+        sequence.add_relative_message(Message(message_type=MessageType.NOTE_ON, channel=1, note=60, velocity=80))
+        sequence.add_relative_message(Message(message_type=MessageType.WAIT, channel=0, time=24))
+        sequence.add_relative_message(Message(message_type=MessageType.NOTE_OFF, channel=0, note=60))
+        sequence.add_relative_message(Message(message_type=MessageType.NOTE_OFF, channel=1, note=60))
+        sequence.add_relative_message(Message(message_type=MessageType.WAIT, channel=0, time=24))
+
+        sequence.normalise()
+
+        # Both notes should survive normalisation
+        note_ons = [m for m in sequence.messages_rel() if m.message_type == MessageType.NOTE_ON]
+        note_offs = [m for m in sequence.messages_rel() if m.message_type == MessageType.NOTE_OFF]
+
+        assert len(note_ons) == 2, f"Both channel notes should survive, got {len(note_ons)}"
+        assert len(note_offs) == 2, f"Both channel note-offs should survive, got {len(note_offs)}"
+
+        channels_on = {m.channel for m in note_ons}
+        assert channels_on == {0, 1}, "Both channels should be present"
+
+    def test_empty_sequence_message_pairings(self):
+        """Test that get_message_pairings and get_interleaved_message_pairings work on empty sequences."""
+        sequence = Sequence()
+
+        pairings = sequence.get_message_pairings()
+        assert pairings == {}, "Empty sequence should return empty pairings dict"
+
+        interleaved = sequence.get_interleaved_message_pairings()
+        assert interleaved == [], "Empty sequence should return empty interleaved list"
+
+    def test_split_bars_with_time_signature_changes(self):
+        """Test that sequences_split_bars correctly handles mid-sequence time signature changes.
+
+        Creates a sequence with a 4/4 bar followed by a 3/4 bar and verifies the split
+        produces bars of the correct durations.
+        """
+        sequence = Sequence()
+
+        # 4/4 time signature
+        sequence.add_relative_message(
+            Message(message_type=MessageType.TIME_SIGNATURE, channel=0, numerator=4, denominator=4))
+        # Notes filling one 4/4 bar
+        sequence.add_relative_message(Message(message_type=MessageType.NOTE_ON, channel=0, note=60, velocity=100))
+        sequence.add_relative_message(Message(message_type=MessageType.WAIT, channel=0, time=PPQN * 4))
+        sequence.add_relative_message(Message(message_type=MessageType.NOTE_OFF, channel=0, note=60))
+
+        # Change to 3/4
+        sequence.add_relative_message(
+            Message(message_type=MessageType.TIME_SIGNATURE, channel=0, numerator=3, denominator=4))
+        # Notes filling one 3/4 bar
+        sequence.add_relative_message(Message(message_type=MessageType.NOTE_ON, channel=0, note=62, velocity=100))
+        sequence.add_relative_message(Message(message_type=MessageType.WAIT, channel=0, time=PPQN * 3))
+        sequence.add_relative_message(Message(message_type=MessageType.NOTE_OFF, channel=0, note=62))
+
+        bars = Sequence.sequences_split_bars([sequence], meta_track_index=0)[0]
+
+        assert len(bars) == 2, f"Should produce 2 bars, got {len(bars)}"
+
+        # First bar should be 4/4
+        assert bars[0].time_signature_numerator == 4
+        assert bars[0].time_signature_denominator == 4
+        assert bars[0].sequence.get_sequence_duration() == PPQN * 4
+
+        # Second bar should be 3/4
+        assert bars[1].time_signature_numerator == 3
+        assert bars[1].time_signature_denominator == 4
+        assert bars[1].sequence.get_sequence_duration() == PPQN * 3
+
+    def test_tokeniser_relative_bar_position_roundtrip(self):
+        """Test tokenisation roundtrip with flag_absolute_bar_position=False.
+
+        Complements the parametrised test which previously only tested True due to a
+        [True, True] duplication bug.
+        """
+        from scoda.tokenisation.notelike_tokenisation import MultiTrackLargeVocabularyNotelikeTokeniser
+
+        tokeniser = MultiTrackLargeVocabularyNotelikeTokeniser(
+            ppqn=24, num_tracks=1,
+            flag_absolute_bar_position=False,
+            flag_fuse_track=True
+        )
+
+        # Create a simple sequence with known content
+        sequence = Sequence()
+        sequence.add_relative_message(
+            Message(message_type=MessageType.TIME_SIGNATURE, channel=0, numerator=4, denominator=4))
+
+        for note in [60, 62, 64, 65]:
+            sequence.add_relative_message(
+                Message(message_type=MessageType.NOTE_ON, channel=0, note=note, velocity=127))
+            sequence.add_relative_message(Message(message_type=MessageType.WAIT, channel=0, time=24))
+            sequence.add_relative_message(
+                Message(message_type=MessageType.NOTE_OFF, channel=0, note=note))
+
+        sequence.quantise_and_normalise()
+
+        # Tokenise
+        tokens = tokeniser.tokenise([sequence])
+        assert len(tokens) > 0, "Tokenisation should produce tokens"
+
+        # All tokens should be in the dictionary
+        for token in tokens:
+            assert token in tokeniser.dictionary, f"Token '{token}' not in dictionary"
+
+        # Encode-decode roundtrip
+        encoded = tokeniser.encode(tokens)
+        decoded = tokeniser.decode(encoded)
+        assert decoded == tokens, "Encode-decode should be lossless"
+
+        # Detokenise and compare
+        detokenised = tokeniser.detokenise(decoded)
+        assert len(detokenised) == 1
+
+        # Notes should be preserved
+        detokenised[0].quantise_and_normalise()
+        assert detokenised[0].equals(sequence, ignore_channel=True, ignore_velocity=True,
+                                      ignore_time_signature=True, ignore_key_signature=True)
 
 

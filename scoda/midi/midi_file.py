@@ -19,7 +19,7 @@ class MidiFile:
 
     def __init__(self) -> None:
         super().__init__()
-        self.tracks: [MidiTrack] = []
+        self.tracks: list[MidiTrack] = []
         self.PPQN = PPQN
 
     @staticmethod
@@ -34,7 +34,7 @@ class MidiFile:
         for mido_track in mido_midi_file.tracks:
             self.tracks.append(MidiTrack.parse_mido_track(mido_track))
 
-    def convert(self, track_indices: [[int]], meta_track_indices: [int], meta_track_index: int = 0) -> list[Sequence]:
+    def convert(self, track_indices: list[list[int]], meta_track_indices: list[int], meta_track_index: int = 0) -> list[Sequence]:
         """ Parses this `MidiFile` and returns a list of `scoda.Sequence`.
 
         Args:

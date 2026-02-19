@@ -4,7 +4,7 @@ from scoda.tokenisation.notelike_tokenisation import MultiTrackLargeVocabularyNo
 
 @pytest.mark.parametrize("path_resource, num_tracks",
                          list(zip(RESOURCES_MULTI_TRACK, RESOURCES_MULTI_TRACK_NUM_TRACKS)))
-@pytest.mark.parametrize("flag_absolute_bar_position", [True, True])
+@pytest.mark.parametrize("flag_absolute_bar_position", [False, True])
 @pytest.mark.parametrize("flag_fuse_track", [False, True])
 def test_roundtrip_multi_track_large_vocabulary_notelike_tokeniser(path_resource, num_tracks,
                                                                    flag_absolute_bar_position, flag_fuse_track, ):

@@ -10,7 +10,7 @@ class Track:
     """Class representing a track, which is made of (multiple) bars.
     """
 
-    def __init__(self, bars: [Bar], name: str = None) -> None:
+    def __init__(self, bars: list[Bar], name: str = None) -> None:
         super().__init__()
         self.name = name
         self.bars = bars

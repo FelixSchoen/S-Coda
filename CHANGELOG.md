@@ -4,6 +4,25 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres
 to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.7] - 2026-02-19
+
+### Added
+
+- Add regression tests for all prior bugfixes in `TestBugfixValidation`
+
+### Changed
+
+- Extend tokenisation roundtrip tests to cover `flag_absolute_bar_position=False`
+
+### Fixed
+
+- Fix `ReadOnlyMessage.copy()` raising `TypeError` due to incorrect constructor dispatch
+- Fix `Key.transpose_key()` returning `None` when transposing by a multiple of 12
+- Fix `split()` losing notes when two channels play the same pitch simultaneously
+- Fix `get_info()` not updating `prv_pitch` when encountering a `PITCH` token
+- Fix note messages in `MidiTrack.to_mido_track()` not writing the correct channel
+- Fix `Message.equivalent()` silently returning `True` for messages with different attribute sets
+
 ## [2.6] - 2026-02-02
 
 ### Added

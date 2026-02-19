@@ -50,8 +50,6 @@ class Bar:
                                                    numerator=self.time_signature_numerator,
                                                    denominator=self.time_signature_denominator), index=0)
 
-        self.sequence._abs_stale = True
-
     def copy(self) -> Bar:
         cpy = self.__class__(self.sequence.copy(),
                              self.time_signature_numerator, self.time_signature_denominator, self.key_signature)
@@ -69,7 +67,7 @@ class Bar:
         return self.sequence.transpose(transpose_by)
 
     @staticmethod
-    def to_sequence(bars: [Bar]) -> Sequence:
+    def to_sequence(bars: list[Bar]) -> Sequence:
         sequence = Sequence()
         sequences = []
 

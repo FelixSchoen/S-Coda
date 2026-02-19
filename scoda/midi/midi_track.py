@@ -11,7 +11,7 @@ class MidiTrack:
     def __init__(self) -> None:
         super().__init__()
         self.name = ""
-        self.messages: [MidiMessage] = []
+        self.messages: list[MidiMessage] = []
 
     @staticmethod
     def parse_mido_track(mido_track) -> MidiTrack:
@@ -36,11 +36,13 @@ class MidiTrack:
 
             if msg.message_type == MessageType.NOTE_ON:
                 track.append(
-                    mido.Message("note_on", note=msg.note, velocity=msg.velocity if msg.velocity is not None else 127,
+                    mido.Message("note_on", channel=msg.channel if msg.channel is not None else 0,
+                                 note=msg.note, velocity=msg.velocity if msg.velocity is not None else 127,
                                  time=int(time_buffer)))
                 time_buffer = 0
             elif msg.message_type == MessageType.NOTE_OFF:
-                track.append(mido.Message("note_off", note=msg.note, velocity=0, time=int(time_buffer)))
+                track.append(mido.Message("note_off", channel=msg.channel if msg.channel is not None else 0,
+                                          note=msg.note, velocity=0, time=int(time_buffer)))
                 time_buffer = 0
             elif msg.message_type == MessageType.WAIT:
                 pass

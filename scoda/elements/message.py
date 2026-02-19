@@ -40,6 +40,9 @@ class Message:
         if not isinstance(other, Message):
             return False
 
+        if self.__dict__.keys() != other.__dict__.keys():
+            return False
+
         for self_field, other_field in zip(list(self.__dict__.values()), list(other.__dict__.values())):
             if not self_field == other_field:
                 return False
@@ -128,15 +131,7 @@ class ReadOnlyMessage(Message):
 
     @property
     def initialised(self):
-        if hasattr(self, "_initialised"):
-            return self._initialised
-        else:
-            return False
-
-    def __getattr__(self, attribute):
-        if attribute in self.__dict__:
-            return getattr(self, attribute)
-        raise AttributeError(f"ReadOnlyMessage object has no attribute {attribute}")
+        return self.__dict__.get("_initialised", False)
 
     def __setattr__(self, attribute, value):
         if self.initialised:
@@ -146,6 +141,20 @@ class ReadOnlyMessage(Message):
 
     def __delattr__(self, attribute):
         raise AttributeError("This object is read-only")
+
+    def copy(self) -> Message:
+        return Message(
+            message_type=self.message_type,
+            channel=self.channel,
+            time=self.time,
+            note=self.note,
+            velocity=self.velocity,
+            control=self.control,
+            program=self.program,
+            numerator=self.numerator,
+            denominator=self.denominator,
+            key=self.key
+        )
 
     def __repr__(self):
         repr_super = super().__repr__()

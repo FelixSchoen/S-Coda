@@ -8,7 +8,7 @@ class Composition:
     """Class representing a composition that contains (multiple) tracks.
     """
 
-    def __init__(self, tracks: [Track]) -> None:
+    def __init__(self, tracks: list[Track]) -> None:
         super().__init__()
         self.tracks = tracks
 
@@ -17,8 +17,8 @@ class Composition:
         return cpy
 
     @staticmethod
-    def from_midi_file(file_path: str, track_indices: [[int]],
-                       meta_track_indices: [int], meta_track_index: int = 0) -> Composition:
+    def from_midi_file(file_path: str, track_indices: list[list[int]],
+                       meta_track_indices: list[int], meta_track_index: int = 0) -> Composition:
         """Creates a new composition from the given MIDI file.
 
         Args:

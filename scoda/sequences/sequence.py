@@ -50,13 +50,11 @@ class Sequence:
             self._rel = relative_sequence
             self.invalidate_abs()
             self._rel_stale = False
-        elif absolute_sequence is not None and relative_sequence is not None:
+        else:
             self._abs = absolute_sequence
             self._rel = relative_sequence
             self._abs_stale = False
             self._rel_stale = False
-        else:
-            raise SequenceException("Invalid sequence initialisation.")
 
     def copy(self) -> Sequence:
         cpy_abs = None
@@ -152,7 +150,7 @@ class Sequence:
         self.invalidate_abs()
 
     def cutoff(self, maximum_length, reduced_length) -> None:
-        """See `scoda.sequence.relative_sequence.AbsoluteSequence.cutoff`."""
+        """See `scoda.sequence.absolute_sequence.AbsoluteSequence.cutoff`."""
         self.abs.cutoff(maximum_length=maximum_length, reduced_length=reduced_length)
         self.invalidate_rel()
 
@@ -220,6 +218,7 @@ class Sequence:
         for msg in messages:
             abs.add_message(msg)
         self._abs = abs
+        self._abs_stale = False
         self.invalidate_rel()
 
     def overwrite_relative_messages(self, messages: list[Message]) -> None:
@@ -233,6 +232,7 @@ class Sequence:
         for msg in messages:
             rel.add_message(msg)
         self._rel = rel
+        self._rel_stale = False
         self.invalidate_abs()
 
     def pad(self, padding_length) -> None:
@@ -256,7 +256,7 @@ class Sequence:
         self.rel.set_channel(channel)
         self.invalidate_abs()
 
-    def similarity(self, other: AbsoluteSequence,
+    def similarity(self, other: Sequence,
                    flag_consider_channel: bool = True,
                    flag_consider_program: bool = False,
                    flag_consider_velocity: bool = False) -> float:
@@ -352,7 +352,7 @@ class Sequence:
 
         return read_only_interleaved_message_pairings
 
-    def get_message_times_of_type(self, message_types: [MessageType]) -> list[tuple[int, ReadOnlyMessage]]:
+    def get_message_times_of_type(self, message_types: list[MessageType]) -> list[tuple[int, ReadOnlyMessage]]:
         """See `scoda.sequence.absolute_sequence.AbsoluteSequence.get_message_timings_of_type`.
 
         Note:
@@ -548,7 +548,7 @@ class Sequence:
         return tracks_bars
 
     @staticmethod
-    def plot_pianorolls(sequences: [Sequence],
+    def plot_pianorolls(sequences: list[Sequence],
                         title: str = None,
                         x_label: str = None,
                         y_label: str = None,

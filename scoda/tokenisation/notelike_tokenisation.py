@@ -1,6 +1,5 @@
 import itertools
 import math
-from typing import Tuple, List
 
 from scoda.elements.message import Message
 from scoda.enumerations.message_type import MessageType
@@ -22,11 +21,11 @@ class MultiTrackLargeVocabularyNotelikeTokeniser:
     def __init__(self,
                  ppqn: int = None,
                  num_tracks: int = 1,
-                 pitch_range: Tuple[int, int] = (21, 108),
+                 pitch_range: tuple[int, int] = (21, 108),
                  step_sizes: list[int] = None,
                  note_values: list[int] = None,
                  velocity_bins: int = 1,
-                 time_signature_range: Tuple[int, int] = (2, 16),
+                 time_signature_range: tuple[int, int] = (2, 16),
                  bar_position_quarters_range: float = 4.0,
                  flag_absolute_bar_position: bool = False,
                  flag_running_values: bool = True,
@@ -112,7 +111,7 @@ class MultiTrackLargeVocabularyNotelikeTokeniser:
 
     def tokenise(self,
                  sequences_bar: list[Sequence],
-                 state_dict: dict = None) -> List[str]:
+                 state_dict: dict = None) -> list[str]:
         if state_dict is None:
             state_dict = dict()
 
@@ -142,7 +141,6 @@ class MultiTrackLargeVocabularyNotelikeTokeniser:
             nonlocal cur_time_bar
             nonlocal cur_bar_capacity_remaining
             buf_rest = rest
-            pass
 
             # While rest buffer not empty
             while buf_rest > 0:
@@ -296,7 +294,7 @@ class MultiTrackLargeVocabularyNotelikeTokeniser:
         return tokens
 
     def detokenise(self,
-                   tokens: List[str]) -> List[Sequence]:
+                   tokens: list[str]) -> list[Sequence]:
         # Setup Values
         sequences = [Sequence() for _ in range(self.num_tracks)]
         cur_time = 0
@@ -398,15 +396,15 @@ class MultiTrackLargeVocabularyNotelikeTokeniser:
         return sequences
 
     def encode(self,
-               tokens: List[str]) -> List[int]:
+               tokens: list[str]) -> list[int]:
         return [self.dictionary[token] for token in tokens]
 
     def decode(self,
-               tokens: List[int]) -> List[str]:
+               tokens: list[int]) -> list[str]:
         return [self.inverse_dictionary[token] for token in tokens]
 
     def get_info(self,
-                 tokens: List[str],
+                 tokens: list[str],
                  flag_impute_values: bool = False) -> dict[str, list[int]]:
         info_pos = []
         info_pos_bar = []
@@ -481,6 +479,7 @@ class MultiTrackLargeVocabularyNotelikeTokeniser:
                 pitch_part = next(part for part in token_parts if part[0] == TokenisationPrefixes.PITCH.value)
                 note_pitch = int(pitch_part[1])
 
+                prv_pitch = note_pitch
                 info_pitch.append(note_pitch)
                 info_cof.append(CircleOfFifths.get_position(note_pitch))
             elif main_part == TokenisationPrefixes.TIME_SIGNATURE.value:
@@ -517,11 +516,11 @@ class MultiTrackLargeVocabularyNotelikeTokeniser:
 
     def get_hierarchy_transitions(
             self,
-            tokens: List[str],
-            intervals_ticks: List[int],
+            tokens: list[str],
+            intervals_ticks: list[int],
             seq_len: int = None,
             padding_value: int = -1
-    ) -> List[List[int]]:
+    ) -> list[list[int]]:
         """Compute hierarchy segment assignments from tick-based intervals.
 
         Maps each token position to a segment ID at each hierarchy level based on
