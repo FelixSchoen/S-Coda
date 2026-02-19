@@ -37,30 +37,6 @@ REGEX_PATTERN: str
 """Regex used to find subpatterns"""
 REGEX_SUBPATTERN: str
 
-# Difficulty Parameters
-
-DIFF_DUAL_NOTE_AMOUNT_UPPER_BOUND: float
-DIFF_DUAL_NOTE_AMOUNT_LOWER_BOUND: float
-DIFF_DUAL_NOTE_CLASSES_UPPER_BOUND: float
-DIFF_DUAL_NOTE_CLASSES_LOWER_BOUND: float
-DIFF_DUAL_NOTE_CONCURRENT_UPPER_BOUND: float
-DIFF_DUAL_NOTE_CONCURRENT_LOWER_BOUND: float
-DIFF_DUAL_NOTE_VALUES_UPPER_BOUND: float
-DIFF_DUAL_NOTE_VALUES_LOWER_BOUND: float
-DIFF_DUAL_DISTANCES_UPPER_BOUND: float
-DIFF_DUAL_DISTANCES_LOWER_BOUND: float
-DIFF_DUAL_PATTERN_COVERAGE_UPPER_BOUND: float
-DIFF_DUAL_PATTERN_COVERAGE_LOWER_BOUND: float
-DIFF_DUAL_ACCIDENTALS_UPPER_BOUND: float
-DIFF_DUAL_ACCIDENTALS_LOWER_BOUND: float
-
-# Polynomials
-
-"""Coefficients for cubic curve"""
-SCALE_CUBIC: list[float]
-"""Coefficients for loglike curve"""
-SCALE_LOGLIKE: list[float]
-
 
 def load_from_file(path_settings: Path = None):
     if path_settings is None:
@@ -86,24 +62,6 @@ def load_from_file(path_settings: Path = None):
     global REGEX_PATTERN
     global REGEX_SUBPATTERN
 
-    global DIFF_DUAL_NOTE_AMOUNT_UPPER_BOUND
-    global DIFF_DUAL_NOTE_AMOUNT_LOWER_BOUND
-    global DIFF_DUAL_NOTE_CLASSES_UPPER_BOUND
-    global DIFF_DUAL_NOTE_CLASSES_LOWER_BOUND
-    global DIFF_DUAL_NOTE_CONCURRENT_UPPER_BOUND
-    global DIFF_DUAL_NOTE_CONCURRENT_LOWER_BOUND
-    global DIFF_DUAL_NOTE_VALUES_LOWER_BOUND
-    global DIFF_DUAL_NOTE_VALUES_UPPER_BOUND
-    global DIFF_DUAL_DISTANCES_UPPER_BOUND
-    global DIFF_DUAL_DISTANCES_LOWER_BOUND
-    global DIFF_DUAL_PATTERN_COVERAGE_UPPER_BOUND
-    global DIFF_DUAL_PATTERN_COVERAGE_LOWER_BOUND
-    global DIFF_DUAL_ACCIDENTALS_UPPER_BOUND
-    global DIFF_DUAL_ACCIDENTALS_LOWER_BOUND
-
-    global SCALE_CUBIC
-    global SCALE_LOGLIKE
-
     PPQN = settings["general_settings"]["ppqn"]
     VELOCITY_MAX = settings["general_settings"]["velocity_max"]
     VELOCITY_BINS = settings["general_settings"]["velocity_bins"]
@@ -124,39 +82,6 @@ def load_from_file(path_settings: Path = None):
     PATTERN_SECONDS_SEARCH_DURATION = settings["pattern_recognition"]["pattern_seconds_search_duration"]
     REGEX_PATTERN = settings["pattern_recognition"]["regex_pattern"]
     REGEX_SUBPATTERN = settings["pattern_recognition"]["regex_subpattern"]
-
-    DIFF_DUAL_NOTE_AMOUNT_UPPER_BOUND = settings["difficulty_parameters"]["dual_track_difficulty_parameters"][
-        "diff_dual_note_amount_upper_bound"]
-    DIFF_DUAL_NOTE_AMOUNT_LOWER_BOUND = settings["difficulty_parameters"]["dual_track_difficulty_parameters"][
-        "diff_dual_note_amount_lower_bound"]
-    DIFF_DUAL_NOTE_CLASSES_UPPER_BOUND = settings["difficulty_parameters"]["dual_track_difficulty_parameters"][
-        "diff_dual_note_classes_upper_bound"]  # 10 / 4
-    DIFF_DUAL_NOTE_CLASSES_LOWER_BOUND = settings["difficulty_parameters"]["dual_track_difficulty_parameters"][
-        "diff_dual_note_classes_lower_bound"]  # 4 / 4
-    DIFF_DUAL_NOTE_CONCURRENT_UPPER_BOUND = settings["difficulty_parameters"]["dual_track_difficulty_parameters"][
-        "diff_dual_note_concurrent_upper_bound"]
-    DIFF_DUAL_NOTE_CONCURRENT_LOWER_BOUND = settings["difficulty_parameters"]["dual_track_difficulty_parameters"][
-        "diff_dual_note_concurrent_lower_bound"]
-    DIFF_DUAL_NOTE_VALUES_UPPER_BOUND = PPQN / settings["difficulty_parameters"]["dual_track_difficulty_parameters"][
-        "diff_dual_note_values_upper_bound"]  # (PPQN / (2 ** 2))
-    DIFF_DUAL_NOTE_VALUES_LOWER_BOUND = PPQN / settings["difficulty_parameters"]["dual_track_difficulty_parameters"][
-        "diff_dual_note_values_lower_bound"]  # (PPQN / (2 ** 0) + (PPQN / (2 ** 0))) / 2
-    DIFF_DUAL_DISTANCES_UPPER_BOUND = settings["difficulty_parameters"]["dual_track_difficulty_parameters"][
-        "diff_dual_distances_upper_bound"]
-    DIFF_DUAL_DISTANCES_LOWER_BOUND = settings["difficulty_parameters"]["dual_track_difficulty_parameters"][
-        "diff_dual_distances_lower_bound"]
-    DIFF_DUAL_PATTERN_COVERAGE_UPPER_BOUND = settings["difficulty_parameters"]["dual_track_difficulty_parameters"][
-        "diff_dual_pattern_coverage_upper_bound"]
-    DIFF_DUAL_PATTERN_COVERAGE_LOWER_BOUND = settings["difficulty_parameters"]["dual_track_difficulty_parameters"][
-        "diff_dual_pattern_coverage_lower_bound"]
-    DIFF_DUAL_ACCIDENTALS_UPPER_BOUND = settings["difficulty_parameters"]["dual_track_difficulty_parameters"][
-        "diff_dual_accidentals_upper_bound"]
-    DIFF_DUAL_ACCIDENTALS_LOWER_BOUND = settings["difficulty_parameters"]["dual_track_difficulty_parameters"][
-        "diff_dual_accidentals_lower_bound"]
-
-    # Generated using http://arachnoid.com
-    SCALE_CUBIC = settings["difficulty_parameters"]["polynomials"]["scale_cubic"]
-    SCALE_LOGLIKE = settings["difficulty_parameters"]["polynomials"]["scale_loglike"]
 
 
 load_from_file()

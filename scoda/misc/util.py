@@ -205,33 +205,6 @@ def get_dotted_note_durations(note_durations, dotted_iterations) -> list[int]:
     return dotted_durations
 
 
-def minmax(minimum, maximum, value):
-    if value < minimum:
-        return minimum
-    if value > maximum:
-        return maximum
-    return value
-
-
-# From http://arachnoid.com
-def regress(x, terms):
-    """Calculates f(x) based on x and the coefficients given by `terms`.
-
-    Args:
-        x: Input value
-        terms: Coefficients, starting with x^0
-
-    Returns:
-
-    """
-    t = 1
-    r = 0
-    for c in terms:
-        r += c * t
-        t *= x
-    return r
-
-
 def simple_regression(x1, y1, x2, y2, value):
     c_1 = (y2 - y1) / (x2 - x1)
     c_0 = y1 - x1 * c_1

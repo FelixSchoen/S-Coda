@@ -14,6 +14,10 @@ to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 - Extend tokenisation roundtrip tests to cover `flag_absolute_bar_position=False`
 
+### Removed
+
+- Remove all difficulty computation code (`DIFF_DUAL_*` parameters, `SCALE_CUBIC`/`SCALE_LOGLIKE` polynomials, `regress()`, `minmax()`) from settings, config, and utilities
+
 ### Fixed
 
 - Fix `ReadOnlyMessage.copy()` raising `TypeError` due to incorrect constructor dispatch
