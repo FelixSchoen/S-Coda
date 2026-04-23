@@ -1630,6 +1630,35 @@ class TestBugfixValidation:
             f"After pitch 72 note, imputed pitch should be 72, got {info['info_pitch'][3]}"
         )
 
+    def test_get_info_emits_instrument_assignments_for_running_track_tokens(self):
+        """Test that get_info() exposes stable instrument IDs for multi-track token streams.
+
+        Track-specific note and TRACK tokens use 1-based instrument IDs, while
+        track-agnostic structural tokens remain 0.
+        """
+        from scoda.tokenisation.notelike_tokenisation import MultiTrackLargeVocabularyNotelikeTokeniser
+
+        tokeniser = MultiTrackLargeVocabularyNotelikeTokeniser(
+            ppqn=24,
+            num_tracks=2,
+            flag_fuse_track=False,
+            flag_fuse_value=True,
+            flag_fuse_velocity=True,
+        )
+
+        tokens = [
+            "trk_00",
+            "pit_060-val_24-vel_127",
+            "pos_048",
+            "trk_01",
+            "pit_064-val_24-vel_127",
+            "bar",
+        ]
+
+        info = tokeniser.get_info(tokens)
+
+        assert info["info_instrument"] == [1, 1, 0, 2, 2, 0]
+
     def test_sequence_init_staleness_all_branches(self):
         """Test that Sequence.__init__ sets staleness correctly for all 4 constructor branches.
 
@@ -1860,5 +1889,4 @@ class TestBugfixValidation:
         detokenised[0].quantise_and_normalise()
         assert detokenised[0].equals(sequence, ignore_channel=True, ignore_velocity=True,
                                       ignore_time_signature=True, ignore_key_signature=True)
-
 

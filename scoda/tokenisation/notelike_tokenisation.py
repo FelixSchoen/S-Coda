@@ -410,6 +410,7 @@ class MultiTrackLargeVocabularyNotelikeTokeniser:
         info_pos_bar = []
         info_time = []
         info_time_bar = []
+        info_instrument = []
         info_pitch = []
         info_cof = []
 
@@ -422,6 +423,7 @@ class MultiTrackLargeVocabularyNotelikeTokeniser:
         cur_time_signature_denominator = DEFAULT_TIME_SIGNATURE_DENOMINATOR
         cur_bar_capacity_total = int(self.ppqn * 4 * cur_time_signature_numerator / cur_time_signature_denominator)
         cur_bar_capacity_remaining = cur_bar_capacity_total
+        cur_track = 0
         prv_pitch = 69  # Concert pitch A4
 
         for token in tokens:
@@ -430,6 +432,11 @@ class MultiTrackLargeVocabularyNotelikeTokeniser:
                                      self.sort_order.index(part[0]) if part[0] in self.sort_order else -1))
             main_parts = [part[0] for part in token_parts]
             main_part = main_parts[0]
+            track_part = next(
+                (part for part in token_parts if part[0] == TokenisationPrefixes.TRACK.value),
+                None,
+            )
+            token_track = int(track_part[1]) + 1 if track_part is not None else 0
 
             info_pos.append(cur_pos)
             info_pos_bar.append(cur_pos_bar)
@@ -444,6 +451,7 @@ class MultiTrackLargeVocabularyNotelikeTokeniser:
                 cur_pos_bar = 0
                 cur_time_bar = 0
                 cur_bar_capacity_remaining = cur_bar_capacity_total
+                info_instrument.append(0)
 
                 if not flag_impute_values:
                     info_pitch.append(math.nan)
@@ -455,6 +463,7 @@ class MultiTrackLargeVocabularyNotelikeTokeniser:
                 cur_time += int(token_parts[0][1])
                 cur_time_bar += int(token_parts[0][1])
                 cur_bar_capacity_remaining -= int(token_parts[0][1])
+                info_instrument.append(0)
 
                 if not flag_impute_values:
                     info_pitch.append(math.nan)
@@ -468,6 +477,7 @@ class MultiTrackLargeVocabularyNotelikeTokeniser:
                 cur_time += nxt_time_shift
                 cur_time_bar += nxt_time_shift
                 cur_bar_capacity_remaining -= nxt_time_shift
+                info_instrument.append(0)
 
                 if not flag_impute_values:
                     info_pitch.append(math.nan)
@@ -476,12 +486,27 @@ class MultiTrackLargeVocabularyNotelikeTokeniser:
                     info_pitch.append(prv_pitch)
                     info_cof.append(CircleOfFifths.get_position(prv_pitch))
             elif TokenisationPrefixes.PITCH.value in main_parts:
+                if token_track > 0:
+                    cur_track = token_track
+                if cur_track <= 0:
+                    raise TokenisationException("Encountered note token without active track context")
                 pitch_part = next(part for part in token_parts if part[0] == TokenisationPrefixes.PITCH.value)
                 note_pitch = int(pitch_part[1])
 
                 prv_pitch = note_pitch
+                info_instrument.append(cur_track)
                 info_pitch.append(note_pitch)
                 info_cof.append(CircleOfFifths.get_position(note_pitch))
+            elif main_part == TokenisationPrefixes.TRACK.value:
+                cur_track = token_track
+                info_instrument.append(cur_track)
+
+                if not flag_impute_values:
+                    info_pitch.append(math.nan)
+                    info_cof.append(math.nan)
+                else:
+                    info_pitch.append(prv_pitch)
+                    info_cof.append(CircleOfFifths.get_position(prv_pitch))
             elif main_part == TokenisationPrefixes.TIME_SIGNATURE.value:
                 if cur_time_bar > 0:
                     LOGGER.info(
@@ -492,6 +517,7 @@ class MultiTrackLargeVocabularyNotelikeTokeniser:
                     cur_bar_capacity_total = int(
                         self.ppqn * 4 * cur_time_signature_numerator / cur_time_signature_denominator)
                     cur_bar_capacity_remaining = cur_bar_capacity_total
+                info_instrument.append(0)
 
                 if not flag_impute_values:
                     info_pitch.append(math.nan)
@@ -500,6 +526,7 @@ class MultiTrackLargeVocabularyNotelikeTokeniser:
                     info_pitch.append(prv_pitch)
                     info_cof.append(CircleOfFifths.get_position(prv_pitch))
             else:
+                info_instrument.append(0)
                 if not flag_impute_values:
                     info_pitch.append(math.nan)
                     info_cof.append(math.nan)
@@ -511,6 +538,7 @@ class MultiTrackLargeVocabularyNotelikeTokeniser:
                 "info_position_bar": info_pos_bar,
                 "info_time": info_time,
                 "info_time_bar": info_time_bar,
+                "info_instrument": info_instrument,
                 "info_pitch": info_pitch,
                 "info_circle_of_fifths": info_cof}
 
