@@ -2,14 +2,17 @@
   description = "Python development environment with optional GPU support";
 
   inputs = {
-    nixpkgs.url = "github:nixos/nixpkgs/nixos-25.11";
+    nixpkgs.url = "github:nixos/nixpkgs/nixos-26.05";
   };
 
   outputs =
     { nixpkgs, ... }:
     let
       system = "x86_64-linux";
-      pkgs = import nixpkgs {
+      pkgsBase = import nixpkgs {
+        inherit system;
+      };
+      pkgsGpu = import nixpkgs {
         inherit system;
         config = {
           allowUnfree = true;
@@ -23,58 +26,70 @@
       nixosDriverPath = "/run/opengl-driver";
 
       # CUDA toolkit
-      cudaToolkit = pkgs.cudaPackages.cudatoolkit;
+      cudaToolkit = pkgsGpu.cudaPackages.cudatoolkit;
 
       # Base library dependencies (always included)
-      baseLibs = with pkgs; [
-        stdenv.cc.cc.lib
-        zlib
-        zstd
-        openssl
-        curl
-        bzip2
-        xz
-        libxml2
-        util-linux
-        systemd
-        ncurses
-        attr
-        libssh
-        acl
-        libsodium
-      ];
+      baseLibs =
+        pkgs: with pkgs; [
+          stdenv.cc.cc.lib
+          zlib
+          zstd
+          openssl
+          curl
+          bzip2
+          xz
+          libxml2
+          util-linux
+          systemd
+          ncurses
+          attr
+          libssh
+          acl
+          libsodium
+        ];
 
       # GPU libraries (CUDA + cuDNN + Graphics/X11)
-      gpuLibs = with pkgs; [
+      gpuLibs = with pkgsGpu; [
         # Graphics/X11
         libGL
         libGLU
-        xorg.libX11
-        xorg.libXext
-        xorg.libXrender
-        xorg.libXrandr
-        xorg.libXi
-        xorg.libXcursor
-        xorg.libXfixes
-        xorg.libXmu
-        xorg.libXv
+        libx11
+        libxext
+        libxrender
+        libxrandr
+        libxi
+        libxcursor
+        libxfixes
+        libxmu
+        libxv
         libxkbcommon
         freeglut
       ];
 
       # Configurable Python shell builder
       makePythonShell =
+        pkgs:
         {
           python ? pkgs.python313,
           withGpu ? false,
+          withPythonTools ? true,
         }:
         let
-          pythonEnv = python.withPackages (
-            ps: with ps; [
-              pip
-              virtualenv
-            ]
-          );
+          # Current nixpkgs no longer keeps every tool in the Python 3.11
+          # package set evaluable. Python itself still provides venv and
+          # ensurepip, so that shell can use the interpreter directly.
+          pythonEnv =
+            if withPythonTools then
+              python.withPackages (
+                ps: with ps; [
+                  pip
+                  virtualenv
+                ]
+              )
+            else
+              python;
+
+          basePackages = baseLibs pkgs;
 
           # Build package list based on options
           # Note: We do NOT include a driver package - we use the system driver
@@ -82,14 +97,14 @@
             if withGpu then
               [
                 cudaToolkit
-                pkgs.cudaPackages.cudnn
+                pkgsGpu.cudaPackages.cudnn
               ]
               ++ gpuLibs
             else
               [ ];
 
           # Build library path - include NixOS driver path for GPU
-          libPath = pkgs.lib.makeLibraryPath (baseLibs ++ (if withGpu then gpuLibs else [ ]));
+          libPath = pkgs.lib.makeLibraryPath (basePackages ++ (if withGpu then gpuLibs else [ ]));
 
           # Shell hook for GPU/CUDA configuration
           gpuShellHook =
@@ -103,7 +118,7 @@
 
                 # Use NixOS system driver via /run/opengl-driver
                 # This is the correct way to access GPU drivers on NixOS
-                export LD_LIBRARY_PATH="${nixosDriverPath}/lib:${cudaToolkit}/lib:${cudaToolkit}/lib64:${pkgs.cudaPackages.cudnn}/lib''${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
+                export LD_LIBRARY_PATH="${nixosDriverPath}/lib:${cudaToolkit}/lib:${cudaToolkit}/lib64:${pkgsGpu.cudaPackages.cudnn}/lib''${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
 
                 # Triton-specific configuration for NixOS
                 # Point to system driver for libcuda.so
@@ -112,7 +127,7 @@
                 export TRITON_CUOBJDUMP_PATH="${cudaToolkit}/bin/cuobjdump"
                 export TRITON_NVDISASM_PATH="${cudaToolkit}/bin/nvdisasm"
 
-                # Triton cache and compatibility
+                # Triton cache and runtime settings
                 export TRITON_CACHE_DIR="/var/tmp/triton-cache-$UID"
                 mkdir -p "$TRITON_CACHE_DIR"
                 export TRITON_IGNORE_UNKNOWN_PARAMETERS=1
@@ -139,13 +154,18 @@
 
             # Version control
             pkgs.git
+
+            # Media helpers used by music/data workflows
+            pkgs.ffmpeg
+            pkgs.fluidsynth
           ]
-          ++ baseLibs
+          ++ basePackages
           ++ gpuPackages;
 
           shellHook = ''
             # Library paths
             export LD_LIBRARY_PATH="${libPath}''${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
+            nix_python_version="$("${pythonEnv}/bin/python" --version 2>&1)"
 
             # Compiler configuration
             export CC="${pkgs.gcc}/bin/gcc"
@@ -163,15 +183,29 @@
               if [ "''${VIRTUAL_ENV:-}" != "$venv_path" ]; then
                 source "$venv_path/bin/activate"
               fi
+
+              # If nix develop inherits VIRTUAL_ENV from direnv, activation is
+              # skipped above; keep the local venv ahead of Nix's Python tools.
+              case "$PATH" in
+                "$venv_path/bin":*) ;;
+                *) export PATH="$venv_path/bin:$PATH" ;;
+              esac
             fi
 
             # Environment info
+            active_python_version="$(python --version 2>&1)"
             echo ""
-            echo "🐍 $(python --version) development environment"
+            echo "🐍 $active_python_version development environment"
+            if [ "$active_python_version" != "$nix_python_version" ]; then
+              echo "   Nix shell provides: $nix_python_version"
+            fi
             echo ""
             echo "📦 Virtual environment:"
             if [ -d ".venv" ]; then
               echo "   ✓ .venv activated"
+              if [ "$active_python_version" != "$nix_python_version" ]; then
+                echo "   ! Recreate .venv to move it onto the current Nix Python"
+              fi
             else
               echo "   ✗ No .venv found. Run: python -m venv .venv && source .venv/bin/activate"
             fi
@@ -186,27 +220,36 @@
     {
       devShells.${system} = {
         # Default: basic Python, no GPU
-        default = makePythonShell { };
+        default = makePythonShell pkgsBase { };
 
         # GPU: full stack (CUDA + cuDNN + Graphics)
-        gpu = makePythonShell { withGpu = true; };
+        gpu = makePythonShell pkgsGpu { withGpu = true; };
 
         # Python version variants - default (no GPU)
-        py312 = makePythonShell { python = pkgs.python312; };
-        py313 = makePythonShell { python = pkgs.python313; };
-        py314 = makePythonShell { python = pkgs.python314; };
+        py311 = makePythonShell pkgsBase {
+          python = pkgsBase.python311;
+          withPythonTools = false;
+        };
+        py312 = makePythonShell pkgsBase { python = pkgsBase.python312; };
+        py313 = makePythonShell pkgsBase { python = pkgsBase.python313; };
+        py314 = makePythonShell pkgsBase { python = pkgsBase.python314; };
 
         # Python version variants - GPU
-        gpu-py312 = makePythonShell {
-          python = pkgs.python312;
+        gpu-py311 = makePythonShell pkgsGpu {
+          python = pkgsGpu.python311;
+          withGpu = true;
+          withPythonTools = false;
+        };
+        gpu-py312 = makePythonShell pkgsGpu {
+          python = pkgsGpu.python312;
           withGpu = true;
         };
-        gpu-py313 = makePythonShell {
-          python = pkgs.python313;
+        gpu-py313 = makePythonShell pkgsGpu {
+          python = pkgsGpu.python313;
           withGpu = true;
         };
-        gpu-py314 = makePythonShell {
-          python = pkgs.python314;
+        gpu-py314 = makePythonShell pkgsGpu {
+          python = pkgsGpu.python314;
           withGpu = true;
         };
       };
