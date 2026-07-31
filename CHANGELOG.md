@@ -88,3 +88,4 @@ to [Semantic Versioning](https://semver.org/).
 - Reject pathological note-value magnitudes before constructing vocabulary text
 - Ensure local benchmarks measure the checked-out source and preserve blocked comparison reports
 - Keep package licence metadata valid under the PEP 639 build backend
+- Use patched build-backend versions without known setuptools or wheel security advisories

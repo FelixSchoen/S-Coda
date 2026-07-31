@@ -38,7 +38,7 @@ docs = ["mkdocs >= 1.6, < 2", "mkdocs-material >= 9.6, < 10",
         "mkdocstrings[python] >= 0.30, < 1"]
 
 [build-system]
-requires = ["setuptools == 80.10.1", "wheel == 0.46.1"]
+requires = ["setuptools == 83.0.0", "wheel == 0.46.2"]
 build-backend = "setuptools.build_meta"
 
 [tool.setuptools.package-data]
