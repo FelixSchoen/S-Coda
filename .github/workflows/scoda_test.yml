@@ -31,7 +31,9 @@ jobs:
           python -m pip install --no-deps .
 
       - name: Lint source, tests, benchmarks, and examples
-        run: ruff check scoda test benchmarks examples
+        run: |
+          ruff check scoda test benchmarks examples
+          ruff format --check scoda test benchmarks examples
 
       - name: Type-check the public API
         run: python -m mypy

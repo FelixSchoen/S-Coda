@@ -1,5 +1,5 @@
 import pickle
-from dataclasses import FrozenInstanceError
+from dataclasses import FrozenInstanceError, replace
 
 import mido
 import pytest
@@ -7,6 +7,7 @@ from hypothesis import given
 from hypothesis import strategies as st
 
 from scoda import (
+    ControlChange,
     Key,
     KeySignature,
     MidiError,
@@ -38,9 +39,7 @@ def test_values_are_frozen_and_sequences_do_not_alias_inputs():
 
 
 def test_tokeniser_pickle_reconstructs_immutable_derived_state():
-    tokeniser = NotelikeTokeniser(
-        NotelikeConfig(num_tracks=2, note_values=(6, 12, 24), velocity_bins=2)
-    )
+    tokeniser = NotelikeTokeniser(NotelikeConfig(num_tracks=2, note_values=(6, 12, 24), velocity_bins=2))
 
     restored = pickle.loads(pickle.dumps(tokeniser))
 
@@ -126,15 +125,20 @@ def test_midi_roundtrip_preserves_semantics_and_trailing_duration():
 
 
 def test_lossless_midi_preserves_order_sensitive_same_tick_events():
-    sequence = Sequence(
-        (),
+    event_sequences = (
         (ProgramChange(0, 5, 2), ProgramChange(0, 10, 2)),
-        0,
-        24,
+        (ControlChange(0, 0, 1, 2), ProgramChange(0, 10, 2)),
+        (
+            ControlChange(0, 101, 0, 2),
+            ControlChange(0, 100, 0, 2),
+            ControlChange(0, 6, 12, 2),
+        ),
     )
 
-    assert sequence.events == (ProgramChange(0, 5, 2), ProgramChange(0, 10, 2))
-    assert load_midi(to_mido((sequence,)), mode="lossless").sequences == (sequence,)
+    for events in event_sequences:
+        sequence = Sequence((), events, 0, 24)
+        assert sequence.events == events
+        assert load_midi(to_mido((sequence,)), mode="lossless").sequences == (sequence,)
 
 
 def test_midi_import_reports_same_tick_channel_state_reordering():
@@ -211,9 +215,7 @@ def test_partial_final_bar_uses_exact_position_without_bar_boundary():
 
 
 def test_running_track_context_is_preserved_across_bar_boundaries():
-    tokeniser = NotelikeTokeniser(
-        NotelikeConfig(pitch_range=(60, 60), note_values=(12,))
-    )
+    tokeniser = NotelikeTokeniser(NotelikeConfig(pitch_range=(60, 60), note_values=(12,)))
     sequence = Sequence(
         (
             Note(0, 12, 60, 64),
@@ -437,6 +439,33 @@ def test_bar_context_cache_preserves_full_time_signature_values():
 
     assert bars[0].events[0] == TimeSignature(0, 4, 4, 24, 8)
     assert bars[1].events[0] == TimeSignature(0, 4, 4, 36, 16)
+
+
+def test_bar_context_preserves_ordered_channel_state_history():
+    bank_events = (
+        ControlChange(0, 0, 1, 2),
+        ControlChange(0, 32, 2, 2),
+        ProgramChange(0, 10, 2),
+    )
+    bank_sequence = Sequence((), bank_events, 192, 24)
+
+    bank_bars = split_bars((bank_sequence,))[0]
+    assert tuple(event for event in bank_bars[0].events if not isinstance(event, TimeSignature)) == bank_events
+    assert tuple(event for event in bank_bars[1].events if not isinstance(event, TimeSignature)) == bank_events
+    assert split_bars((bank_sequence,), carry_context=False)[0][0].events == bank_events
+    assert split_bars((bank_sequence,), carry_context=False)[0][1].events == ()
+
+    controller_history = (
+        ControlChange(0, 6, 12, 2),
+        ControlChange(12, 101, 0, 2),
+        ControlChange(12, 100, 0, 2),
+        ControlChange(12, 6, 24, 2),
+    )
+    controller_sequence = Sequence((), controller_history, 192, 24)
+
+    second_bar = split_bars((controller_sequence,))[0][1]
+    carried = tuple(event for event in second_bar.events if not isinstance(event, TimeSignature))
+    assert carried == tuple(replace(event, time=0) for event in controller_history)
 
 
 def test_lossless_midi_preserves_release_velocity_and_full_time_signature():

@@ -143,10 +143,16 @@ class TokeniserState:
         if self.meter_denominator & (self.meter_denominator - 1):
             raise TokenisationError("tokeniser state meter_denominator must be a power of two")
         if self.last_note_key is not None:
-            if not isinstance(self.last_note_key, tuple) or len(self.last_note_key) != 3 or any(
-                isinstance(value, bool) or not isinstance(value, int) or value < 0 for value in self.last_note_key
+            if (
+                not isinstance(self.last_note_key, tuple)
+                or len(self.last_note_key) != 3
+                or any(
+                    isinstance(value, bool) or not isinstance(value, int) or value < 0 for value in self.last_note_key
+                )
             ):
-                raise TokenisationError("tokeniser state last_note_key must contain three non-negative integers or None")
+                raise TokenisationError(
+                    "tokeniser state last_note_key must contain three non-negative integers or None"
+                )
         if self.phase not in {"initial", "started", "bar", "bar_meter", "position", "track", "note", "ended"}:
             raise TokenisationError(f"invalid tokeniser state phase: {self.phase!r}")
         if self.ended != (self.phase == "ended"):
@@ -521,8 +527,7 @@ class NotelikeTokeniser(_IncrementalTokeniser):
         self.config = config if config is not None else NotelikeConfig()
         tokens = ["pad", "sta", "sto", "bar"]
         tokens.extend(
-            f"pos_{position:03}"
-            for position in range(1, self.config.max_bar_quarters * self.ticks_per_quarter)
+            f"pos_{position:03}" for position in range(1, self.config.max_bar_quarters * self.ticks_per_quarter)
         )
         tokens.extend(f"trk_{track:02}" for track in range(self.num_tracks))
         velocities = tuple(
@@ -552,11 +557,7 @@ class NotelikeTokeniser(_IncrementalTokeniser):
             raise TokenisationError("token vocabulary is not a contiguous bijection")
         self.token_to_id = MappingProxyType(token_to_id)
         self._position_token_ids = MappingProxyType(
-            {
-                int(token.split("_")[1]): token_id
-                for token, token_id in token_to_id.items()
-                if token.startswith("pos_")
-            }
+            {int(token.split("_")[1]): token_id for token, token_id in token_to_id.items() if token.startswith("pos_")}
         )
         self._bar_token_id = token_to_id["bar"]
         self._position_tokens = MappingProxyType(
@@ -707,7 +708,11 @@ class NotelikeTokeniser(_IncrementalTokeniser):
             )
         if "pit" in prefixes:
             if state.bar_position >= state.bar_capacity or state.phase not in {
-                "bar", "bar_meter", "track", "position", "note"
+                "bar",
+                "bar_meter",
+                "track",
+                "position",
+                "note",
             }:
                 return None
             if self.config.include_time_signatures and not state.meter_declared:
@@ -1003,6 +1008,7 @@ class NotelikeTokeniser(_IncrementalTokeniser):
             tuple(pitches),
             tuple(circle_of_fifths),
         )
+
 
 def create_tokeniser(
     codec_id: str,

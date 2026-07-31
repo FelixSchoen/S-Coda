@@ -149,21 +149,15 @@ _EVENT_ORDER = {
     KeySignature: 1,
     Tempo: 2,
     ProgramChange: 3,
-    ControlChange: 4,
+    ControlChange: 3,
 }
 
 
-def _event_key(event: Event) -> tuple[object, ...]:
-    # Events that update the same state target at the same tick remain in
-    # caller/source order because their final value is order-sensitive. Events
-    # on independent targets can still be placed in one canonical order.
-    if isinstance(event, ProgramChange):
-        target: tuple[int, ...] = (event.channel,)
-    elif isinstance(event, ControlChange):
-        target = (event.channel, event.control)
-    else:
-        target = ()
-    return (event.time, _EVENT_ORDER[type(event)], *target)
+def _event_key(event: Event) -> tuple[int, int]:
+    # Same-tick channel-state events remain in caller/source order. Their
+    # relative order can be musically significant: bank-select controls must
+    # precede program changes, and RPN/NRPN selection must precede data entry.
+    return event.time, _EVENT_ORDER[type(event)]
 
 
 @dataclass(frozen=True, slots=True)
@@ -680,8 +674,9 @@ def _split_sequence_bars(
     active_notes: list[Note] = []
     latest_tempo: Tempo | None = None
     latest_key: KeySignature | None = None
-    latest_programs: dict[int, ProgramChange] = {}
-    latest_controls: dict[tuple[int, int], ControlChange] = {}
+    channel_state_history: list[ControlChange | ProgramChange] = []
+    channel_state_context: tuple[Event, ...] = ()
+    channel_state_version = 0
     context_cache: dict[tuple[object, ...], tuple[Event, ...]] = {}
     bars: list[Sequence] = []
     contextual_types = (TimeSignature, KeySignature, Tempo, ProgramChange, ControlChange)
@@ -717,17 +712,20 @@ def _split_sequence_bars(
         event_index = event_end
 
         if carry_context:
+            channel_state_changed = False
             while context_index < len(sequence.events) and sequence.events[context_index].time <= span.start:
                 event = sequence.events[context_index]
                 if isinstance(event, Tempo):
                     latest_tempo = event
                 elif isinstance(event, KeySignature):
                     latest_key = event
-                elif isinstance(event, ProgramChange):
-                    latest_programs[event.channel] = event
-                elif isinstance(event, ControlChange):
-                    latest_controls[(event.channel, event.control)] = event
+                elif isinstance(event, (ControlChange, ProgramChange)):
+                    channel_state_history.append(event)
+                    channel_state_changed = True
                 context_index += 1
+            if channel_state_changed:
+                channel_state_context = tuple(replace(event, time=0) for event in channel_state_history)
+                channel_state_version += 1
 
             active_key = span.key_signature or latest_key
             context_key = (
@@ -737,8 +735,7 @@ def _split_sequence_bars(
                 span.time_signature.notated_32nd_notes_per_beat,
                 active_key.key if active_key is not None else None,
                 latest_tempo.microseconds_per_quarter if latest_tempo is not None else None,
-                *((event.channel, event.program) for event in latest_programs.values()),
-                *((event.channel, event.control, event.value) for event in latest_controls.values()),
+                channel_state_version,
             )
             contextual = context_cache.get(context_key)
             if contextual is None:
@@ -747,8 +744,7 @@ def _split_sequence_bars(
                     contextual_values.append(replace(active_key, time=0))
                 if latest_tempo is not None:
                     contextual_values.append(replace(latest_tempo, time=0))
-                contextual_values.extend(replace(event, time=0) for event in latest_programs.values())
-                contextual_values.extend(replace(event, time=0) for event in latest_controls.values())
+                contextual_values.extend(channel_state_context)
                 contextual = tuple(contextual_values)
                 context_cache[context_key] = contextual
             events = (

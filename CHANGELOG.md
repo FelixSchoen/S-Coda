@@ -4,7 +4,7 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres
 to [Semantic Versioning](https://semver.org/).
 
-## [3.0.0] - 2026-07-27
+## [3.0.0] - 2026-07-31
 
 ### Added
 
@@ -79,6 +79,7 @@ to [Semantic Versioning](https://semver.org/).
 - Make octave wrapping constant-time even for very large integer transpositions
 - Reject invalid MIDI formats, out-of-range MIDI PPQN values, and unencodable track names before export
 - Preserve the source order of same-tick state updates so lossless MIDI round trips cannot change their final value
+- Replay ordered channel-state history in contextual bar slices so bank selection and RPN/NRPN commands retain meaning
 - Diagnose same-tick channel-state/note ordering that the immutable model must canonicalise
 - Classify malformed note-message fields as import errors even when no matching note is active
 - Canonicalise manifest JSON and reject non-finite configuration values before fingerprint validation

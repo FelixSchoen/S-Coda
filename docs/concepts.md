@@ -27,5 +27,7 @@ required information raise a `ScodaError` subclass.
 `bar_spans()` calculates meter-aware intervals from one sequence. `split_bars()` accepts multiple synchronised tracks
 and returns a track-major tuple: the outer tuple contains tracks and each inner tuple contains that track's bars.
 
-By default, each bar receives the meter, key, tempo, program, and controller state active at its boundary. Pass
-`carry_context=False` only when raw event-window slices are required.
+By default, each bar receives the meter, key, tempo, program, and controller state active at its boundary. Program and
+controller changes are replayed in their original order because MIDI bank selection, RPN, and NRPN commands are
+order-sensitive; a contextual bar can therefore contain their ordered history rather than only one event per controller.
+Pass `carry_context=False` only when raw event-window slices are required.

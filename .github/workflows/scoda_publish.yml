@@ -30,6 +30,7 @@ jobs:
       - name: Run release gates
         run: |
           ruff check scoda test benchmarks examples
+          ruff format --check scoda test benchmarks examples
           python -m mypy
           python -m pytest test/ --cov=scoda --cov-report=term-missing --cov-fail-under=95
           python examples/quickstart.py

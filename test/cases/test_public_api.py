@@ -176,9 +176,12 @@ def test_sequence_construction_properties_and_transformations():
     similar = Sequence((Note(0, 4, 60, 99, 7),), (ProgramChange(0, 10, 2),), 4, 24)
     assert sequence.similarity(similar, compare_velocity=False, compare_channel=False) > 0
     assert sequence.similarity(similar, compare_velocity=True, compare_channel=True) == 0.5
-    assert Sequence(events=(ProgramChange(0, 4, 1),)).similarity(
-        Sequence(events=(ProgramChange(0, 4, 2),)), compare_channel=False
-    ) == 1.0
+    assert (
+        Sequence(events=(ProgramChange(0, 4, 1),)).similarity(
+            Sequence(events=(ProgramChange(0, 4, 2),)), compare_channel=False
+        )
+        == 1.0
+    )
     assert Sequence().similarity(Sequence()) == 1.0
     program_only = Sequence((), (ProgramChange(0, 10),), 0, 24)
     assert program_only.similarity(program_only) == 1.0
