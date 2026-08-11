@@ -1,6 +1,6 @@
 [project]
 name = "scoda"
-version = "3.0.0"
+version = "3.0.0+local.20260811"
 authors = [{ name = "Felix Schön", email = "schoen@kr.tuwien.ac.at" }]
 description = "Deterministic symbolic-music processing for machine-learning workflows"
 readme = "README.md"

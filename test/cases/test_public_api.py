@@ -222,6 +222,11 @@ def test_sequence_validation_transpose_quantise_resample_and_slice():
     assert source.quantise_note_lengths((2, 4)).notes[1].end == 6
     assert source.quantise_and_normalise((2,), (4,)).notes[0] == Note(0, 4, 0, 80)
 
+    empty = Sequence(duration_ticks=5)
+    assert empty.quantise((2,)).duration_ticks == 4
+    assert empty.quantise_note_lengths((2, 4)) == empty
+    assert empty.quantise_and_normalise((2,), (4,)).duration_ticks == 4
+
     assert source.resample(24) is source
     assert source.resample(1).notes[0].end == 1
     assert source.slice(1, 5).duration_ticks == 4

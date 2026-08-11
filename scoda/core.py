@@ -422,7 +422,13 @@ class Sequence:
                 end = start + min(steps)
             notes.append(replace(note, start=start, end=end))
         events = tuple(replace(event, time=nearest(event.time)) for event in self.events)
-        duration = max(nearest(self.duration_ticks), *(note.end for note in notes), *(event.time for event in events))
+        duration = max(
+            (
+                nearest(self.duration_ticks),
+                *(note.end for note in notes),
+                *(event.time for event in events),
+            )
+        )
         return replace(self, notes=tuple(notes), events=events, duration_ticks=duration)
 
     def quantise_note_lengths(self, note_values: Iterable[int]) -> Sequence:
@@ -446,7 +452,7 @@ class Sequence:
             )
             for note in self.notes
         )
-        duration = max(self.duration_ticks, *(note.end for note in notes))
+        duration = max((self.duration_ticks, *(note.end for note in notes)))
         return replace(self, notes=notes, duration_ticks=duration)
 
     def quantise_and_normalise(self, step_sizes: Iterable[int], note_values: Iterable[int]) -> Sequence:
