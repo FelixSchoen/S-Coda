@@ -482,6 +482,26 @@ def test_metadata_value_imputation_is_explicit():
         tokeniser.metadata(tokens, impute_pitch=1)  # type: ignore[arg-type]
 
 
+def test_prefix_metadata_accepts_valid_incomplete_streams():
+    tokeniser = NotelikeTokeniser(NotelikeConfig(pitch_range=(60, 60), note_values=(3,)))
+    note_token = next(token for token in tokeniser.vocabulary if token.startswith("pit_"))
+    prefix = ["sta", "trk_00", note_token]
+
+    metadata = tokeniser.prefix_metadata(prefix, impute_pitch=True)
+
+    assert len(metadata) == len(prefix)
+    complete_metadata = tokeniser.metadata([*prefix, "bar", "sto"], impute_pitch=True)
+    assert metadata == complete_metadata._slice(0, len(prefix))
+    with pytest.raises(TokenisationError, match="must begin with 'sta'"):
+        tokeniser.prefix_metadata([])
+    with pytest.raises(TokenisationError, match="must begin with 'sta'"):
+        tokeniser.prefix_metadata(["trk_00"])
+    with pytest.raises(TokenisationError, match="invalid token"):
+        tokeniser.prefix_metadata(["sta", "sto", "trk_00"])
+    with pytest.raises(TokenisationError, match="impute_pitch must be a boolean"):
+        tokeniser.prefix_metadata(prefix, impute_pitch=1)  # type: ignore[arg-type]
+
+
 def test_tokeniser_collection_and_public_value_validation():
     tokeniser = NotelikeTokeniser(NotelikeConfig())
     for operation in (tokeniser.frame, tokeniser.encode, tokeniser.detokenise):

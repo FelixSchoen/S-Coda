@@ -72,7 +72,8 @@ limit of 268,435,455, preventing pathological token text while remaining far abo
 
 ## Metadata
 
-`metadata()` returns immutable `TokenMetadata` aligned with a complete stream; `body_metadata()` aligns with an unframed
+`metadata()` returns immutable `TokenMetadata` aligned with a complete stream, `prefix_metadata()` aligns with a valid
+framed-stream prefix during autoregressive generation, and `body_metadata()` aligns with an unframed
 body. It includes token indices, absolute and within-bar ticks, active track indices, pitch, and circle-of-fifths
 positions. Tokens without pitch-derived values use `NaN` unless `impute_pitch=True` requests carry-forward values;
 before the first note, imputation uses the neutral reference pitch A4 (`69`).

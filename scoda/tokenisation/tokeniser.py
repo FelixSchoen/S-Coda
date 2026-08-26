@@ -941,6 +941,21 @@ class NotelikeTokeniser(_IncrementalTokeniser):
         body = self._validated_token_values(tokens, name="token body")
         return self.metadata(self.frame(body), impute_pitch=impute_pitch)._slice(1, -1)
 
+    def prefix_metadata(
+        self,
+        tokens: TypingSequence[str],
+        *,
+        impute_pitch: bool = False,
+    ) -> TokenMetadata:
+        """Return metadata aligned one-to-one with a valid framed-stream prefix."""
+
+        if not isinstance(impute_pitch, bool):
+            raise TokenisationError("impute_pitch must be a boolean")
+        values = self._validated_token_values(tokens, name="token stream prefix")
+        if not values or values[0] != "sta":
+            raise TokenisationError("token stream prefix must begin with 'sta'")
+        return self._metadata(values, impute_pitch=impute_pitch)
+
     def metadata(
         self,
         tokens: TypingSequence[str],
@@ -953,6 +968,9 @@ class NotelikeTokeniser(_IncrementalTokeniser):
             raise TokenisationError("impute_pitch must be a boolean")
         values = self._validated_token_values(tokens, name="token stream")
         self.unframe(values)
+        return self._metadata(values, impute_pitch=impute_pitch)
+
+    def _metadata(self, values: TypingSequence[str], *, impute_pitch: bool) -> TokenMetadata:
         state = self.initial_state()
         token_indexes: list[int] = []
         token_indexes_in_bar: list[int] = []
