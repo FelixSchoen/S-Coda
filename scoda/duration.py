@@ -42,9 +42,7 @@ class NoteDurationPolicy:
             raise ValidationError("note_values must not contain duplicates")
         object.__setattr__(self, "note_values", tuple(sorted(values)))
         unit = self.duration_extension_ticks
-        if unit is not None and (
-            isinstance(unit, bool) or not isinstance(unit, int) or unit != max(values)
-        ):
+        if unit is not None and (isinstance(unit, bool) or not isinstance(unit, int) or unit != max(values)):
             raise ValidationError("duration_extension_ticks must equal the largest configured note value")
 
     @staticmethod

@@ -117,7 +117,9 @@ class TokeniserState:
     position_track_floor: int = -1
     last_note_key: tuple[int, int, int] | None = None
     valid: bool = True
-    phase: Literal["initial", "started", "bar", "bar_meter", "position", "track", "extension", "note", "ended"] = "initial"
+    phase: Literal["initial", "started", "bar", "bar_meter", "position", "track", "extension", "note", "ended"] = (
+        "initial"
+    )
 
     def __post_init__(self) -> None:
         for name in ("started", "ended", "meter_declared", "valid"):
@@ -155,7 +157,17 @@ class TokeniserState:
                 raise TokenisationError(
                     "tokeniser state last_note_key must contain three non-negative integers or None"
                 )
-        if self.phase not in {"initial", "started", "bar", "bar_meter", "position", "track", "extension", "note", "ended"}:
+        if self.phase not in {
+            "initial",
+            "started",
+            "bar",
+            "bar_meter",
+            "position",
+            "track",
+            "extension",
+            "note",
+            "ended",
+        }:
             raise TokenisationError(f"invalid tokeniser state phase: {self.phase!r}")
         if bool(self.duration_extension_ticks) != (self.phase == "extension"):
             raise TokenisationError("duration extension and grammar phase are inconsistent")
@@ -504,7 +516,11 @@ class NotelikeConfig:
         note_tokens = (self.pitch_range[1] - self.pitch_range[0] + 1) * len(self.note_values) * self.velocity_bins
         meter_tokens = 96 if self.include_time_signatures else 0
         vocabulary_size_bound = (
-            4 + position_tokens + self.num_tracks + note_tokens + meter_tokens
+            4
+            + position_tokens
+            + self.num_tracks
+            + note_tokens
+            + meter_tokens
             + int(self.duration_extension_ticks is not None)
         )
         if vocabulary_size_bound > _MAX_VOCABULARY_SIZE:

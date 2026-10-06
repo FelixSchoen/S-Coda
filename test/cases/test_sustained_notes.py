@@ -87,10 +87,14 @@ def test_meter_and_ppqn_do_not_change_extension_meaning():
     sequence = Sequence((Note(60, 252, 60, 64),), (TimeSignature(0, 3, 4), TimeSignature(72, 4, 4)), 264)
     assert tokeniser.detokenise(tokeniser.tokenise((sequence,))) == (sequence,)
     scaled = sequence.resample(48)
-    scaled_codec = NotelikeTokeniser(NotelikeConfig(
-        ticks_per_quarter=48, note_values=tuple(value * 2 for value in VALUES),
-        duration_extension_ticks=192, include_time_signatures=True,
-    ))
+    scaled_codec = NotelikeTokeniser(
+        NotelikeConfig(
+            ticks_per_quarter=48,
+            note_values=tuple(value * 2 for value in VALUES),
+            duration_extension_ticks=192,
+            include_time_signatures=True,
+        )
+    )
     assert scaled_codec.detokenise(scaled_codec.tokenise((scaled,))) == (scaled,)
 
 
@@ -115,9 +119,18 @@ def test_ordered_same_pitch_notes_can_require_multiple_markers_before_any_note_i
     sequence = Sequence((Note(0, 288, 60, 64), Note(0, 384, 60, 64)), duration_ticks=384)
     tokens = tokeniser.tokenise((sequence,))
     assert tokeniser.detokenise(tokens) == (sequence,)
-    state = tokeniser.inspect_prefix(tokeniser.encode([
-        "sta", "trk_00", "ext_096", "ext_096", "pit_060-val_96-vel_064", "ext_096",
-    ]))
+    state = tokeniser.inspect_prefix(
+        tokeniser.encode(
+            [
+                "sta",
+                "trk_00",
+                "ext_096",
+                "ext_096",
+                "pit_060-val_96-vel_064",
+                "ext_096",
+            ]
+        )
+    )
     assert tokeniser.allowed_token_ids(state) == frozenset({tokeniser.token_to_id["ext_096"]})
 
 
@@ -157,7 +170,9 @@ def test_completion_suffix_is_exact_and_no_note_is_rearticulated():
     split = tokens.index("bar") + 1
     state = tokeniser.inspect_prefix(tokeniser.encode(tokens[:split]))
     assert tokeniser.decode(tokeniser.completion_token_ids(state)) == ["bar", "pos_084", "sto"]
-    assert tokeniser.detokenise([*tokens[:split], *tokeniser.decode(tokeniser.completion_token_ids(state))]) == (sequence,)
+    assert tokeniser.detokenise([*tokens[:split], *tokeniser.decode(tokeniser.completion_token_ids(state))]) == (
+        sequence,
+    )
     invalid_state = replace(state, duration_extension_ticks=1, phase="extension")
     with pytest.raises(TokenisationError):
         tokeniser.allowed_token_ids(invalid_state)
@@ -172,12 +187,16 @@ def test_completion_suffix_is_exact_and_no_note_is_rearticulated():
 @pytest.mark.parametrize("mode", ["repair", "strict", "lossless"])
 def test_drop_unclosed_note_does_not_bypass_strict_diagnostics(mode):
     midi = mido.MidiFile(ticks_per_beat=24)
-    midi.tracks.append(mido.MidiTrack([
-        mido.Message("note_on", note=60, velocity=64, time=0),
-        mido.Message("note_on", note=61, velocity=64, time=24),
-        mido.Message("note_off", note=61, velocity=0, time=24),
-        mido.MetaMessage("end_of_track", time=912),
-    ]))
+    midi.tracks.append(
+        mido.MidiTrack(
+            [
+                mido.Message("note_on", note=60, velocity=64, time=0),
+                mido.Message("note_on", note=61, velocity=64, time=24),
+                mido.Message("note_off", note=61, velocity=0, time=24),
+                mido.MetaMessage("end_of_track", time=912),
+            ]
+        )
+    )
     if mode != "repair":
         with pytest.raises(MidiImportError) as error:
             load_midi(midi, mode=mode, unclosed_note_policy="drop")
