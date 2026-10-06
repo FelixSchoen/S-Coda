@@ -24,6 +24,13 @@ Repair mode closes notes left active at a track endpoint, discards unmatched not
 retriggers into adjacent intervals, and canonicalises representable same-tick ordering. Every such change is reported.
 PPQN scaling uses exact rational arithmetic before integer rounding.
 
+For corpora that must not learn fabricated long sustains, use
+`load_midi(source, mode="repair", unclosed_note_policy="drop")`. Notes with no authoritative note-off are discarded
+instead of being closed at the source track endpoint. Diagnostics still report `unclosed_note` (or
+`zero_length_unclosed_note`), so callers can count drops against original audible onsets and reject excessively
+damaged pieces. This setting does not bypass `strict` or `lossless` validation. The default
+`unclosed_note_policy="close_at_track_end"` retains the normal repair behavior.
+
 ## Lossless limits
 
 Independent timelines in MIDI format 2 cannot be represented by one synchronised sequence collection and are rejected.

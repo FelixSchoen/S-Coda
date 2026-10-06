@@ -7,7 +7,6 @@ import json
 import math
 import operator
 from abc import ABC, abstractmethod
-from bisect import bisect_left
 from collections.abc import Iterable, Mapping
 from collections.abc import Sequence as TypingSequence
 from dataclasses import asdict, dataclass, replace
@@ -16,12 +15,13 @@ from types import MappingProxyType
 from typing import Any, Literal, cast
 
 from scoda.core import Note, Sequence, SequenceBuilder, TimeSignature, bar_spans
-from scoda.errors import TokenisationError
+from scoda.duration import MAX_NOTE_DURATION_TICKS, NoteDurationPolicy
+from scoda.errors import TokenisationError, ValidationError
 from scoda.music_theory import _circle_of_fifths_position
 
 _MAX_VOCABULARY_SIZE = 250_000
 _MAX_CACHED_TOKEN_REFERENCES = 1_000_000
-_MAX_NOTE_VALUE = 0x0FFFFFFF
+_MAX_NOTE_VALUE = MAX_NOTE_DURATION_TICKS
 
 
 @dataclass(frozen=True, slots=True)
@@ -110,13 +110,14 @@ class TokeniserState:
     bar_position: int = 0
     bar_capacity: int = 96
     pending_note_ticks: int = 0
+    duration_extension_ticks: int = 0
     meter_numerator: int = 4
     meter_denominator: int = 4
     meter_declared: bool = False
     position_track_floor: int = -1
     last_note_key: tuple[int, int, int] | None = None
     valid: bool = True
-    phase: Literal["initial", "started", "bar", "bar_meter", "position", "track", "note", "ended"] = "initial"
+    phase: Literal["initial", "started", "bar", "bar_meter", "position", "track", "extension", "note", "ended"] = "initial"
 
     def __post_init__(self) -> None:
         for name in ("started", "ended", "meter_declared", "valid"):
@@ -131,6 +132,7 @@ class TokeniserState:
             ("bar_position", 0),
             ("bar_capacity", 1),
             ("pending_note_ticks", 0),
+            ("duration_extension_ticks", 0),
             ("meter_numerator", 1),
             ("meter_denominator", 1),
             ("position_track_floor", -1),
@@ -153,8 +155,10 @@ class TokeniserState:
                 raise TokenisationError(
                     "tokeniser state last_note_key must contain three non-negative integers or None"
                 )
-        if self.phase not in {"initial", "started", "bar", "bar_meter", "position", "track", "note", "ended"}:
+        if self.phase not in {"initial", "started", "bar", "bar_meter", "position", "track", "extension", "note", "ended"}:
             raise TokenisationError(f"invalid tokeniser state phase: {self.phase!r}")
+        if bool(self.duration_extension_ticks) != (self.phase == "extension"):
+            raise TokenisationError("duration extension and grammar phase are inconsistent")
         if self.ended != (self.phase == "ended"):
             raise TokenisationError("tokeniser state ended flag and phase are inconsistent")
         if self.started == (self.phase == "initial"):
@@ -371,6 +375,12 @@ class _IncrementalTokeniser(ABC):
             raise TokenisationError("tokeniser state active_track is outside the configured tracks")
         if state.position_track_floor >= self.num_tracks:
             raise TokenisationError("tokeniser state position_track_floor is outside the configured tracks")
+        if state.duration_extension_ticks:
+            unit = self.config.duration_extension_ticks
+            if unit is None or state.duration_extension_ticks % unit:
+                raise TokenisationError("tokeniser state has an invalid duration extension")
+            if state.duration_extension_ticks + self.config.note_values[0] > _MAX_NOTE_VALUE:
+                raise TokenisationError("tokeniser state duration extension exceeds the supported range")
 
     def inspect_prefix(self, token_ids: Iterable[int]) -> TokeniserState:
         """Validate an ID prefix and return the state after its final token."""
@@ -383,29 +393,8 @@ class _IncrementalTokeniser(ABC):
     def allowed_token_ids(self, state: TokeniserState) -> frozenset[int]:
         """Return every vocabulary ID accepted after ``state``."""
 
-        if not isinstance(state, TokeniserState):
-            raise TokenisationError("state must be a TokeniserState value")
-        num_tracks = self.config.num_tracks
-        if state.active_track is not None and state.active_track >= num_tracks:
-            raise TokenisationError("tokeniser state active_track is outside the configured tracks")
-        if state.position_track_floor >= num_tracks:
-            raise TokenisationError("tokeniser state position_track_floor is outside the configured tracks")
-        key = (
-            state.started,
-            state.ended,
-            state.active_track,
-            state.bar_count == 0,
-            state.bar_position,
-            state.bar_capacity,
-            state.pending_note_ticks == 0,
-            state.meter_numerator,
-            state.meter_denominator,
-            state.meter_declared,
-            state.position_track_floor,
-            state.last_note_key,
-            state.valid,
-            state.phase,
-        )
+        self._validate_state(state)
+        key = self._grammar_state_key(state)
         cached = self._allowed_token_cache.get(key)
         if cached is not None:
             return cached
@@ -441,6 +430,7 @@ class _IncrementalTokeniser(ABC):
             state.bar_position,
             state.bar_capacity,
             state.pending_note_ticks == 0,
+            state.duration_extension_ticks,
             state.meter_numerator,
             state.meter_denominator,
             state.meter_declared,
@@ -466,6 +456,7 @@ class NotelikeConfig:
     velocity_bins: int = 1
     include_time_signatures: bool = False
     max_bar_quarters: int = 4
+    duration_extension_ticks: int | None = None
 
     def __post_init__(self) -> None:
         try:
@@ -499,6 +490,10 @@ class NotelikeConfig:
         if len(set(self.note_values)) != len(self.note_values):
             raise TokenisationError("note_values must not contain duplicates")
         object.__setattr__(self, "note_values", tuple(sorted(self.note_values)))
+        try:
+            NoteDurationPolicy(self.note_values, self.duration_extension_ticks)
+        except ValidationError as exc:
+            raise TokenisationError(str(exc)) from exc
         if (
             len(self.pitch_range) != 2
             or any(isinstance(value, bool) or not isinstance(value, int) for value in self.pitch_range)
@@ -508,7 +503,10 @@ class NotelikeConfig:
         position_tokens = self.max_bar_quarters * self.ticks_per_quarter - 1
         note_tokens = (self.pitch_range[1] - self.pitch_range[0] + 1) * len(self.note_values) * self.velocity_bins
         meter_tokens = 96 if self.include_time_signatures else 0
-        vocabulary_size_bound = 4 + position_tokens + self.num_tracks + note_tokens + meter_tokens
+        vocabulary_size_bound = (
+            4 + position_tokens + self.num_tracks + note_tokens + meter_tokens
+            + int(self.duration_extension_ticks is not None)
+        )
         if vocabulary_size_bound > _MAX_VOCABULARY_SIZE:
             raise TokenisationError(
                 f"configuration may create at most {_MAX_VOCABULARY_SIZE} vocabulary entries; "
@@ -525,6 +523,10 @@ class NotelikeTokeniser(_IncrementalTokeniser):
         if config is not None and not isinstance(config, NotelikeConfig):
             raise TokenisationError("config must be a NotelikeConfig value")
         self.config = config if config is not None else NotelikeConfig()
+        self.duration_policy = NoteDurationPolicy(self.config.note_values, self.config.duration_extension_ticks)
+        self._extension_token = (
+            None if self.config.duration_extension_ticks is None else f"ext_{self.config.duration_extension_ticks:03}"
+        )
         tokens = ["pad", "sta", "sto", "bar"]
         tokens.extend(
             f"pos_{position:03}" for position in range(1, self.config.max_bar_quarters * self.ticks_per_quarter)
@@ -550,7 +552,14 @@ class NotelikeTokeniser(_IncrementalTokeniser):
                 and (self.ticks_per_quarter * 4 * numerator) // denominator
                 <= self.config.max_bar_quarters * self.ticks_per_quarter
             )
-        self.manifest = _manifest(self.codec_id, asdict(self.config), tokens)
+        if self._extension_token is not None:
+            tokens.append(self._extension_token)
+        manifest_config = asdict(self.config)
+        # Optional features are persisted only when enabled. This keeps the
+        # finite-duration contract stable for already identified artifacts.
+        if self.config.duration_extension_ticks is None:
+            del manifest_config["duration_extension_ticks"]
+        self.manifest = _manifest(self.codec_id, manifest_config, tokens)
         self.vocabulary = self.manifest.tokens
         token_to_id = {token: index for index, token in enumerate(self.vocabulary)}
         if len(token_to_id) != self.manifest.size:
@@ -604,6 +613,8 @@ class NotelikeTokeniser(_IncrementalTokeniser):
             return None
         main = parts[0][0]
         prefixes = {part[0] for part in parts}
+        if state.phase == "extension" and main not in {"ext", "pit"}:
+            return None
         if main == "pad":
             return None
         if main == "sta":
@@ -614,6 +625,30 @@ class NotelikeTokeniser(_IncrementalTokeniser):
             return replace(state, started=True, phase="bar")
         if not state.started:
             return None
+        if main == "ext":
+            unit = self.config.duration_extension_ticks
+            if token != self._extension_token or unit is None or state.active_track is None:
+                return None
+            if state.phase not in {"bar", "bar_meter", "position", "track", "note", "extension"}:
+                return None
+            if self.config.include_time_signatures and not state.meter_declared:
+                return None
+            if state.active_track < state.position_track_floor:
+                return None
+            extension = state.duration_extension_ticks + unit
+            base_values = [value for value in self.config.note_values if extension + value <= _MAX_NOTE_VALUE]
+            if not base_values:
+                return None
+            # Further markers may be needed before the next ordered note is
+            # reachable. Judge the whole chain, not only this first marker.
+            largest_duration = self.duration_policy.floor(_MAX_NOTE_VALUE)
+            assert largest_duration is not None
+            largest_key = (self.config.pitch_range[1], largest_duration, self._velocity_values[-1])
+            if state.last_note_key is not None and state.last_note_key > largest_key:
+                return None
+            if not materialise:
+                return state
+            return replace(state, duration_extension_ticks=extension, phase="extension")
         if main == "sto":
             if state.phase not in {"bar", "position"}:
                 return None
@@ -713,6 +748,7 @@ class NotelikeTokeniser(_IncrementalTokeniser):
                 "track",
                 "position",
                 "note",
+                "extension",
             }:
                 return None
             if self.config.include_time_signatures and not state.meter_declared:
@@ -729,6 +765,9 @@ class NotelikeTokeniser(_IncrementalTokeniser):
             velocity = self._number(velocity_part, 1)
             if pitch is None or value is None or velocity is None:
                 return None
+            value += state.duration_extension_ticks
+            if value > _MAX_NOTE_VALUE:
+                return None
             note_key = (pitch, value, velocity)
             if state.last_note_key is not None and note_key < state.last_note_key:
                 return None
@@ -740,6 +779,7 @@ class NotelikeTokeniser(_IncrementalTokeniser):
             return replace(
                 state,
                 pending_note_ticks=max(state.pending_note_ticks, value),
+                duration_extension_ticks=0,
                 position_track_floor=active_track,
                 last_note_key=note_key,
                 phase="note",
@@ -765,6 +805,11 @@ class NotelikeTokeniser(_IncrementalTokeniser):
                 mains.add("bar")
             if state.phase == "position":
                 mains.add("sto")
+            if self._extension_token is not None and state.active_track is not None:
+                if state.phase in {"bar", "bar_meter", "position", "track", "note", "extension"}:
+                    mains.add("ext")
+            if state.phase == "extension":
+                mains.add("pit")
         return frozenset(token_id for main in mains for token_id in self._token_ids_by_main.get(main, ()))
 
     @property
@@ -787,6 +832,47 @@ class NotelikeTokeniser(_IncrementalTokeniser):
                 raise TokenisationError(f"unknown token id: {token_id}")
             decoded.append(self.vocabulary[token_id])
         return decoded
+
+    def next_completion_token_id(self, state: TokeniserState) -> int | None:
+        """Return the next canonical tail token without introducing an attack.
+
+        At an onset horizon existing notes may still sound. Advance through
+        that tail in the current meter, then emit ``sto``. Dangling track or
+        extension prefixes require a note and cannot be completed this way.
+        """
+        self._validate_state(state)
+        if state.ended:
+            return None
+        if state.phase not in {"bar", "position", "note"}:
+            raise TokenisationError("prefix cannot complete without introducing a note")
+        if state.pending_note_ticks:
+            remaining = state.bar_capacity - state.bar_position
+            if state.pending_note_ticks >= remaining:
+                if state.phase == "position":
+                    raise TokenisationError("a dangling position cannot precede a canonical bar boundary")
+                token_id = self._bar_token_id
+            else:
+                token_id = self._position_token_ids[state.bar_position + state.pending_note_ticks]
+        elif state.phase in {"bar", "position"}:
+            token_id = self.stop_token_id
+        else:
+            raise TokenisationError("prefix has an inconsistent note sustain state")
+        self.advance(state, token_id)
+        return token_id
+
+    def completion_token_ids(self, state: TokeniserState, *, max_tokens: int | None = None) -> tuple[int, ...]:
+        """Return a deterministic attack-free suffix, including terminal stop."""
+        if max_tokens is not None and (
+            isinstance(max_tokens, bool) or not isinstance(max_tokens, int) or max_tokens < 0
+        ):
+            raise TokenisationError("max_tokens must be a non-negative integer or None")
+        result: list[int] = []
+        while (token_id := self.next_completion_token_id(state)) is not None:
+            if max_tokens is not None and len(result) >= max_tokens:
+                raise TokenisationError("canonical sounding tail exceeds max_tokens")
+            result.append(token_id)
+            state = self.advance(state, token_id)
+        return tuple(result)
 
     def tokenise(self, sequences: TypingSequence[Sequence]) -> list[str]:
         """Return a complete framed canonical stream for synchronised sequences."""
@@ -815,16 +901,10 @@ class NotelikeTokeniser(_IncrementalTokeniser):
             for note in sequence.notes:
                 if not self.config.pitch_range[0] <= note.pitch <= self.config.pitch_range[1]:
                     raise TokenisationError(f"note pitch {note.pitch} is outside the configured pitch range")
-                raw_duration = note.end - note.start
-                insertion_index = bisect_left(self.config.note_values, raw_duration)
-                if insertion_index == 0:
-                    value = self.config.note_values[0]
-                elif insertion_index == len(self.config.note_values):
-                    value = self.config.note_values[-1]
-                else:
-                    lower = self.config.note_values[insertion_index - 1]
-                    upper = self.config.note_values[insertion_index]
-                    value = lower if raw_duration - lower <= upper - raw_duration else upper
+                try:
+                    value = self.duration_policy.nearest(note.end - note.start)
+                except ValidationError as exc:
+                    raise TokenisationError(str(exc)) from exc
                 velocity = self._velocity_lookup[note.velocity]
                 quantised_notes.append((note.start, track, note.pitch, value, velocity))
                 effective_duration = max(effective_duration, note.start + value)
@@ -878,7 +958,10 @@ class NotelikeTokeniser(_IncrementalTokeniser):
                 if active_track != track:
                     tokens.append(f"trk_{track:02}")
                     active_track = track
-                tokens.append(self._note_tokens[(pitch, value, velocity)])
+                extensions, base_value = self.duration_policy.decompose(value)
+                if self._extension_token is not None:
+                    tokens.extend([self._extension_token] * extensions)
+                tokens.append(self._note_tokens[(pitch, base_value, velocity)])
                 note_index += 1
             end_position = bar_end - bar_start
             if end_position == bar_capacity:
@@ -910,7 +993,9 @@ class NotelikeTokeniser(_IncrementalTokeniser):
                 builders[0].add_event(TimeSignature(bar_start, int(prefixes["tsg"][1]), int(prefixes["tsg"][2])))
             if "pit" in prefixes:
                 pitch = int(prefixes["pit"][1])
-                value = int(prefixes["val"][1])
+                if state.last_note_key is None:
+                    raise TokenisationError("note token has no decoded duration")
+                value = state.last_note_key[1]
                 velocity = int(prefixes["vel"][1])
                 if state.active_track is None:
                     raise TokenisationError("note token has no active track")
@@ -1002,7 +1087,7 @@ class NotelikeTokeniser(_IncrementalTokeniser):
                 ticks_in_bar.append(state.bar_position)
             track_indexes.append(
                 state.active_track
-                if state.active_track is not None and (main == "trk" or pitch_part is not None)
+                if state.active_track is not None and (main in {"trk", "ext"} or pitch_part is not None)
                 else None
             )
             if pitch_part is not None:

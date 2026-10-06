@@ -16,6 +16,7 @@ from scoda.core import (
     bar_spans,
     split_bars,
 )
+from scoda.duration import NoteDurationPolicy
 from scoda.errors import (
     MidiError,
     MidiImportError,
@@ -59,6 +60,7 @@ __all__ = [
     "MidiImportReport",
     "MidiLoadResult",
     "Note",
+    "NoteDurationPolicy",
     "NotelikeConfig",
     "NotelikeTokeniser",
     "ProgramChange",

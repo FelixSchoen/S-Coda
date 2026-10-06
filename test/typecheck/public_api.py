@@ -8,6 +8,7 @@ from scoda import (
     KeySignature,
     MidiLoadResult,
     Note,
+    NoteDurationPolicy,
     NotelikeConfig,
     NotelikeTokeniser,
     Sequence,
@@ -34,6 +35,11 @@ sequence = Sequence(
 )
 assert_type(sequence.transpose(2), Sequence)
 assert_type(sequence.slice(0, 24), Sequence)
+assert_type(sequence.quantise_note_lengths((24, 96), duration_extension_ticks=96), Sequence)
+duration_policy = NoteDurationPolicy((24, 96), duration_extension_ticks=96)
+assert_type(duration_policy.nearest(120), int)
+assert_type(duration_policy.floor(120), int | None)
+assert_type(duration_policy.decompose(120), tuple[int, int])
 assert_type(sequence.split((12,)), tuple[Sequence, ...])
 assert_type(SequenceBuilder(24).add_note(Note(0, 12, 60, 90)).build(), Sequence)
 assert_type(bar_spans(sequence), tuple[BarSpan, ...])
@@ -48,6 +54,8 @@ tokeniser = NotelikeTokeniser(NotelikeConfig(note_values=(6, 12, 24)))
 assert_type(tokeniser.tokenise((sequence,)), list[str])
 assert_type(tokeniser.tokenise_body((sequence,)), list[str])
 assert_type(tokeniser.initial_state(), TokeniserState)
+assert_type(tokeniser.next_completion_token_id(tokeniser.initial_state()), int | None)
+assert_type(tokeniser.completion_token_ids(tokeniser.initial_state(), max_tokens=16), tuple[int, ...])
 assert_type(tokeniser.metadata(tokeniser.tokenise((sequence,))), TokenMetadata)
 assert_type(tokeniser.prefix_metadata(["sta"]), TokenMetadata)
 assert_type(tokeniser.vocabulary, tuple[str, ...])

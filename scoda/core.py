@@ -2,13 +2,13 @@
 
 from __future__ import annotations
 
-from bisect import bisect_left
 from collections import Counter
 from collections.abc import Callable, Iterable
 from dataclasses import dataclass, replace
 from fractions import Fraction
 from typing import Literal, TypeAlias, cast
 
+from scoda.duration import NoteDurationPolicy
 from scoda.errors import SequenceError, ValidationError
 from scoda.music_theory import Key
 
@@ -431,34 +431,32 @@ class Sequence:
         )
         return replace(self, notes=tuple(notes), events=events, duration_ticks=duration)
 
-    def quantise_note_lengths(self, note_values: Iterable[int]) -> Sequence:
+    def quantise_note_lengths(
+        self, note_values: Iterable[int], *, duration_extension_ticks: int | None = None
+    ) -> Sequence:
         """Replace note durations with the nearest allowed note value."""
 
         values = tuple(sorted(set(_positive_integer_values("note_values", note_values))))
-
-        def nearest(duration: int) -> int:
-            index = bisect_left(values, duration)
-            if index == 0:
-                return values[0]
-            if index == len(values):
-                return values[-1]
-            lower, upper = values[index - 1], values[index]
-            return lower if duration - lower <= upper - duration else upper
+        policy = NoteDurationPolicy(values, duration_extension_ticks)
 
         notes = tuple(
             replace(
                 note,
-                end=note.start + nearest(note.end - note.start),
+                end=note.start + policy.nearest(note.end - note.start),
             )
             for note in self.notes
         )
         duration = max((self.duration_ticks, *(note.end for note in notes)))
         return replace(self, notes=notes, duration_ticks=duration)
 
-    def quantise_and_normalise(self, step_sizes: Iterable[int], note_values: Iterable[int]) -> Sequence:
+    def quantise_and_normalise(
+        self, step_sizes: Iterable[int], note_values: Iterable[int], *, duration_extension_ticks: int | None = None
+    ) -> Sequence:
         """Quantise positions and durations while retaining canonical invariants."""
 
-        return self.quantise(step_sizes).quantise_note_lengths(note_values)
+        return self.quantise(step_sizes).quantise_note_lengths(
+            note_values, duration_extension_ticks=duration_extension_ticks
+        )
 
     def resample(self, ticks_per_quarter: int) -> Sequence:
         """Return this sequence expressed at a different tick resolution."""
@@ -482,7 +480,12 @@ class Sequence:
         return Sequence(tuple(notes), events, duration, ticks_per_quarter)
 
     def slice(self, start: int, end: int) -> Sequence:
-        """Return the half-open tick window ``[start, end)`` with local timing."""
+        """Return a clipped half-open tick window ``[start, end)`` with local timing.
+
+        Crossing notes are deliberately clipped. This is a self-contained
+        excerpt, not a lossless partition: concatenation cannot recover ties.
+        Use :func:`bar_spans` with the original notes for lossless bar views.
+        """
 
         _integer("start", start, 0)
         _integer("end", end, start)
@@ -769,7 +772,11 @@ def split_bars(
     strict: bool = True,
     carry_context: bool = True,
 ) -> tuple[tuple[Sequence, ...], ...]:
-    """Split tracks at the meta track's bars, optionally carrying active state into every bar."""
+    """Return clipped bar excerpts, optionally carrying active MIDI context.
+
+    Notes crossing boundaries become independent fragments. Tokenise the
+    original sequences, not concatenated excerpts, to preserve articulation.
+    """
 
     raw_sequences: object = sequences
     if isinstance(raw_sequences, (str, bytes)):

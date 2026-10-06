@@ -23,6 +23,30 @@ triplet, and dotted values between a sixteenth-note triplet and a whole note:
 This library default is intended as a general-purpose starting point. Machine-learning corpora should explicitly pin
 the smallest musically justified `note_values` set so preprocessing and vocabulary construction remain reproducible.
 
+### Sustained notes
+
+Enable `duration_extension_ticks` to represent long durations without adding a separate long-duration token for
+every pitch. The extension interval must equal the largest base duration. At PPQN 24, an interval of 96 is a whole
+note, independently of the current meter:
+
+```python
+values = (4, 6, 8, 12, 16, 18, 24, 32, 36, 48, 72, 96)
+config = NotelikeConfig(note_values=values, duration_extension_ticks=96)
+tokeniser = NotelikeTokeniser(config)
+sequence = sequence.quantise_note_lengths(values, duration_extension_ticks=96)
+```
+
+The codec adds one `ext_096` token. After selecting the onset position and track, each such token extends the
+following fused note by 96 ticks. For example, `ext_096 pit_060-val_24-vel_064` encodes one 120-tick note, and
+`ext_096 pit_060-val_96-vel_064` encodes one 192-tick note. Extension markers do not advance time or create attacks.
+They must be followed immediately by another extension or their note, never by a position, track, bar, or stop.
+
+The shared `NoteDurationPolicy` supplies nearest-duration quantisation, the largest representable duration fitting
+a gap (`floor`), and unique `(extension_count, base_value)` decomposition. Quantisation still rounds to the configured
+domain; extensions preserve long sustains, not arbitrary expressive MIDI timing. Without extensions, durations above
+the largest configured value are capped at that value. With extensions, durations beyond the supported numeric range
+are rejected rather than silently capped.
+
 `velocity_bins` divides the positive MIDI range `1..127` into equal-width categories and names each category by its
 centre value. Consequently, the default single category is `vel_064`: it means "the only velocity category", not that
 the input note necessarily had velocity 64. Detokenisation reconstructs that representative value, so a corpus that
@@ -36,6 +60,10 @@ the redundant `pos_096`. The boundary both closes the current bar and precedes t
 bar instead ends with its exact position followed by `sto`, so complete and incomplete endings remain distinguishable.
 The running track remains active across the boundary, avoiding a redundant track token when the next note stays on the
 same track; position and note-order state reset for the new bar.
+
+Notes may continue sounding across any number of boundaries. Tokenise the original intervals: `split_bars()` and
+`Sequence.slice()` deliberately clip notes into independent excerpts and cannot be losslessly reassembled to infer
+ties. `bar_spans()` provides bar boundaries without changing the original notes.
 
 ```text
 complete bars:    sta ... bar ... bar sto
@@ -78,8 +106,17 @@ body. It includes token indices, absolute and within-bar ticks, active track ind
 positions. Tokens without pitch-derived values use `NaN` unless `impute_pitch=True` requests carry-forward values;
 before the first note, imputation uses the neutral reference pitch A4 (`69`).
 
+Extension markers have the current onset time and known active track, but no pitch of their own. Imputation carries
+the preceding pitch; metadata never looks ahead to the following note. Their token indices advance normally.
+
 ## Constrained generation
 
 Start with `initial_state()`. For each generated token, obtain `allowed_token_ids(state)` and update the state with
 `advance(state, token_id)`. `inspect_prefix()` validates and reconstructs state from an existing ID prefix. These methods
 share the same grammar used by detokenisation, so model constraints cannot drift from the decoder.
+
+At a fixed onset horizon, stop introducing notes and use `completion_token_ids(state)` to obtain a deterministic
+attack-free sounding tail followed by `sto`. Pass `max_tokens` to bound suffix allocation and reject tails exceeding
+a generation safety budget. `next_completion_token_id(state)` supplies the same suffix one token
+at a time. The suffix may contain additional full bars and a partial terminal position; those serialize existing
+notes, not additional generated content. Dangling track or extension prefixes cannot be completed without a note.

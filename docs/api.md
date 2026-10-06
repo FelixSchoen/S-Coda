@@ -19,6 +19,10 @@ Only names exported directly from `scoda` are part of the supported public API.
         - bar_spans
         - split_bars
 
+## Duration policies
+
+::: scoda.duration.NoteDurationPolicy
+
 ## Music theory
 
 ::: scoda.music_theory.Key

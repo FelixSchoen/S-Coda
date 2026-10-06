@@ -234,11 +234,14 @@ def load_midi(
     meta_target: int = 0,
     target_ticks_per_quarter: int | None = None,
     mode: Literal["repair", "strict", "lossless"] = "repair",
+    unclosed_note_policy: Literal["close_at_track_end", "drop"] = "close_at_track_end",
 ) -> MidiLoadResult:
     """Load MIDI into canonical sequences and return all repairs as diagnostics."""
 
     if mode not in {"repair", "strict", "lossless"}:
         raise MidiError("mode must be 'repair', 'strict', or 'lossless'")
+    if not isinstance(unclosed_note_policy, str) or unclosed_note_policy not in {"close_at_track_end", "drop"}:
+        raise MidiError("unclosed_note_policy must be 'close_at_track_end' or 'drop'")
     midi_file = source if isinstance(source, mido.MidiFile) else mido.MidiFile(source)
     if isinstance(midi_file.type, bool) or midi_file.type not in {0, 1, 2}:
         raise MidiError(f"invalid MIDI format: {midi_file.type!r}")
@@ -398,6 +401,9 @@ def load_midi(
                     diagnostic(
                         start_record, "zero_length_unclosed_note", "error", "discarded unclosed note at track end"
                     )
+                    continue
+                if unclosed_note_policy == "drop":
+                    diagnostic(start_record, "unclosed_note", "error", "discarded note without a note-off")
                     continue
                 builders[group_index].add_note(Note(start, source_track_end, pitch, velocity, channel, 0))
                 notes_created += 1
